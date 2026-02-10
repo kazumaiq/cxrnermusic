@@ -1,4 +1,4 @@
-﻿export type FaqItem = {
+export type FaqItem = {
   question: string;
   answer: string;
   bullets?: string[];
@@ -79,7 +79,8 @@ export const releases = [
       { label: "Apple Music", href: "https://music.apple.com" },
       { label: "Amazon Music", href: "https://music.amazon.com" },
     ],
-  },
+
+  }
 ];
 
 export const services = [
@@ -106,7 +107,8 @@ export const services = [
   {
     title: "Монетизация TikTok",
     description: "Постановка треков в библиотеку TikTok и Shorts.",
-  },
+
+  }
 ];
 
 export const artists = [
@@ -145,7 +147,8 @@ export const artists = [
     genre: "Alt R&B",
     streams: "21M",
     avatar: "/images/artist-06.svg",
-  },
+
+  }
 ];
 
 export const faqItems: FaqItem[] = [
@@ -232,10 +235,6 @@ export const faqItems: FaqItem[] = [
     question: "Личный кабинет артиста",
     answer:
       "Для создания личного кабинета в формате групп нужно написать @kazumaiq.",
-  },
-  {
-    question: "CXRNER LINK",
-    answer: "Сайт для отгрузки, инструкций и создания мультиссылки по UPC:",
-    links: [{ label: "cxrnerlink.ct.ws/login.php", href: "https://cxrnerlink.ct.ws/login.php" }],
-  },
+
+  }
 ];
