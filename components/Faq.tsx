@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { FaqItem } from "../data/site";
 import Reveal from "./Reveal";
 
-const itemTransition = { duration: 0.35, ease: "easeOut" };
+const itemTransition = { duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] };
 
 type FaqProps = {
   items: FaqItem[];
