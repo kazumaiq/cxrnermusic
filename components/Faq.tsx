@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { FaqItem } from "@/data/site";
-import Reveal from "@/components/Reveal";
+import type { FaqItem } from "../data/site";
+import Reveal from "./Reveal";
 
 const itemTransition = { duration: 0.35, ease: "easeOut" };
 

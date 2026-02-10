@@ -1,13 +1,13 @@
-﻿import Image from "next/image";
-import Container from "@/components/Container";
-import Reveal from "@/components/Reveal";
-import RevealText from "@/components/RevealText";
-import GlowButton from "@/components/GlowButton";
-import Counter from "@/components/Counter";
-import ParallaxOrbs from "@/components/ParallaxOrbs";
-import SectionHeader from "@/components/SectionHeader";
-import Faq from "@/components/Faq";
-import { artists, faqItems, releases, services, stats } from "@/data/site";
+import Image from "next/image";
+import Container from "../components/Container";
+import Reveal from "../components/Reveal";
+import RevealText from "../components/RevealText";
+import GlowButton from "../components/GlowButton";
+import Counter from "../components/Counter";
+import ParallaxOrbs from "../components/ParallaxOrbs";
+import SectionHeader from "../components/SectionHeader";
+import Faq from "../components/Faq";
+import { artists, faqItems, releases, services, stats } from "../data/site";
 
 export default function HomePage() {
   return (
