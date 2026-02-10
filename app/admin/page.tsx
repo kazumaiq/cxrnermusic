@@ -13,9 +13,12 @@ const emptyFeatured: FeaturedRelease = {
   cover: "",
 };
 
+type StatusType = "" | "success" | "error";
+
 export default function AdminPage() {
   const [featured, setFeatured] = useState<FeaturedRelease>(emptyFeatured);
   const [status, setStatus] = useState<string>("");
+  const [statusType, setStatusType] = useState<StatusType>("");
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -40,17 +43,21 @@ export default function AdminPage() {
 
   const handleSave = async () => {
     setStatus("Сохраняем...");
+    setStatusType("");
     try {
       const res = await fetch("/api/featured", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(featured),
       });
-      if (!res.ok) throw new Error("Save failed");
+      const payload = await res.json();
+      if (!res.ok || !payload.ok) throw new Error("Save failed");
       setStatus("Сохранено");
+      setStatusType("success");
       setTimeout(() => setStatus(""), 2000);
     } catch {
-      setStatus("Ошибка сохранения");
+      setStatus("Ошибка сохранения. Проверь Supabase ключи в Vercel.");
+      setStatusType("error");
     }
   };
 
@@ -129,7 +136,11 @@ export default function AdminPage() {
               <GlowButton variant="primary" onClick={handleSave}>
                 Сохранить
               </GlowButton>
-              {status ? <span className="text-sm text-white/70">{status}</span> : null}
+              {status ? (
+                <span className={`text-sm ${statusType === "error" ? "text-red-300" : "text-white/70"}`}>
+                  {status}
+                </span>
+              ) : null}
             </div>
           </div>
 

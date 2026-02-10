@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -7,6 +8,8 @@ export type FeaturedRelease = {
   cover: string;
 };
 
+type FeaturedRow = FeaturedRelease & { id: string };
+
 const fallback: FeaturedRelease = {
   title: "Neon Drift",
   artist: "KAZUMAI",
@@ -14,7 +17,11 @@ const fallback: FeaturedRelease = {
 };
 
 const featuredPath = path.join(process.cwd(), "data", "featured.json");
-const kvEnabled = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseEnabled = Boolean(supabaseUrl && (supabaseAnonKey || supabaseServiceKey));
+const FEATURED_ID = "current";
 
 function sanitize(input: Partial<FeaturedRelease> | null): FeaturedRelease {
   if (!input) return fallback;
@@ -23,6 +30,11 @@ function sanitize(input: Partial<FeaturedRelease> | null): FeaturedRelease {
     artist: typeof input.artist === "string" && input.artist.trim() ? input.artist.trim() : fallback.artist,
     cover: typeof input.cover === "string" && input.cover.trim() ? input.cover.trim() : fallback.cover,
   };
+}
+
+function getClient(key: string) {
+  if (!supabaseUrl) throw new Error("Supabase URL missing");
+  return createClient(supabaseUrl, key, { auth: { persistSession: false } });
 }
 
 async function readFromFile(): Promise<FeaturedRelease> {
@@ -39,28 +51,48 @@ async function writeToFile(data: FeaturedRelease): Promise<void> {
   await fs.writeFile(featuredPath, JSON.stringify(data, null, 2), "utf8");
 }
 
-async function readFromKv(): Promise<FeaturedRelease> {
-  const { kv } = await import("@vercel/kv");
-  const value = (await kv.get<FeaturedRelease>("featured_release")) ?? null;
-  return sanitize(value ?? null);
+async function readFromSupabase(): Promise<FeaturedRelease> {
+  const key = supabaseServiceKey ?? supabaseAnonKey;
+  if (!key) throw new Error("Supabase key missing");
+
+  const client = getClient(key);
+  const { data, error } = await client
+    .from("featured_release")
+    .select("title, artist, cover")
+    .eq("id", FEATURED_ID)
+    .maybeSingle();
+
+  if (error) throw error;
+  return sanitize(data ?? null);
 }
 
-async function writeToKv(data: FeaturedRelease): Promise<void> {
-  const { kv } = await import("@vercel/kv");
-  await kv.set("featured_release", data);
+async function writeToSupabase(data: FeaturedRelease): Promise<void> {
+  if (!supabaseServiceKey) throw new Error("Supabase service role key missing");
+  const client = getClient(supabaseServiceKey);
+  const payload: FeaturedRow = { id: FEATURED_ID, ...data };
+  const { error } = await client
+    .from("featured_release")
+    .upsert(payload, { onConflict: "id" });
+  if (error) throw error;
 }
 
 export async function getFeaturedRelease(): Promise<FeaturedRelease> {
-  if (kvEnabled) return readFromKv();
+  if (supabaseEnabled) {
+    try {
+      return await readFromSupabase();
+    } catch {
+      return readFromFile();
+    }
+  }
   return readFromFile();
 }
 
 export async function setFeaturedRelease(data: FeaturedRelease): Promise<FeaturedRelease> {
   const next = sanitize(data);
-  if (kvEnabled) {
-    await writeToKv(next);
-  } else {
-    await writeToFile(next);
+  if (supabaseEnabled) {
+    await writeToSupabase(next);
+    return next;
   }
+  await writeToFile(next);
   return next;
 }

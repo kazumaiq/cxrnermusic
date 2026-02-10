@@ -14,7 +14,7 @@
                          "next":  "latest",
                          "react":  "latest",
                          "react-dom":  "latest",
-                         "@vercel/kv":  "latest"
+                         "@supabase/supabase-js":  "latest"
                      },
     "devDependencies":  {
                             "@types/node":  "latest",
