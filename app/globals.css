@@ -1,0 +1,95 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-night text-white antialiased font-body;
+  background-image: radial-gradient(1200px circle at 20% 10%, rgba(180, 75, 255, 0.22), transparent 60%),
+    radial-gradient(1000px circle at 80% 20%, rgba(83, 246, 255, 0.18), transparent 60%),
+    radial-gradient(1200px circle at 50% 80%, rgba(255, 75, 214, 0.12), transparent 70%);
+  min-height: 100%;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.18;
+  mix-blend-mode: screen;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-innerGlow;
+  }
+
+  .section-padding {
+    @apply py-20 md:py-28;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm md:text-base font-semibold transition-all duration-300 relative overflow-hidden;
+  }
+
+  .btn-primary {
+    @apply bg-neon text-night shadow-glow hover:shadow-glowStrong;
+  }
+
+  .btn-ghost {
+    @apply border border-white/20 text-white/90 hover:border-neon hover:text-white bg-white/5;
+  }
+
+  .btn-ripple::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255, 255, 255, 0.45), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  .btn-ripple:hover::after,
+  .btn-ripple:focus-visible::after {
+    opacity: 1;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 24px rgba(180, 75, 255, 0.55);
+  }
+
+  .card-hover {
+    @apply transition-transform duration-300 hover:-translate-y-1;
+  }
+
+  .neon-border {
+    box-shadow: 0 0 0 1px rgba(180, 75, 255, 0.45), 0 0 30px rgba(180, 75, 255, 0.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
