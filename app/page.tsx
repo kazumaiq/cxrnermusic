@@ -23,7 +23,7 @@ export default async function HomePage() {
             <div>
               <Reveal>
                 <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-neon/80">
-                  <Image src="/images/logo.svg" alt="Логотип CXRNER MUSIC" width={40} height={40} className="h-10 w-10" />
+                  <Image src="/images/logo.png" alt="Логотип CXRNER MUSIC" width={40} height={40} className="h-10 w-10" />
                   CXRNER MUSIC
                 </div>
               </Reveal>
