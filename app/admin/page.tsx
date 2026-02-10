@@ -74,7 +74,9 @@ export default function AdminPage() {
         <div className="mt-10 grid gap-6 md:grid-cols-4">
           {stats.map((item) => (
             <div key={item.label} className="glass rounded-2xl px-6 py-5 text-center">
-              <p className="text-2xl font-semibold text-white">{item.value}{item.suffix}</p>
+              <p className="text-2xl font-semibold text-white">
+                {item.display ? item.display : `${item.value}${item.suffix ?? ""}`}
+              </p>
               <p className="mt-2 text-xs uppercase tracking-[0.3em] text-white/60">{item.label}</p>
             </div>
           ))}

@@ -129,7 +129,11 @@ export default async function HomePage() {
               <Reveal key={stat.label} delay={index * 0.05}>
                 <div className="glass rounded-2xl px-6 py-8 text-center">
                   <p className="text-3xl font-semibold text-white">
-                    <Counter to={stat.value} suffix={stat.suffix} />
+                    {stat.display ? (
+                      <span>{stat.display}</span>
+                    ) : (
+                      <Counter to={stat.value} suffix={stat.suffix} />
+                    )}
                   </p>
                   <p className="mt-2 text-sm uppercase tracking-[0.3em] text-white/60">
                     {stat.label}

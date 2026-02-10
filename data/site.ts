@@ -5,11 +5,18 @@
   links?: { label: string; href: string }[];
 };
 
-export const stats = [
-  { label: "Стримов", value: 240, suffix: "M+" },
-  { label: "Артистов", value: 86, suffix: "+" },
-  { label: "Релизов", value: 420, suffix: "+" },
-  { label: "Стран", value: 64, suffix: "+" },
+export type StatItem = {
+  label: string;
+  value: number;
+  suffix?: string;
+  display?: string;
+};
+
+export const stats: StatItem[] = [
+  { label: "???????", value: 900, suffix: "?+" },
+  { label: "????????", value: 300, suffix: "+" },
+  { label: "???????", value: 350, suffix: "+" },
+  { label: "?????", value: 0, display: "???? ???" },
 ];
 
 export const releases = [
