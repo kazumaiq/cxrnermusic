@@ -1,0 +1,25 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#090412" />
+      <stop offset="100%" stop-color="#1b0b2e" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#b44bff" />
+      <stop offset="100%" stop-color="#53f6ff" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" rx="48" fill="url(#bg)" />
+  <circle cx="190" cy="140" r="140" fill="#b44bff" opacity="0.15" />
+  <circle cx="1040" cy="120" r="160" fill="#53f6ff" opacity="0.12" />
+  <circle cx="980" cy="520" r="220" fill="#ff4bd6" opacity="0.1" />
+
+  <path d="M210 210 L600 560 L990 210 L820 280 L860 320 L790 380 L850 420 L770 470 L820 510 L740 550 L600 580 L460 550 L380 510 L430 470 L350 420 L410 380 L340 320 L380 280 Z" fill="#ffffff" opacity="0.9"/>
+
+  <text x="120" y="180" fill="#ffffff" font-size="56" font-family="Orbitron, sans-serif" letter-spacing="14">
+    CXRNER MUSIC
+  </text>
+  <text x="120" y="260" fill="#bdb4d7" font-size="28" font-family="Sora, sans-serif" letter-spacing="2">
+    Независимый лейбл и дистрибуция
+  </text>
+</svg>

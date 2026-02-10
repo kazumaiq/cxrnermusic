@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 import { Orbitron, Sora } from "next/font/google";
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Providers from "./providers";
+
+const SITE_URL = "https://cxrnermusic.vercel.app";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -21,29 +24,82 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "CXRNER MUSIC вЂ” РќРµР·Р°РІРёСЃРёРјС‹Р№ Р»РµР№Р±Р» Рё РґРёСЃС‚СЂРёР±СѓС†РёСЏ",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "CXRNER MUSIC — независимый лейбл и дистрибуция",
+    template: "%s — CXRNER MUSIC",
+  },
   description:
-    "CXRNER MUSIC вЂ” РЅРµР·Р°РІРёСЃРёРјС‹Р№ Р»РµР№Р±Р», РґРёСЃС‚СЂРёР±СѓС†РёСЏ Рё РїСЂРѕРґРІРёР¶РµРЅРёРµ РґР»СЏ Р°СЂС‚РёСЃС‚РѕРІ РЅРѕРІРѕРіРѕ Р·РІСѓС‡Р°РЅРёСЏ.",
+    "CXRNER MUSIC — независимый музыкальный лейбл и дистрибуция. Релизы, плейлистинг, маркетинг и монетизация для артистов нового звучания.",
   keywords: [
     "CXRNER MUSIC",
-    "РјСѓР·С‹РєР°Р»СЊРЅС‹Р№ Р»РµР№Р±Р»",
-    "РґРёСЃС‚СЂРёР±СѓС†РёСЏ",
-    "СЂРµР»РёР·С‹",
-    "РїР»РµР№Р»РёСЃС‚РёРЅРі",
-    "РјСѓР·С‹РєР°Р»СЊРЅС‹Р№ РјР°СЂРєРµС‚РёРЅРі",
+    "cxrner",
+    "музыкальный лейбл",
+    "дистрибуция",
+    "релизы",
+    "плейлистинг",
+    "музыкальный маркетинг",
+    "промо",
   ],
-  openGraph: {
-    title: "CXRNER MUSIC",
-    description: "РќРµР·Р°РІРёСЃРёРјС‹Р№ РјСѓР·С‹РєР°Р»СЊРЅС‹Р№ Р»РµР№Р±Р» Рё РґРёСЃС‚СЂРёР±СѓС†РёСЏ",
-    type: "website",
+  alternates: {
+    canonical: "/",
   },
-  metadataBase: new URL("https://cxrner-music.vercel.app"),
+  openGraph: {
+    title: "CXRNER MUSIC — независимый лейбл и дистрибуция",
+    description:
+      "Независимый музыкальный лейбл и дистрибуция. Релизы, плейлистинг и маркетинг для артистов.",
+    type: "website",
+    url: SITE_URL,
+    siteName: "CXRNER MUSIC",
+    locale: "ru_RU",
+    images: [
+      {
+        url: "/images/og.svg",
+        width: 1200,
+        height: 630,
+        alt: "CXRNER MUSIC",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CXRNER MUSIC — независимый лейбл и дистрибуция",
+    description:
+      "Независимый музыкальный лейбл и дистрибуция. Релизы, плейлистинг и маркетинг для артистов.",
+    images: ["/images/og.svg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "CXRNER MUSIC",
+  url: SITE_URL,
+  logo: `${SITE_URL}/images/logo.svg`,
+  email: "cxrner.label@gmail.com",
+  sameAs: ["https://t.me/kazumaiq", "https://t.me/moder_cxrner_bot"],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru" className={`${orbitron.variable} ${sora.variable}`}>
       <body className="min-h-screen bg-night">
+        <Script
+          id="json-ld-org"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <div className="relative min-h-screen">
           <Header />
           <Providers>{children}</Providers>
