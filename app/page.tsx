@@ -8,8 +8,12 @@ import ParallaxOrbs from "../components/ParallaxOrbs";
 import SectionHeader from "../components/SectionHeader";
 import Faq from "../components/Faq";
 import { artists, faqItems, releases, services, stats } from "../data/site";
+import { getFeaturedRelease } from "../lib/featured";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const featured = await getFeaturedRelease();
+  const isRemoteCover = featured.cover.startsWith("http");
+
   return (
     <>
       <section id="hero" className="relative overflow-hidden">
@@ -66,19 +70,23 @@ export default function HomePage() {
             <div className="relative">
               <div className="glass rounded-3xl p-6 neon-border">
                 <div className="relative aspect-square overflow-hidden rounded-2xl">
-                  <Image
-                    src="/images/album-01.svg"
-                    alt="Обложка релиза"
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover"
-                    priority
-                  />
+                  {isRemoteCover ? (
+                    <img src={featured.cover} alt="Обложка релиза" className="h-full w-full object-cover" />
+                  ) : (
+                    <Image
+                      src={featured.cover}
+                      alt="Обложка релиза"
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-cover"
+                      priority
+                    />
+                  )}
                 </div>
                 <div className="mt-6 flex items-center justify-between">
                   <div>
-                    <p className="text-lg font-semibold text-white">Neon Drift</p>
-                    <p className="text-sm text-white/60">KAZUMAI</p>
+                    <p className="text-lg font-semibold text-white">{featured.title}</p>
+                    <p className="text-sm text-white/60">{featured.artist}</p>
                   </div>
                   <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white/60">
                     Новинка

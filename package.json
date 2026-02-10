@@ -13,7 +13,8 @@
                          "framer-motion":  "latest",
                          "next":  "latest",
                          "react":  "latest",
-                         "react-dom":  "latest"
+                         "react-dom":  "latest",
+                         "@vercel/kv":  "latest"
                      },
     "devDependencies":  {
                             "@types/node":  "latest",
