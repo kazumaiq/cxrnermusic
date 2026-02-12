@@ -19,6 +19,30 @@ export const stats: StatItem[] = [
   { label: "Стран мира", value: 256 },
 ];
 
+export type WhyItem = {
+  title: string;
+  description: string;
+};
+
+export const whyUs: WhyItem[] = [
+  {
+    title: "Быстрый релиз",
+    description: "Оперативная модерация и отгрузка с контролем каждого этапа.",
+  },
+  {
+    title: "Поддержка 24/7",
+    description: "Всегда на связи по Telegram, помогаем на каждом шаге.",
+  },
+  {
+    title: "Плейлисты",
+    description: "Редакционный и жанровый плейлистинг, чтобы вас услышали.",
+  },
+  {
+    title: "Прозрачные роялти",
+    description: "Чёткая модель 70/30 и понятные отчёты по выплатам.",
+  },
+];
+
 export const releases = [
   {
     title: "Neon Drift",

@@ -7,7 +7,7 @@ import Counter from "../components/Counter";
 import ParallaxOrbs from "../components/ParallaxOrbs";
 import SectionHeader from "../components/SectionHeader";
 import Faq from "../components/Faq";
-import { artists, faqItems, services, stats, testimonials } from "../data/site";
+import { artists, faqItems, services, stats, testimonials, whyUs } from "../data/site";
 import { getFeaturedRelease } from "../lib/featured";
 import { getReleases } from "../lib/releases";
 
@@ -129,7 +129,7 @@ export default async function HomePage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat, index) => (
               <Reveal key={stat.label} delay={index * 0.05}>
-                <div className="glass rounded-2xl px-6 py-8 text-center">
+                <div className="glass glow-hover rounded-2xl px-6 py-8 text-center">
                   <p className="text-3xl font-semibold text-white">
                     {stat.display ? (
                       <span>{stat.display}</span>
@@ -140,6 +140,26 @@ export default async function HomePage() {
                   <p className="mt-2 text-sm uppercase tracking-[0.3em] text-white/60">
                     {stat.label}
                   </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      <section id="why" className="section-padding">
+        <Container>
+          <SectionHeader
+            eyebrow="Почему мы"
+            title="Коротко о главном"
+            description="Четыре причины, почему артисты выбирают CXRNER MUSIC."
+          />
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {whyUs.map((item, index) => (
+              <Reveal key={item.title} delay={index * 0.05} scale={0.98} blur={6}>
+                <div className="glass glow-hover rounded-2xl p-6">
+                  <p className="text-lg font-semibold text-white">{item.title}</p>
+                  <p className="mt-3 text-sm text-white/70">{item.description}</p>
                 </div>
               </Reveal>
             ))}
@@ -163,9 +183,9 @@ export default async function HomePage() {
             {releases.map((release, index) => {
               const isRemote = release.cover.startsWith("http");
               return (
-                <Reveal key={`${release.title}-${index}`} delay={index * 0.05}>
-                  <div className="glass group rounded-3xl p-4 transition hover:-translate-y-1 hover:shadow-glow">
-                    <div className="relative aspect-square overflow-hidden rounded-2xl">
+                <Reveal key={`${release.title}-${index}`} delay={index * 0.05} blur={6}>
+                  <div className="glass glow-hover group rounded-3xl p-4 transition hover:-translate-y-1 hover:shadow-glow">
+                    <Reveal className="relative aspect-square overflow-hidden rounded-2xl" y={0} scale={0.92} blur={0}>
                       {isRemote ? (
                         <img
                           src={release.cover}
@@ -181,7 +201,7 @@ export default async function HomePage() {
                           className="object-cover transition duration-500 group-hover:scale-105"
                         />
                       )}
-                    </div>
+                    </Reveal>
                     <div className="mt-4">
                       <p className="text-lg font-semibold text-white">{release.title}</p>
                       <p className="text-sm text-white/60">{release.artist}</p>
@@ -216,8 +236,8 @@ export default async function HomePage() {
           />
           <div className="mt-10 grid gap-6 lg:grid-cols-2">
             {testimonials.map((item, index) => (
-              <Reveal key={item.name} delay={index * 0.05}>
-                <div className="glass rounded-3xl p-6">
+              <Reveal key={item.name} delay={index * 0.05} blur={6}>
+                <div className="glass glow-hover rounded-3xl p-6">
                   <div className="flex items-center gap-4">
                     <div className="relative h-16 w-16 overflow-hidden rounded-full border border-white/10">
                       <Image src={item.avatar} alt={item.name} fill sizes="64px" className="object-cover" />
@@ -238,14 +258,14 @@ export default async function HomePage() {
       <section id="services" className="section-padding">
         <Container>
           <SectionHeader
-            eyebrow="Почему мы"
+            eyebrow="Сервисы"
             title="Полный цикл для артистов"
             description="От дистрибуции до TikTok — команда CXRNER MUSIC закрывает весь цикл релиза и роста."
           />
           <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {services.map((service, index) => (
-              <Reveal key={service.title} delay={index * 0.05}>
-                <div className="glass rounded-2xl p-6 transition hover:-translate-y-1 hover:shadow-glow">
+              <Reveal key={service.title} delay={index * 0.05} blur={6}>
+                <div className="glass glow-hover rounded-2xl p-6 transition hover:-translate-y-1 hover:shadow-glow">
                   <div className="flex items-center gap-3">
                     <span className="h-3 w-3 rounded-full bg-neon" />
                     <h3 className="text-lg font-semibold text-white">{service.title}</h3>
@@ -267,8 +287,8 @@ export default async function HomePage() {
           />
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {artists.map((artist, index) => (
-              <Reveal key={artist.name} delay={index * 0.05}>
-                <div className="glass flex items-center gap-4 rounded-2xl p-5 transition hover:-translate-y-1 hover:shadow-glow">
+              <Reveal key={artist.name} delay={index * 0.05} blur={6}>
+                <div className="glass glow-hover flex items-center gap-4 rounded-2xl p-5 transition hover:-translate-y-1 hover:shadow-glow">
                   <div className="relative h-16 w-16 overflow-hidden rounded-full border border-white/10">
                     <Image
                       src={encodeURI(artist.avatar)}

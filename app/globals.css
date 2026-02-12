@@ -77,6 +77,10 @@ body::before {
     @apply transition-transform duration-300 hover:-translate-y-1;
   }
 
+  .glow-hover {
+    @apply transition duration-300 hover:shadow-glowStrong hover:border-neon/40;
+  }
+
   .neon-border {
     box-shadow: 0 0 0 1px rgba(180, 75, 255, 0.45), 0 0 30px rgba(180, 75, 255, 0.25);
   }
