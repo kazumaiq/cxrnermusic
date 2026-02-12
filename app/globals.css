@@ -70,33 +70,15 @@ body::before {
   }
 
   .logo-badge {
-    @apply relative flex items-center justify-center rounded-[16px] bg-white/5 border border-white/15 backdrop-blur-lg transition duration-300;
-    box-shadow: 0 0 0 1px rgba(180, 75, 255, 0.35), 0 0 22px rgba(180, 75, 255, 0.45);
-  }
-
-  .logo-badge::after {
-    content: "";
-    position: absolute;
-    inset: -6px;
-    border-radius: 20px;
-    background: radial-gradient(circle, rgba(180, 75, 255, 0.25), transparent 60%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    @apply relative flex items-center justify-center rounded-full bg-black transition duration-300;
   }
 
   .logo-badge:hover {
-    transform: translateY(-1px) scale(1.04);
-    box-shadow: 0 0 0 1px rgba(180, 75, 255, 0.55), 0 0 30px rgba(180, 75, 255, 0.6);
-  }
-
-  .logo-badge:hover::after,
-  .logo-badge:focus-visible::after {
-    opacity: 1;
+    transform: translateY(-1px) scale(1.03);
   }
 
   .logo-img {
-    @apply object-contain mix-blend-screen;
-    filter: drop-shadow(0 0 12px rgba(180, 75, 255, 0.6));
+    @apply object-contain;
   }
 
   .text-glow {
