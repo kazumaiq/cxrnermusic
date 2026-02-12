@@ -6,6 +6,7 @@ import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Providers from "./providers";
+import BackgroundFX from "../components/BackgroundFX";
 
 const SITE_URL = "https://cxrnermusic.vercel.app";
 
@@ -101,6 +102,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <div className="relative min-h-screen">
+          <BackgroundFX />
           <Header />
           <Providers>{children}</Providers>
           <Footer />

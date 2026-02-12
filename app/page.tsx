@@ -4,7 +4,6 @@ import Reveal from "../components/Reveal";
 import RevealText from "../components/RevealText";
 import GlowButton from "../components/GlowButton";
 import Counter from "../components/Counter";
-import ParallaxOrbs from "../components/ParallaxOrbs";
 import SectionHeader from "../components/SectionHeader";
 import Faq from "../components/Faq";
 import { artists, faqItems, services, stats, testimonials, whyUs } from "../data/site";
@@ -22,7 +21,6 @@ export default async function HomePage() {
   return (
     <>
       <section id="hero" className="relative overflow-hidden">
-        <ParallaxOrbs />
         <Container className="section-padding">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
