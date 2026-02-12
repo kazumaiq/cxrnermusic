@@ -31,6 +31,8 @@ export default function AdminPage() {
   const [releasesStatus, setReleasesStatus] = useState<string>("");
   const [releasesStatusType, setReleasesStatusType] = useState<StatusType>("");
   const [loading, setLoading] = useState<boolean>(true);
+  const [uploadingFeatured, setUploadingFeatured] = useState<boolean>(false);
+  const [uploadingReleaseIndex, setUploadingReleaseIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -56,6 +58,46 @@ export default function AdminPage() {
 
   const handleChange = (key: keyof FeaturedRelease, value: string) => {
     setFeatured((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const uploadImage = async (file: File, folder: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("folder", folder);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: form,
+    });
+
+    const payload = await res.json();
+    if (!res.ok || !payload?.ok) {
+      throw new Error(payload?.error || "Upload failed");
+    }
+
+    return payload.url as string;
+  };
+
+  const handleUploadFeatured = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFeatured(true);
+    setStatus("Загружаем обложку...");
+    setStatusType("");
+
+    try {
+      const url = await uploadImage(file, "featured");
+      handleChange("cover", url);
+      setStatus("Обложка загружена. Нажмите «Сохранить новинку».");
+      setStatusType("success");
+    } catch {
+      setStatus("Ошибка загрузки обложки. Проверьте Supabase Storage.");
+      setStatusType("error");
+    } finally {
+      setUploadingFeatured(false);
+      event.target.value = "";
+    }
   };
 
   const handleSaveFeatured = async () => {
@@ -92,6 +134,28 @@ export default function AdminPage() {
         return { ...item, links };
       })
     );
+  };
+
+  const handleUploadRelease = async (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingReleaseIndex(index);
+    setReleasesStatus("Загружаем обложку...");
+    setReleasesStatusType("");
+
+    try {
+      const url = await uploadImage(file, "releases");
+      handleReleaseChange(index, "cover", url);
+      setReleasesStatus("Обложка загружена. Нажмите «Сохранить релизы».");
+      setReleasesStatusType("success");
+    } catch {
+      setReleasesStatus("Ошибка загрузки обложки. Проверь Supabase Storage.");
+      setReleasesStatusType("error");
+    } finally {
+      setUploadingReleaseIndex(null);
+      event.target.value = "";
+    }
   };
 
   const addRelease = () => {
@@ -187,6 +251,16 @@ export default function AdminPage() {
                 />
               </label>
               <label className="text-sm text-white/70">
+                Загрузить файл
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUploadFeatured}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none file:mr-4 file:rounded-full file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white"
+                  disabled={loading || uploadingFeatured}
+                />
+              </label>
+              <label className="text-sm text-white/70">
                 Название трека
                 <input
                   type="text"
@@ -227,20 +301,14 @@ export default function AdminPage() {
             <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4">
               <div className="aspect-square overflow-hidden rounded-2xl border border-white/10">
                 {featured.cover ? (
-                  <img
-                    src={featured.cover}
-                    alt={featured.title}
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={featured.cover} alt={featured.title} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-xs text-white/40">
                     Нет обложки
                   </div>
                 )}
               </div>
-              <p className="mt-4 text-lg font-semibold text-white">
-                {featured.title || "Название трека"}
-              </p>
+              <p className="mt-4 text-lg font-semibold text-white">{featured.title || "Название трека"}</p>
               <p className="text-sm text-white/60">{featured.artist || "Ник артиста"}</p>
             </div>
           </div>
@@ -281,6 +349,16 @@ export default function AdminPage() {
                     />
                   </label>
                   <label className="text-sm text-white/70">
+                    Загрузить файл
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => handleUploadRelease(index, event)}
+                      className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none file:mr-4 file:rounded-full file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white"
+                      disabled={uploadingReleaseIndex === index}
+                    />
+                  </label>
+                  <label className="text-sm text-white/70">
                     Название
                     <input
                       type="text"
@@ -305,11 +383,7 @@ export default function AdminPage() {
                 <div className="mt-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm uppercase tracking-[0.2em] text-white/60">DSP ссылки</p>
-                    <button
-                      type="button"
-                      className="text-xs text-neonSoft"
-                      onClick={() => addLink(index)}
-                    >
+                    <button type="button" className="text-xs text-neonSoft" onClick={() => addLink(index)}>
                       + добавить ссылку
                     </button>
                   </div>
