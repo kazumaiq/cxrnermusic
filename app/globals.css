@@ -69,8 +69,44 @@ body::before {
     opacity: 1;
   }
 
+  .logo-badge {
+    @apply relative flex items-center justify-center rounded-[16px] bg-white/5 border border-white/15 backdrop-blur-lg transition duration-300;
+    box-shadow: 0 0 0 1px rgba(180, 75, 255, 0.35), 0 0 22px rgba(180, 75, 255, 0.45);
+  }
+
+  .logo-badge::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 20px;
+    background: radial-gradient(circle, rgba(180, 75, 255, 0.25), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .logo-badge:hover {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 0 0 1px rgba(180, 75, 255, 0.55), 0 0 30px rgba(180, 75, 255, 0.6);
+  }
+
+  .logo-badge:hover::after,
+  .logo-badge:focus-visible::after {
+    opacity: 1;
+  }
+
+  .logo-img {
+    @apply object-contain mix-blend-screen;
+    filter: drop-shadow(0 0 12px rgba(180, 75, 255, 0.6));
+  }
+
   .text-glow {
     text-shadow: 0 0 24px rgba(180, 75, 255, 0.55);
+  }
+
+  .brand-text {
+    @apply font-display font-semibold tracking-[0.35em] text-transparent bg-clip-text;
+    background-image: linear-gradient(90deg, rgba(180, 75, 255, 0.95), rgba(210, 139, 255, 0.95), rgba(255, 75, 214, 0.9));
+    text-shadow: 0 0 28px rgba(180, 75, 255, 0.6);
   }
 
   .card-hover {

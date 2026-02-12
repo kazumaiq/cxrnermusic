@@ -17,7 +17,7 @@ const config: Config = {
         magenta: "#ff4bd6",
       },
       fontFamily: {
-        display: ["var(--font-display)", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-body)", "sans-serif"],
         body: ["var(--font-body)", "sans-serif"],
       },
       boxShadow: {

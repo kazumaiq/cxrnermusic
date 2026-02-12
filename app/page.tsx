@@ -24,9 +24,18 @@ export default async function HomePage() {
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
               <Reveal>
-                <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-neon/80">
-                  <Image src="/images/logo.png" alt="Логотип CXRNER MUSIC" width={40} height={40} className="h-10 w-10" />
-                  CXRNER MUSIC
+                <div className="flex items-center gap-4">
+                  <span className="logo-badge h-12 w-12 md:h-14 md:w-14">
+                    <Image
+                      src="/logo.png"
+                      alt="Логотип CXRNER MUSIC"
+                      width={96}
+                      height={96}
+                      className="logo-img h-7 w-7 md:h-8 md:w-8"
+                      priority
+                    />
+                  </span>
+                  <span className="brand-text text-sm sm:text-base">CXRNER MUSIC</span>
                 </div>
               </Reveal>
               <RevealText

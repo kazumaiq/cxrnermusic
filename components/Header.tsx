@@ -15,9 +15,18 @@ export default function Header() {
   return (
     <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-night/70 backdrop-blur-xl">
       <Container className="flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 text-lg font-semibold tracking-[0.3em] text-white font-display">
-          <Image src="/images/logo.png" alt="CXRNER MUSIC" width={36} height={36} className="h-9 w-9" />
-          CXRNER MUSIC
+        <Link href="/" className="flex items-center gap-3">
+          <span className="logo-badge h-9 w-9 md:h-10 md:w-10">
+            <Image
+              src="/logo.png"
+              alt="CXRNER MUSIC"
+              width={64}
+              height={64}
+              className="logo-img h-5 w-5 md:h-6 md:w-6"
+              priority
+            />
+          </span>
+          <span className="brand-text text-sm sm:text-base md:text-lg">CXRNER MUSIC</span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-white/80 md:flex">
           {navItems.map((item) => (

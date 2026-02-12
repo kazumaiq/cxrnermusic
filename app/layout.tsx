@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
-import { Exo_2, Manrope } from "next/font/google";
+import { Exo_2, Orbitron } from "next/font/google";
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -9,14 +9,14 @@ import Providers from "./providers";
 
 const SITE_URL = "https://cxrnermusic.vercel.app";
 
-const exo = Exo_2({
-  subsets: ["latin", "cyrillic"],
+const orbitron = Orbitron({
+  subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });
 
-const manrope = Manrope({
+const exo = Exo_2({
   subsets: ["latin", "cyrillic"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-body",
@@ -86,14 +86,14 @@ const jsonLd = {
   "@type": "Organization",
   name: "CXRNER MUSIC",
   url: SITE_URL,
-  logo: `${SITE_URL}/images/logo.png`,
+  logo: `${SITE_URL}/logo.png`,
   email: "cxrner.label@gmail.com",
   sameAs: ["https://t.me/kazumaiq", "https://t.me/moder_cxrner_bot"],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru" className={`${exo.variable} ${manrope.variable}`}>
+    <html lang="ru" className={`${orbitron.variable} ${exo.variable}`}>
       <body className="min-h-screen bg-night">
         <Script
           id="json-ld-org"

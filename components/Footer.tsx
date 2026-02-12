@@ -8,8 +8,16 @@ export default function Footer() {
       <Container className="flex flex-col gap-6 text-sm text-white/70 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <Image src="/images/logo.png" alt="CXRNER MUSIC" width={32} height={32} className="h-8 w-8" />
-            <p className="text-base font-semibold text-white font-display">CXRNER MUSIC</p>
+            <span className="logo-badge h-8 w-8">
+              <Image
+                src="/logo.png"
+                alt="CXRNER MUSIC"
+                width={56}
+                height={56}
+                className="logo-img h-4 w-4"
+              />
+            </span>
+            <p className="brand-text text-sm">CXRNER MUSIC</p>
           </div>
           <p className="mt-2 max-w-md">
             Независимый лейбл и дистрибуция для артистов, которые звучат иначе.
