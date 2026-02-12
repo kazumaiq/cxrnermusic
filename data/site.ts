@@ -117,7 +117,7 @@ export type LabelArtist = {
 
 export const artists: LabelArtist[] = [
   {
-    name: "Balekaj?n",
+    name: "Balekajon",
     listeners: "259 760",
     avatar: "/artist/balekajon.png",
   },
@@ -153,6 +153,39 @@ export const artists: LabelArtist[] = [
   },
 ];
 
+export type Testimonial = {
+  name: string;
+  quote: string;
+  avatar: string;
+};
+
+export const testimonials: Testimonial[] = [
+  {
+    name: "FOXMxHNAxm",
+    quote:
+      "Лейбл довольно хороший, модераторов руки целовал — любовь к этому лейблу безгранична. Модерация проходит очень быстро, и главное, что тебя уведомляют — это прекрасно.",
+    avatar: "/testimonials/foxmxhnaxm.svg",
+  },
+  {
+    name: "PhonkNeo",
+    quote:
+      "Очень легко выпускать и работать с этим лейблом, CXRNER MUSIC лучший.",
+    avatar: "/testimonials/phonkneo.svg",
+  },
+  {
+    name: "Cerrera D'Ark",
+    quote:
+      "Нормальный лейбл, терпеливые и вежливые менеджеры, грузят быстро и своевременно, без нервов и мозгов. Меня пока что всё устраивает.",
+    avatar: "/testimonials/cerrera-dark.svg",
+  },
+  {
+    name: "RxyxnOr",
+    quote:
+      "CXRNER MUSIC это самый отличный, нет, ах#енный лейбл с хорошим админ составом, с хорошей поддержкой артистов. Особенно это быстрая и качественная работа. Так же в лейбле много музыкантов, которые помогут вам с той или этой проблемой. Минусов нет, так как их тут быть не может.",
+    avatar: "/testimonials/rxyxnor.svg",
+  },
+];
+
 export const faqItems: FaqItem[] = [
   {
     question: "Какой процент роялти?",
@@ -168,10 +201,9 @@ export const faqItems: FaqItem[] = [
   },
   {
     question: "Как выложить трек через CXRNER MUSIC?",
-    answer: "Есть 2 варианта отгрузки релиза:",
+    answer: "Есть вариант отгрузки релиза:",
     links: [
       { label: "Через Telegram-бот", href: "https://t.me/moder_cxrner_bot" },
-      { label: "Через сайт", href: "https://cxrnerlink.ct.ws/login.php" },
     ],
   },
   {

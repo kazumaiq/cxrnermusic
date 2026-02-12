@@ -7,7 +7,7 @@ import Counter from "../components/Counter";
 import ParallaxOrbs from "../components/ParallaxOrbs";
 import SectionHeader from "../components/SectionHeader";
 import Faq from "../components/Faq";
-import { artists, faqItems, services, stats } from "../data/site";
+import { artists, faqItems, services, stats, testimonials } from "../data/site";
 import { getFeaturedRelease } from "../lib/featured";
 import { getReleases } from "../lib/releases";
 
@@ -203,6 +203,34 @@ export default async function HomePage() {
                 </Reveal>
               );
             })}
+          </div>
+        </Container>
+      </section>
+
+      <section id="testimonials" className="section-padding">
+        <Container>
+          <SectionHeader
+            eyebrow="Отзывы"
+            title="Артисты о работе с CXRNER MUSIC"
+            description="Реальные отзывы артистов о модерации, поддержке и релизах."
+          />
+          <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            {testimonials.map((item, index) => (
+              <Reveal key={item.name} delay={index * 0.05}>
+                <div className="glass rounded-3xl p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="relative h-16 w-16 overflow-hidden rounded-full border border-white/10">
+                      <Image src={item.avatar} alt={item.name} fill sizes="64px" className="object-cover" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold text-white">{item.name}</p>
+                      <p className="text-xs uppercase tracking-[0.3em] text-white/50">Артист</p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm text-white/75 leading-relaxed">{item.quote}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </Container>
       </section>
