@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
-import { Orbitron, Sora } from "next/font/google";
+import { Exo_2, Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -9,15 +9,15 @@ import Providers from "./providers";
 
 const SITE_URL = "https://cxrnermusic.vercel.app";
 
-const orbitron = Orbitron({
-  subsets: ["latin"],
+const exo = Exo_2({
+  subsets: ["latin", "cyrillic"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });
 
-const sora = Sora({
-  subsets: ["latin"],
+const manrope = Manrope({
+  subsets: ["latin", "cyrillic"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-body",
   display: "swap",
@@ -26,28 +26,28 @@ const sora = Sora({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "CXRNER MUSIC вЂ” РЅРµР·Р°РІРёСЃРёРјС‹Р№ Р»РµР№Р±Р» Рё РґРёСЃС‚СЂРёР±СѓС†РёСЏ",
-    template: "%s вЂ” CXRNER MUSIC",
+    default: "CXRNER MUSIC — независимый лейбл и дистрибуция",
+    template: "%s — CXRNER MUSIC",
   },
   description:
-    "CXRNER MUSIC вЂ” РЅРµР·Р°РІРёСЃРёРјС‹Р№ РјСѓР·С‹РєР°Р»СЊРЅС‹Р№ Р»РµР№Р±Р» Рё РґРёСЃС‚СЂРёР±СѓС†РёСЏ. Р РµР»РёР·С‹, РїР»РµР№Р»РёСЃС‚РёРЅРі, РјР°СЂРєРµС‚РёРЅРі Рё РјРѕРЅРµС‚РёР·Р°С†РёСЏ РґР»СЏ Р°СЂС‚РёСЃС‚РѕРІ РЅРѕРІРѕРіРѕ Р·РІСѓС‡Р°РЅРёСЏ.",
+    "CXRNER MUSIC — независимый музыкальный лейбл и дистрибуция. Релизы, плейлистинг, маркетинг и монетизация для артистов нового звучания.",
   keywords: [
     "CXRNER MUSIC",
     "cxrner",
-    "РјСѓР·С‹РєР°Р»СЊРЅС‹Р№ Р»РµР№Р±Р»",
-    "РґРёСЃС‚СЂРёР±СѓС†РёСЏ",
-    "СЂРµР»РёР·С‹",
-    "РїР»РµР№Р»РёСЃС‚РёРЅРі",
-    "РјСѓР·С‹РєР°Р»СЊРЅС‹Р№ РјР°СЂРєРµС‚РёРЅРі",
-    "РїСЂРѕРјРѕ",
+    "музыкальный лейбл",
+    "дистрибуция",
+    "релизы",
+    "плейлистинг",
+    "музыкальный маркетинг",
+    "промо",
   ],
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "CXRNER MUSIC вЂ” РЅРµР·Р°РІРёСЃРёРјС‹Р№ Р»РµР№Р±Р» Рё РґРёСЃС‚СЂРёР±СѓС†РёСЏ",
+    title: "CXRNER MUSIC — независимый лейбл и дистрибуция",
     description:
-      "РќРµР·Р°РІРёСЃРёРјС‹Р№ РјСѓР·С‹РєР°Р»СЊРЅС‹Р№ Р»РµР№Р±Р» Рё РґРёСЃС‚СЂРёР±СѓС†РёСЏ. Р РµР»РёР·С‹, РїР»РµР№Р»РёСЃС‚РёРЅРі Рё РјР°СЂРєРµС‚РёРЅРі РґР»СЏ Р°СЂС‚РёСЃС‚РѕРІ.",
+      "Независимый музыкальный лейбл и дистрибуция. Релизы, плейлистинг и маркетинг для артистов.",
     type: "website",
     url: SITE_URL,
     siteName: "CXRNER MUSIC",
@@ -63,9 +63,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "CXRNER MUSIC вЂ” РЅРµР·Р°РІРёСЃРёРјС‹Р№ Р»РµР№Р±Р» Рё РґРёСЃС‚СЂРёР±СѓС†РёСЏ",
+    title: "CXRNER MUSIC — независимый лейбл и дистрибуция",
     description:
-      "РќРµР·Р°РІРёСЃРёРјС‹Р№ РјСѓР·С‹РєР°Р»СЊРЅС‹Р№ Р»РµР№Р±Р» Рё РґРёСЃС‚СЂРёР±СѓС†РёСЏ. Р РµР»РёР·С‹, РїР»РµР№Р»РёСЃС‚РёРЅРі Рё РјР°СЂРєРµС‚РёРЅРі РґР»СЏ Р°СЂС‚РёСЃС‚РѕРІ.",
+      "Независимый музыкальный лейбл и дистрибуция. Релизы, плейлистинг и маркетинг для артистов.",
     images: ["/images/og.svg"],
   },
   robots: {
@@ -93,7 +93,7 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru" className={`${orbitron.variable} ${sora.variable}`}>
+    <html lang="ru" className={`${exo.variable} ${manrope.variable}`}>
       <body className="min-h-screen bg-night">
         <Script
           id="json-ld-org"

@@ -13,10 +13,10 @@ export type StatItem = {
 };
 
 export const stats: StatItem[] = [
-  { label: "???????", value: 900, suffix: "?+" },
-  { label: "????????", value: 300, suffix: "+" },
-  { label: "???????", value: 350, suffix: "+" },
-  { label: "?????", value: 0, display: "???? ???" },
+  { label: "Стримов", value: 900, suffix: "к+" },
+  { label: "Артистов", value: 280, suffix: "+" },
+  { label: "Релизов", value: 350 },
+  { label: "Стран мира", value: 256 },
 ];
 
 export const releases = [
@@ -79,8 +79,7 @@ export const releases = [
       { label: "Apple Music", href: "https://music.apple.com" },
       { label: "Amazon Music", href: "https://music.amazon.com" },
     ],
-
-  }
+  },
 ];
 
 export const services = [
@@ -107,8 +106,7 @@ export const services = [
   {
     title: "Монетизация TikTok",
     description: "Постановка треков в библиотеку TikTok и Shorts.",
-
-  }
+  },
 ];
 
 export const artists = [
@@ -147,8 +145,7 @@ export const artists = [
     genre: "Alt R&B",
     streams: "21M",
     avatar: "/images/artist-06.svg",
-
-  }
+  },
 ];
 
 export const faqItems: FaqItem[] = [
@@ -235,6 +232,5 @@ export const faqItems: FaqItem[] = [
     question: "Личный кабинет артиста",
     answer:
       "Для создания личного кабинета в формате групп нужно написать @kazumaiq.",
-
-  }
+  },
 ];
