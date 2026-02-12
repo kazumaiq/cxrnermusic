@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://cxrnermusic.vercel.app/</loc>
+  </url>
+
+  <url>
+    <loc>https://cxrnermusic.vercel.app/releases</loc>
+  </url>
+
+  <url>
+    <loc>https://cxrnermusic.vercel.app/artists</loc>
+  </url>
+
+  <url>
+    <loc>https://cxrnermusic.vercel.app/offer</loc>
+  </url>
+
+  <url>
+    <loc>https://cxrnermusic.vercel.app/contact</loc>
+  </url>
+
+</urlset>
