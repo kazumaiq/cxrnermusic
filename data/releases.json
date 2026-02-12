@@ -1,0 +1,62 @@
+[
+  {
+    "title": "Neon Drift",
+    "artist": "KAZUMAI",
+    "cover": "/images/album-01.svg",
+    "links": [
+      { "label": "Spotify", "href": "https://open.spotify.com" },
+      { "label": "Apple Music", "href": "https://music.apple.com" },
+      { "label": "Yandex Music", "href": "https://music.yandex.ru" }
+    ]
+  },
+  {
+    "title": "Midnight Pulse",
+    "artist": "LUXEVOID",
+    "cover": "/images/album-02.svg",
+    "links": [
+      { "label": "Spotify", "href": "https://open.spotify.com" },
+      { "label": "Apple Music", "href": "https://music.apple.com" },
+      { "label": "VK Music", "href": "https://vk.com/music" }
+    ]
+  },
+  {
+    "title": "Crystal Echo",
+    "artist": "SYNTHR",
+    "cover": "/images/album-03.svg",
+    "links": [
+      { "label": "Spotify", "href": "https://open.spotify.com" },
+      { "label": "Apple Music", "href": "https://music.apple.com" },
+      { "label": "Deezer", "href": "https://www.deezer.com" }
+    ]
+  },
+  {
+    "title": "Velocity",
+    "artist": "NEOFOX",
+    "cover": "/images/album-04.svg",
+    "links": [
+      { "label": "Spotify", "href": "https://open.spotify.com" },
+      { "label": "Apple Music", "href": "https://music.apple.com" },
+      { "label": "Tidal", "href": "https://tidal.com" }
+    ]
+  },
+  {
+    "title": "Signal Bloom",
+    "artist": "VOIDRAY",
+    "cover": "/images/album-05.svg",
+    "links": [
+      { "label": "Spotify", "href": "https://open.spotify.com" },
+      { "label": "Apple Music", "href": "https://music.apple.com" },
+      { "label": "YouTube Music", "href": "https://music.youtube.com" }
+    ]
+  },
+  {
+    "title": "Aurora Tape",
+    "artist": "NIRAH",
+    "cover": "/images/album-06.svg",
+    "links": [
+      { "label": "Spotify", "href": "https://open.spotify.com" },
+      { "label": "Apple Music", "href": "https://music.apple.com" },
+      { "label": "Amazon Music", "href": "https://music.amazon.com" }
+    ]
+  }
+]

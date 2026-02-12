@@ -7,11 +7,13 @@ import Counter from "../components/Counter";
 import ParallaxOrbs from "../components/ParallaxOrbs";
 import SectionHeader from "../components/SectionHeader";
 import Faq from "../components/Faq";
-import { artists, faqItems, releases, services, stats } from "../data/site";
+import { artists, faqItems, services, stats } from "../data/site";
 import { getFeaturedRelease } from "../lib/featured";
+import { getReleases } from "../lib/releases";
 
 export default async function HomePage() {
   const featured = await getFeaturedRelease();
+  const releases = await getReleases();
   const isRemoteCover = featured.cover.startsWith("http");
 
   return (
@@ -158,38 +160,49 @@ export default async function HomePage() {
             }
           />
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {releases.map((release, index) => (
-              <Reveal key={release.title} delay={index * 0.05}>
-                <div className="glass group rounded-3xl p-4 transition hover:-translate-y-1 hover:shadow-glow">
-                  <div className="relative aspect-square overflow-hidden rounded-2xl">
-                    <Image
-                      src={release.cover}
-                      alt={`${release.title} — ${release.artist}`}
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-lg font-semibold text-white">{release.title}</p>
-                    <p className="text-sm text-white/60">{release.artist}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {release.links.map((link) => (
-                        <a
-                          key={link.label}
-                          href={link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-full border border-white/15 px-3 py-1 text-xs text-white/70 transition hover:border-neon hover:text-white"
-                        >
-                          {link.label}
-                        </a>
-                      ))}
+            {releases.map((release, index) => {
+              const isRemote = release.cover.startsWith("http");
+              return (
+                <Reveal key={`${release.title}-${index}`} delay={index * 0.05}>
+                  <div className="glass group rounded-3xl p-4 transition hover:-translate-y-1 hover:shadow-glow">
+                    <div className="relative aspect-square overflow-hidden rounded-2xl">
+                      {isRemote ? (
+                        <img
+                          src={release.cover}
+                          alt={`${release.title} — ${release.artist}`}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <Image
+                          src={release.cover}
+                          alt={`${release.title} — ${release.artist}`}
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 33vw"
+                          className="object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      )}
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-lg font-semibold text-white">{release.title}</p>
+                      <p className="text-sm text-white/60">{release.artist}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {release.links.map((link) => (
+                          <a
+                            key={link.label}
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-full border border-white/15 px-3 py-1 text-xs text-white/70 transition hover:border-neon hover:text-white"
+                          >
+                            {link.label}
+                          </a>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Reveal>
-            ))}
+                </Reveal>
+              );
+            })}
           </div>
         </Container>
       </section>
