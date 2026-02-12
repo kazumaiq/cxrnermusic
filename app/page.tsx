@@ -220,21 +220,27 @@ export default async function HomePage() {
       <section id="artists" className="section-padding">
         <Container>
           <SectionHeader
-            eyebrow="Артисты"
-            title="Рост вместе с CXRNER MUSIC"
-            description="Мы строим сильные карьеры и устойчивую монетизацию."
+            eyebrow="Артисты лейбла"
+            title="Комьюнити артистов CXRNER MUSIC"
+            description="Актуальные слушатели в месяц и артисты, которые создают наше звучание."
           />
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {artists.map((artist, index) => (
               <Reveal key={artist.name} delay={index * 0.05}>
                 <div className="glass flex items-center gap-4 rounded-2xl p-5 transition hover:-translate-y-1 hover:shadow-glow">
                   <div className="relative h-16 w-16 overflow-hidden rounded-full border border-white/10">
-                    <Image src={artist.avatar} alt={artist.name} fill sizes="64px" className="object-cover" />
+                    <Image
+                      src={encodeURI(artist.avatar)}
+                      alt={artist.name}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                    />
                   </div>
                   <div>
                     <p className="text-base font-semibold text-white">{artist.name}</p>
-                    <p className="text-xs uppercase tracking-[0.2em] text-white/50">{artist.genre}</p>
-                    <p className="mt-1 text-sm text-white/70">{artist.streams} стримов</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-white/50">Слушателей в месяц</p>
+                    <p className="mt-1 text-sm text-white/70">{artist.listeners}</p>
                   </div>
                 </div>
               </Reveal>

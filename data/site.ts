@@ -109,42 +109,47 @@ export const services = [
   },
 ];
 
-export const artists = [
+export type LabelArtist = {
+  name: string;
+  listeners: string;
+  avatar: string;
+};
+
+export const artists: LabelArtist[] = [
   {
-    name: "KAZUMAI",
-    genre: "Future Bass",
-    streams: "68M",
-    avatar: "/images/artist-01.svg",
+    name: "Balekaj?n",
+    listeners: "259 760",
+    avatar: "/artist/balekajon.png",
   },
   {
-    name: "LUXEVOID",
-    genre: "Synthwave",
-    streams: "54M",
-    avatar: "/images/artist-02.svg",
+    name: "Cerrera D'Ark",
+    listeners: "77 254",
+    avatar: "/artist/cerrera-dark.png",
   },
   {
-    name: "SYNTHR",
-    genre: "Electro Pop",
-    streams: "43M",
-    avatar: "/images/artist-03.svg",
+    name: "Hxlkart",
+    listeners: "191 340",
+    avatar: "/artist/hxlkart.png",
   },
   {
-    name: "NEOFOX",
-    genre: "Hyperpop",
-    streams: "39M",
-    avatar: "/images/artist-04.svg",
+    name: "MC LONE",
+    listeners: "348 861",
+    avatar: "/artist/mc-lone.png",
   },
   {
-    name: "VOIDRAY",
-    genre: "Dark EDM",
-    streams: "29M",
-    avatar: "/images/artist-05.svg",
+    name: "MVRTX",
+    listeners: "389 622",
+    avatar: "/artist/mvrtx.png",
   },
   {
-    name: "NIRAH",
-    genre: "Alt R&B",
-    streams: "21M",
-    avatar: "/images/artist-06.svg",
+    name: "STAROX",
+    listeners: "139 396",
+    avatar: "/artist/starox.png",
+  },
+  {
+    name: "TendyOne",
+    listeners: "257 991",
+    avatar: "/artist/tendyone.png",
   },
 ];
 
