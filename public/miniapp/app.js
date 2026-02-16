@@ -1172,3 +1172,37 @@ if (HAS_DOM) {
     }
   }
 }
+// ===== FORCE BOOTSTRAP FOR TELEGRAM =====
+
+(function () {
+  if (typeof window === "undefined") return;
+  if (typeof bootstrap !== "function") {
+    console.warn("bootstrap() not found");
+    return;
+  }
+
+  let started = false;
+
+  const start = () => {
+    if (started) return;
+    started = true;
+    console.log("MiniApp bootstrap started");
+    bootstrap();
+  };
+
+  // DOM ready
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    start();
+  } else {
+    window.addEventListener("DOMContentLoaded", start);
+  }
+
+  // Fallback если Telegram/WebView тупит
+  setTimeout(() => {
+    const loader = document.getElementById("loader");
+    if (loader && !loader.classList.contains("hidden")) {
+      console.warn("Force starting bootstrap fallback...");
+      start();
+    }
+  }, 3000);
+})();
