@@ -2,11 +2,36 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=/miniapp/index.html">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Redirecting...</title>
+  <title>CXRNER MUSIC</title>
+
+  <script>
+    function redirect() {
+      const tg = window.Telegram?.WebApp;
+
+      // Если открыто через Telegram
+      if (tg) {
+        tg.ready();
+
+        // Сохраняем initData если нужно
+        const initData = tg.initData || "";
+
+        window.location.href =
+          "/miniapp/index.html?tgData=" +
+          encodeURIComponent(initData);
+
+      } else {
+        // Если открыто вне Telegram
+        window.location.href = "/miniapp/index.html";
+      }
+    }
+
+    window.addEventListener("load", () => {
+      setTimeout(redirect, 300);
+    });
+  </script>
 </head>
-<body>
-  <p>Redirecting to <a href="/miniapp/index.html">/miniapp/index.html</a> ...</p>
+<body style="background:#000;color:#fff;font-family:sans-serif;">
+  <p>Запуск платформы...</p>
 </body>
 </html>
