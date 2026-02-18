@@ -1142,28 +1142,59 @@ async function submitReleaseForm(event) {
     switchTab("cabinet");
   };
 
+  try {
+    await ensureSupabaseConfig();
+    await postMiniappApi("/api/webapp/submit", {
+      source: "mini_app",
+      payload: result.payload,
+      initData: getTelegramInitData(),
+      initDataUnsafe: getTelegramWebApp()?.initDataUnsafe || null,
+      user: getTelegramUser() || null
+    });
+    afterSuccess();
+    return;
+  } catch (apiErr) {
+    console.warn("[MINIAPP_API] submit via proxy failed:", normalizeText(apiErr?.message || apiErr));
+  }
+
   if (!tgApp?.sendData) {
     console.error("Telegram.WebApp.sendData unavailable");
+    tgApp?.HapticFeedback?.notificationOccurred?.("error");
     showToast("Ошибка: Mini App открыт не через Telegram WebApp.");
     return;
   }
 
   try {
     tgApp.sendData(result.payloadJson || JSON.stringify(result.payload));
+    afterSuccess();
   } catch (e) {
     console.error("Telegram sendData failed:", e);
     tgApp?.HapticFeedback?.notificationOccurred?.("error");
     showToast(`Ошибка отправки: ${normalizeText(e?.message || e) || "попробуйте позже"}`);
-    return;
   }
-
-  afterSuccess();
 }
 
-function sendDiagnosticTestPayload() {
+async function sendDiagnosticTestPayload() {
   const tgApp = logWebAppSendDiagnostics("diag_button");
+  try {
+    await ensureSupabaseConfig();
+    await postMiniappApi("/api/webapp/test", {
+      source: "mini_app",
+      text: "test анкета",
+      initData: getTelegramInitData(),
+      initDataUnsafe: getTelegramWebApp()?.initDataUnsafe || null,
+      user: getTelegramUser() || null
+    });
+    tgApp?.HapticFeedback?.notificationOccurred?.("success");
+    showToast("Тест API отправлен.");
+    return;
+  } catch (apiErr) {
+    console.warn("[MINIAPP_API] test via proxy failed:", normalizeText(apiErr?.message || apiErr));
+  }
+
   if (!tgApp?.sendData) {
     console.error("Telegram.WebApp.sendData unavailable");
+    tgApp?.HapticFeedback?.notificationOccurred?.("error");
     showToast("Ошибка: Telegram.WebApp undefined.");
     return;
   }
