@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Container from "../../components/Container";
 import Reveal from "../../components/Reveal";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Публичная оферта — CXRNER MUSIC",
   description: "Публичная оферта и условия сотрудничества с CXRNER MUSIC.",
