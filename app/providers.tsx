@@ -1,14 +1,20 @@
-﻿"use client";
+/* eslint-disable react/jsx-no-useless-fragment */
+"use client";
 
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
+import {
+  SessionContextProvider,
+  useSessionContext,
+} from "@supabase/auth-helpers-react";
+import { getSupabaseBrowserClient } from "../lib/supabaseClient";
 
 type ProvidersProps = {
   children: ReactNode;
 };
 
-export default function Providers({ children }: ProvidersProps) {
+function AnimatedMain({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -26,3 +32,18 @@ export default function Providers({ children }: ProvidersProps) {
     </AnimatePresence>
   );
 }
+
+export function useSupabaseSession() {
+  return useSessionContext();
+}
+
+export default function Providers({ children }: ProvidersProps) {
+  const supabaseClient = getSupabaseBrowserClient();
+
+  return (
+    <SessionContextProvider supabaseClient={supabaseClient}>
+      <AnimatedMain>{children}</AnimatedMain>
+    </SessionContextProvider>
+  );
+}
+
