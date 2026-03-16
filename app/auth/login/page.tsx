@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSupabaseSession } from "../../providers";
 import Container from "../../../components/Container";
 import GlowButton from "../../../components/GlowButton";
+import { getSupabaseBrowserClient } from "../../../lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { supabaseClient } = useSupabaseSession();
+  const supabaseClient = getSupabaseBrowserClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,8 +16,6 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabaseClient) return;
-
     setLoading(true);
     setError(null);
 
@@ -77,7 +75,7 @@ export default function LoginPage() {
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           <div className="mt-6 flex flex-col gap-3">
-            <GlowButton as="button" type="submit" disabled={loading}>
+            <GlowButton type="submit" disabled={loading}>
               {loading ? "Вход..." : "Войти"}
             </GlowButton>
             <button

@@ -4,14 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Container from "../../components/Container";
 import GlowButton from "../../components/GlowButton";
-import { useSupabaseSession } from "../providers";
 
 const genres = ["Phonk", "Hip-Hop", "Electronic", "Pop", "Rock", "Other"];
 const releaseTypes = ["single", "ep", "album"];
 
 export default function SubmitReleasePage() {
   const router = useRouter();
-  const { session } = useSupabaseSession();
   const [artistName, setArtistName] = useState("");
   const [trackName, setTrackName] = useState("");
   const [genre, setGenre] = useState("");
@@ -27,11 +25,6 @@ export default function SubmitReleasePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (!session) {
-      router.push("/auth/login");
-      return;
-    }
 
     if (!artistName.trim() || !trackName.trim() || !genre.trim()) {
       setError("Заполните минимум артист, трек и жанр.");
@@ -226,7 +219,7 @@ export default function SubmitReleasePage() {
               </a>
               .
             </p>
-            <GlowButton as="button" type="submit" disabled={loading}>
+            <GlowButton type="submit" disabled={loading}>
               {loading ? "Отправка..." : "Отправить релиз"}
             </GlowButton>
           </div>

@@ -72,12 +72,15 @@ export default function ReleaseRealtimeSection({
           table: "cxrner_forms",
           filter: `id=eq.${formId}`,
         },
-        (payload: RealtimePostgresChangesPayload<{ status: string | null; reject_reason: string | null; upc: string | null }>) => {
-          const next = payload.new;
+        (payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+          const next = payload.new as
+            | { status?: string | null; reject_reason?: string | null; upc?: string | null }
+            | null
+            | undefined;
           if (!next) return;
-          if (typeof next.status !== "undefined") setStatus(next.status);
-          if (typeof next.reject_reason !== "undefined") setRejectReason(next.reject_reason);
-          if (typeof next.upc !== "undefined") setUpc(next.upc);
+          if ("status" in next) setStatus(next.status ?? null);
+          if ("reject_reason" in next) setRejectReason(next.reject_reason ?? null);
+          if ("upc" in next) setUpc(next.upc ?? null);
         },
       )
       .subscribe();

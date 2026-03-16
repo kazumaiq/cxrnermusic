@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSupabaseSession } from "../../providers";
 import Container from "../../../components/Container";
 import GlowButton from "../../../components/GlowButton";
+import { getSupabaseBrowserClient } from "../../../lib/supabaseClient";
 
 type ProfilePayload = {
   artist_name?: string;
@@ -12,7 +12,7 @@ type ProfilePayload = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { supabaseClient } = useSupabaseSession();
+  const supabaseClient = getSupabaseBrowserClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [artistName, setArtistName] = useState("");
@@ -21,8 +21,6 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabaseClient) return;
-
     setLoading(true);
     setError(null);
 
@@ -116,7 +114,7 @@ export default function RegisterPage() {
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           <div className="mt-6 flex flex-col gap-3">
-            <GlowButton as="button" type="submit" disabled={loading}>
+            <GlowButton type="submit" disabled={loading}>
               {loading ? "Создание аккаунта..." : "Зарегистрироваться"}
             </GlowButton>
             <button
