@@ -2,6 +2,7 @@ import Container from "../../components/Container";
 import GlowButton from "../../components/GlowButton";
 import DashboardReleasesTable from "../../components/DashboardReleasesTable";
 import { getSupabaseServerClient } from "../../lib/supabaseServer";
+import { redirect } from "next/navigation";
 
 type CabinetProfileRow = {
   user_id: string;
@@ -68,9 +69,9 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 🔥 ВОТ ЭТО ГЛАВНЫЙ ФИКС
   if (!user) {
-    // middleware должен уже редиректить, но на всякий случай
-    return null;
+    redirect("/auth/login");
   }
 
   const { data: profileRow } = await supabase
@@ -87,7 +88,10 @@ export default async function DashboardPage() {
     .returns<FormRow[]>();
 
   const artistName =
-    profileRow?.profile?.artist_name || user.email || (user.user_metadata && (user.user_metadata.name as string)) || "";
+    profileRow?.profile?.artist_name ||
+    user.email ||
+    (user.user_metadata && (user.user_metadata.name as string)) ||
+    "";
 
   return (
     <div className="section-padding">
@@ -118,4 +122,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
