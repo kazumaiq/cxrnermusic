@@ -27,7 +27,6 @@ export default function SubmitReleasePage() {
   const [promoText, setPromoText] = useState("");
   const [comment, setComment] = useState("");
   const [contactTelegram, setContactTelegram] = useState("");
-  const [coverLink, setCoverLink] = useState("");
   const [links, setLinks] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,7 +48,6 @@ export default function SubmitReleasePage() {
           genre: genre.trim(),
           release_type: releaseType,
           release_date: releaseDate || null,
-          cover_link: coverLink || null,
           // Бот спрашивает "Ссылка на файлы" одним URL на Диск/папку.
           // В текущей схеме удобнее передать это как `audio_link`, чтобы Telegram-бот не остался без данных.
           audio_link: filesLink || null,
@@ -95,7 +93,7 @@ export default function SubmitReleasePage() {
 
   return (
     <Container className="section-padding">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-4xl">
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-neon/80">Отправка релиза</p>
           <h1 className="mt-2 text-2xl font-semibold text-white md:text-3xl font-display">
@@ -163,7 +161,7 @@ export default function SubmitReleasePage() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-white/50 mb-2">
                 Есть слова в релизе?
@@ -209,7 +207,7 @@ export default function SubmitReleasePage() {
                 Ник исполнителя ℹ️ Это сценическое имя артиста, которое будет отображаться на стриминговых сервисах.
               </p>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
                 ФИО исполнителя
               </label>
@@ -226,7 +224,7 @@ export default function SubmitReleasePage() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
                 Дата релиза (ДД.ММ.ГГГГ)
@@ -257,7 +255,7 @@ export default function SubmitReleasePage() {
                 Версия релиза ℹ️ Если это обычная версия трека - напишите "-". Если другая версия: Remix, Slowed, Sped Up, Instrumental.
               </p>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
                 Жанр
               </label>
@@ -287,19 +285,7 @@ export default function SubmitReleasePage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
-                Ссылка на обложку
-              </label>
-              <input
-                type="url"
-                value={coverLink}
-                onChange={(e) => setCoverLink(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none ring-0 transition placeholder:text-white/40 focus:border-neon"
-                placeholder="https://..."
-              />
-            </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
                 Ссылка на файлы (http/https)
               </label>

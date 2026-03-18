@@ -7,7 +7,7 @@ type Body = {
   genre: string;
   release_type: string;
   release_date: string | null;
-  cover_link: string | null;
+  cover_link?: string | null;
   audio_link: string | null;
   files_link?: string | null;
   links: string | null;
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       genre: body.genre,
       release_type: body.release_type,
       release_date: body.release_date,
-      cover_link: body.cover_link,
+      cover_link: body.cover_link ?? null,
       audio_link: body.audio_link,
       files_link: body.files_link ?? body.audio_link ?? null,
       links: body.links,
