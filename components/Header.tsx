@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { headers } from "next/headers";
 import { getSupabaseServerClient } from "../lib/supabaseServer";
 import Container from "./Container";
 
@@ -18,7 +17,7 @@ export default async function Header() {
 
   try {
     // use server-side client to detect session
-    const supabase = getSupabaseServerClient();
+    const supabase = await getSupabaseServerClient();
     const {
       data: { session },
     } = await supabase.auth.getSession();
