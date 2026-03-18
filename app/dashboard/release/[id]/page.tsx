@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
 import Container from "../../../../components/Container";
 import GlowButton from "../../../../components/GlowButton";
 import ReleaseRealtimeSection from "../../../../components/ReleaseRealtimeSection";
@@ -90,13 +91,43 @@ export default async function ReleaseDetailsPage({ params }: PageProps) {
     return null;
   }
 
-  const { data: form, error } = await supabase
-    .from("cxrner_forms")
-    .select("id, artist_name, track_name, genre, release_type, status, upc, reject_reason, created_at, form_payload")
-    .eq("id", params.id)
-    .maybeSingle<FormDetailsRow>();
+  // RLS может скрывать запись для anon-key клиента на сервере.
+  // Чтобы UX не ломался, читаем запись через service-role и потом проверяем владельца.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (error || !form) {
+  if (!supabaseUrl || !serviceRoleKey) {
+    return (
+      <div className="section-padding">
+        <Container>
+          <div className="glass rounded-3xl p-8 text-center">
+            <p className="text-lg font-semibold text-white">Ошибка сервиса</p>
+            <p className="mt-2 text-sm text-white/60">Не настроены Supabase переменные для чтения.</p>
+            <div className="mt-6 flex justify-center">
+              <GlowButton href="/dashboard" variant="ghost">
+                Вернуться в кабинет
+              </GlowButton>
+            </div>
+          </div>
+        </Container>
+      </div>
+    );
+  }
+
+  const serviceSupabase = createClient(supabaseUrl, serviceRoleKey);
+
+  const { data: form, error } = await serviceSupabase
+    .from("cxrner_forms")
+    .select(
+      "id, artist_name, track_name, genre, release_type, status, upc, reject_reason, created_at, form_payload, telegram_id",
+    )
+    .eq("id", params.id)
+    .maybeSingle<FormDetailsRow & { telegram_id: string | number }>();
+
+  const telegramId = form?.telegram_id;
+  const isOwner = telegramId != null && String(telegramId) === String(user.id);
+
+  if (error || !form || !isOwner) {
     return (
       <div className="section-padding">
         <Container>
