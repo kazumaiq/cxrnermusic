@@ -89,24 +89,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: error?.message ?? "Ошибка сохранения" }, { status: 500 });
     }
 
-    // уведомляем Telegram-бота (без падения формы при ошибке)
-    try {
-      const botPayload = {
-        form_id: data.id,
-        artist_name: body.artist_name,
-        track_name: body.track_name,
-        genre: body.genre,
-        release_type: body.release_type,
-      };
-      await fetch(`${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/api/new-release`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(botPayload),
-      });
-    } catch {
-      // логирование можно добавить позже, но не ломаем UX
+    // уведомляем Telegram-бота
+    const botUrl = process.env.BOT_BACKEND_URL;
+    if (!botUrl) {
+      return NextResponse.json({ ok: false, error: "BOT_BACKEND_URL не настроен" }, { status: 500 });
+    }
+
+    const botPayload = {
+      form_id: data.id,
+      artist_name: body.artist_name,
+      track_name: body.track_name,
+      genre: body.genre,
+      release_type: body.release_type,
+    };
+
+    const botRes = await fetch(`${botUrl}/api/new-release`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(botPayload),
+    });
+
+    if (!botRes.ok) {
+      const text = await botRes.text().catch(() => "");
+      return NextResponse.json(
+        { ok: false, error: `Ошибка бэкенда бота (${botRes.status}): ${text || botRes.statusText}` },
+        { status: 502 },
+      );
     }
 
     return NextResponse.json({ ok: true, id: data.id });
