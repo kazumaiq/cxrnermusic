@@ -155,7 +155,7 @@ export default function SubmitReleasePage() {
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
                 className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none ring-0 transition placeholder:text-white/40 focus:border-neon"
-                placeholder="Например: Night Drive Remix или \".\""
+                placeholder="Например: Night Drive Remix или '.'"
               />
               <p className="mt-1 text-[11px] leading-snug text-white/60">
                 Саб-название ℹ️ Саб-название - это дополнительная подпись к названию релиза. Пример: Remix, Slowed, Instrumental, Extended Mix.
@@ -326,7 +326,7 @@ export default function SubmitReleasePage() {
                 value={yandexCardLink}
                 onChange={(e) => setYandexCardLink(e.target.value)}
                 className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none ring-0 transition placeholder:text-white/40 focus:border-neon"
-                placeholder="URL или \".\" если нет карточки"
+                placeholder="URL или '.' если нет карточки"
               />
               <p className="mt-1 text-[11px] leading-snug text-white/60">
                 Карточка Яндекс Музыки ℹ️ Отправьте ссылку на существующую карточку артиста. Если карточки нет - нажмите кнопку "Создать новую карточку".
