@@ -9,8 +9,17 @@ type Body = {
   release_date: string | null;
   cover_link: string | null;
   audio_link: string | null;
+  files_link?: string | null;
   links: string | null;
   promo_text: string | null;
+  subtitle?: string | null;
+  has_words?: boolean | null;
+  artist_full_name?: string | null;
+  version?: string | null;
+  yandex_card_link?: string | null;
+  has_explicit?: boolean | null;
+  comment?: string | null;
+  contact_telegram?: string | null;
 };
 
 export async function POST(request: Request) {
@@ -38,8 +47,17 @@ export async function POST(request: Request) {
       release_date: body.release_date,
       cover_link: body.cover_link,
       audio_link: body.audio_link,
+      files_link: body.files_link ?? body.audio_link ?? null,
       links: body.links,
       promo_text: body.promo_text,
+      subtitle: body.subtitle ?? null,
+      has_words: body.has_words ?? null,
+      artist_full_name: body.artist_full_name ?? null,
+      version: body.version ?? null,
+      yandex_card_link: body.yandex_card_link ?? null,
+      has_explicit: body.has_explicit ?? null,
+      comment: body.comment ?? null,
+      contact_telegram: body.contact_telegram ?? null,
       source: "web",
     };
 
