@@ -92,11 +92,11 @@ export default async function ReleaseDetailsPage({ params }: PageProps) {
 
   const { data: form, error } = await supabase
     .from("cxrner_forms")
-    .select("id, artist_name, track_name, genre, release_type, status, upc, reject_reason, created_at, form_payload, telegram_id")
+    .select("id, artist_name, track_name, genre, release_type, status, upc, reject_reason, created_at, form_payload")
     .eq("id", params.id)
-    .maybeSingle<FormDetailsRow & { telegram_id: string }>();
+    .maybeSingle<FormDetailsRow>();
 
-  if (error || !form || form.telegram_id !== user.id) {
+  if (error || !form) {
     return (
       <div className="section-padding">
         <Container>
