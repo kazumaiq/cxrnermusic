@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { getSupabaseServerClient } from "../../../../lib/supabaseServer";
 
 type Body = {
@@ -61,6 +62,10 @@ export async function POST(request: Request) {
       source: "web",
     };
 
+    // `cxrner_forms.submission_key` — NOT NULL в текущей схеме.
+    // Используем короткий случайный ключ, чтобы бот мог дальше отслеживать анкету.
+    const submissionKey = randomBytes(18).toString("hex");
+
     const { data, error } = await supabase
       .from("cxrner_forms")
       .insert({
@@ -72,6 +77,7 @@ export async function POST(request: Request) {
         track_name: body.track_name,
         genre: body.genre,
         release_type: body.release_type,
+        submission_key: submissionKey,
         status: "pending",
         source: "web",
         form_payload: formPayload,
