@@ -83,7 +83,7 @@ export default async function DashboardPage() {
   const { data: forms } = await supabase
     .from("cxrner_forms")
     .select("id, artist_name, track_name, genre, status, upc, created_at, source")
-    .eq("user_id", user.id)
+    .eq("telegram_id", user.id)
     .order("created_at", { ascending: false })
     .returns<FormRow[]>();
 

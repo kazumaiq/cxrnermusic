@@ -79,7 +79,7 @@ export default function DashboardReleasesTable({
           event: "*",
           schema: "public",
           table: "cxrner_forms",
-          filter: `user_id=eq.${userId}`,
+          filter: `telegram_id=eq.${userId}`,
         },
         (payload: RealtimePostgresChangesPayload<FormRow>) => {
           setForms((current) => {

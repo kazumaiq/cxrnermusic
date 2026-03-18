@@ -64,7 +64,10 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from("cxrner_forms")
       .insert({
-        user_id: user.id,
+        // В `cxrner_forms` связь с пользователем хранится через `telegram_id` (веб-сабмишн связываем с auth user.id).
+        telegram_id: user.id,
+        // Telegram-бот хранит username сабмиттера. Для веба используем введённый `contact_telegram`.
+        username: body.contact_telegram ?? null,
         artist_name: body.artist_name,
         track_name: body.track_name,
         genre: body.genre,
