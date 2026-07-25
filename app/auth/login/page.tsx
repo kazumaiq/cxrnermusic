@@ -8,7 +8,6 @@ import { getSupabaseBrowserClient } from "../../../lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabaseClient = getSupabaseBrowserClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,6 +19,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
+      const supabaseClient = getSupabaseBrowserClient();
       const { error: signInError } = await supabaseClient.auth.signInWithPassword({
         email,
         password,
@@ -91,4 +91,3 @@ export default function LoginPage() {
     </Container>
   );
 }
-

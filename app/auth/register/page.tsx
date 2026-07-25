@@ -12,7 +12,6 @@ type ProfilePayload = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const supabaseClient = getSupabaseBrowserClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [artistName, setArtistName] = useState("");
@@ -25,6 +24,7 @@ export default function RegisterPage() {
     setError(null);
 
     try {
+      const supabaseClient = getSupabaseBrowserClient();
       const { data, error: signUpError } = await supabaseClient.auth.signUp({
         email,
         password,
@@ -130,4 +130,3 @@ export default function RegisterPage() {
     </Container>
   );
 }
-

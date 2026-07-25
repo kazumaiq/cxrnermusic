@@ -13,6 +13,7 @@ html {
 body {
   @apply bg-night text-white antialiased font-body;
   min-height: 100%;
+  overflow-x: hidden;
 }
 
 * {
@@ -21,11 +22,11 @@ body {
 
 @layer components {
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-innerGlow;
+    @apply bg-white/[0.045] backdrop-blur-xl border border-white/10;
   }
 
   .section-padding {
-    @apply py-20 md:py-28;
+    @apply py-20 md:py-32;
   }
 
   .btn {
@@ -87,6 +88,20 @@ body {
   .neon-border {
     box-shadow: 0 0 0 1px rgba(180, 75, 255, 0.45), 0 0 30px rgba(180, 75, 255, 0.25);
   }
+
+  .eyebrow { @apply text-xs font-semibold uppercase tracking-[.22em] text-neon/90; }
+  .gradient-text { @apply bg-gradient-to-r from-neonSoft via-white to-aqua bg-clip-text text-transparent; }
+  .status-dot { @apply mr-2 inline-block h-1.5 w-1.5 rounded-full; }
+  .feature-card { @apply rounded-[1.6rem] border border-white/10 bg-white/[.045] p-3 shadow-2xl shadow-black/20 backdrop-blur-xl; }
+  .stat-card { @apply rounded-2xl border border-white/10 bg-white/[.04] px-4 py-6 text-center transition duration-300 hover:-translate-y-1 hover:border-neon/40 hover:bg-white/[.07] md:px-6 md:py-8; }
+  .info-card, .service-card, .quote-card { @apply rounded-2xl border border-white/10 bg-white/[.04] p-6 transition duration-300 hover:-translate-y-1 hover:border-neon/35 hover:bg-white/[.065]; }
+  .info-card { @apply min-h-52; }
+  .card-number { @apply text-xs font-semibold tracking-[.2em] text-neon/80; }
+  .release-card { @apply rounded-3xl border border-white/10 bg-white/[.04] p-3 transition duration-300 hover:-translate-y-1 hover:border-neon/35 hover:bg-white/[.065]; }
+  .platform-link { @apply rounded-full border border-white/10 px-3 py-1 text-xs text-white/55 transition hover:border-neon/50 hover:text-white; }
+  .service-icon { @apply mb-7 flex h-10 w-10 items-center justify-center rounded-xl bg-neon/10 text-lg text-neon; }
+  .artist-card { @apply flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.04] p-4 transition duration-300 hover:border-aqua/30 hover:bg-white/[.065]; }
+  .cta-card { @apply relative overflow-hidden rounded-[1.75rem] border border-neon/30 bg-gradient-to-br from-neon/20 via-white/[.06] to-aqua/10 p-7 md:p-12; }
 }
 
 @media (prefers-reduced-motion: reduce) {
