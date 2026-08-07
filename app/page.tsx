@@ -1,11 +1,13 @@
 import Image from "next/image";
+import Link from "next/link";
 import Container from "../components/Container";
 import Reveal from "../components/Reveal";
 import GlowButton from "../components/GlowButton";
 import Counter from "../components/Counter";
 import SectionHeader from "../components/SectionHeader";
 import Faq from "../components/Faq";
-import { artists, faqItems, services, stats, testimonials, whyUs } from "../data/site";
+import { faqItems, services, stats, testimonials, whyUs } from "../data/site";
+import { getArtists } from "../lib/artists";
 import { getFeaturedRelease } from "../lib/featured";
 import { getReleases } from "../lib/releases";
 
@@ -13,7 +15,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [featured, releases] = await Promise.all([getFeaturedRelease(), getReleases()]);
+  const [featured, releases, artists] = await Promise.all([getFeaturedRelease(), getReleases(), getArtists()]);
   const isRemoteCover = featured.cover.startsWith("http");
 
   return (
@@ -69,7 +71,7 @@ export default async function HomePage() {
 
       <section id="services" className="section-padding"><Container><SectionHeader eyebrow="Сервисы" title="Полный цикл для артиста." /><div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{services.map((service, index) => <Reveal key={service.title} delay={index * .04}><article className="service-card"><span className="service-icon">✦</span><h3 className="text-lg font-semibold text-white">{service.title}</h3><p className="mt-3 text-sm leading-6 text-white/55">{service.description}</p></article></Reveal>)}</div></Container></section>
 
-      <section id="artists" className="section-padding"><Container><SectionHeader eyebrow="Артисты" title="Лица нашего звучания." /><div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{artists.map((artist, index) => <Reveal key={artist.name} delay={index * .03}><article className="artist-card"><div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-white/15"><Image src={encodeURI(artist.avatar)} alt={artist.name} fill sizes="64px" className="object-cover" /></div><div><p className="font-semibold text-white">{artist.name}</p><p className="mt-1 text-xs text-white/45">{artist.listeners} слушателей / месяц</p></div></article></Reveal>)}</div></Container></section>
+      <section id="artists" className="section-padding"><Container><SectionHeader eyebrow="Артисты" title="Лица нашего звучания." description="Открывай артистов CXRNER MUSIC и переходи в их профиль." /><div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{artists.map((artist, index) => <Reveal key={artist.id} delay={index * .03}><Link href={`/artists/${artist.id}`} className="artist-card group"><div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-white/15"><Image src={encodeURI(artist.avatar)} alt={artist.name} fill sizes="64px" className="object-cover transition duration-500 group-hover:scale-110" /></div><div className="min-w-0"><p className="font-semibold text-white">{artist.name}</p><p className="mt-1 text-xs text-white/45">{artist.listeners} слушателей / месяц</p><p className="mt-2 truncate text-xs text-white/40">{artist.bio}</p></div><span className="ml-auto text-white/30 transition group-hover:text-neon">↗</span></Link></Reveal>)}</div></Container></section>
 
       <section id="testimonials" className="section-padding"><Container><SectionHeader eyebrow="Отзывы" title="Артисты говорят за нас." /><div className="mt-10 grid gap-4 lg:grid-cols-2">{testimonials.map((item, index) => <Reveal key={item.name} delay={index * .04}><article className="quote-card"><div className="flex items-center gap-4"><div className="relative h-12 w-12 overflow-hidden rounded-full"><Image src={item.avatar} alt={item.name} fill sizes="48px" className="object-cover" /></div><div><p className="font-semibold text-white">{item.name}</p><p className="text-xs text-neon">Артист CXRNER MUSIC</p></div></div><p className="mt-5 text-sm leading-7 text-white/65">“{item.quote}”</p></article></Reveal>)}</div></Container></section>
 

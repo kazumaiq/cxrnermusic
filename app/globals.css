@@ -102,6 +102,12 @@ body {
   .service-icon { @apply mb-7 flex h-10 w-10 items-center justify-center rounded-xl bg-neon/10 text-lg text-neon; }
   .artist-card { @apply flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.04] p-4 transition duration-300 hover:border-aqua/30 hover:bg-white/[.065]; }
   .cta-card { @apply relative overflow-hidden rounded-[1.75rem] border border-neon/30 bg-gradient-to-br from-neon/20 via-white/[.06] to-aqua/10 p-7 md:p-12; }
+  .panel-card { @apply rounded-3xl border border-white/10 bg-white/[.04] p-6 md:p-8; }
+  .admin-item { @apply rounded-2xl border border-white/10 bg-black/20 p-5 transition duration-300 hover:border-neon/25 hover:bg-black/30 md:p-6; }
+  .admin-label { @apply block text-sm text-white/65; }
+  .file-input { @apply mt-2 w-full rounded-xl border border-dashed border-white/15 bg-black/20 px-4 py-3 text-xs text-white/60 file:mr-3 file:rounded-full file:border-0 file:bg-neon/15 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-neonSoft; }
+  .secondary-button { @apply rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/75 transition hover:border-neon hover:bg-neon/10 hover:text-white; }
+  .danger-button { @apply rounded-full border border-red-300/15 px-3 py-2 text-xs text-red-200/65 transition hover:border-red-300/45 hover:bg-red-400/10 hover:text-red-100; }
 }
 
 @media (prefers-reduced-motion: reduce) {

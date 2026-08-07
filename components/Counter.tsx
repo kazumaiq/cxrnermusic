@@ -14,6 +14,7 @@ export default function Counter({ to, suffix = "", duration = 1.6 }: CounterProp
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const motionValue = useMotionValue(0);
   const [value, setValue] = useState(0);
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     const unsubscribe = motionValue.on("change", (latest) => {
@@ -26,6 +27,8 @@ export default function Counter({ to, suffix = "", duration = 1.6 }: CounterProp
   useEffect(() => {
     if (!inView) return;
 
+    setStarted(true);
+
     const controls = animate(motionValue, to, {
       duration,
       ease: "easeOut",
@@ -36,7 +39,7 @@ export default function Counter({ to, suffix = "", duration = 1.6 }: CounterProp
 
   return (
     <span ref={ref} className="tabular-nums">
-      {value}
+      {started ? value : to}
       {suffix}
     </span>
   );

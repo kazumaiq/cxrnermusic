@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
+import { isAdminUser } from "./lib/admin";
 
-const protectedPaths = ["/dashboard", "/submit-release"];
+const protectedPaths = ["/dashboard", "/submit-release", "/admin"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -44,10 +45,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (!isAdminUser(session.user)) return NextResponse.redirect(new URL("/", req.url));
+  }
+
   return res;
 }
 
 export const config = {
   matcher: ["/dashboard/:path*", "/submit-release"],
 };
-

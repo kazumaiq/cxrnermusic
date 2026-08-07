@@ -16,15 +16,15 @@ export default function BackgroundFX() {
 
       <motion.div
         style={{ y: ySlow }}
-        className="absolute -top-48 -left-48 h-[560px] w-[560px] rounded-full bg-neon/28 blur-[140px] will-change-transform"
+        className="absolute -top-48 -left-48 h-[560px] w-[560px] animate-pulseGlow rounded-full bg-neon/28 blur-[140px] will-change-transform"
       />
       <motion.div
         style={{ y: yFast }}
-        className="absolute top-10 right-[-200px] h-[680px] w-[680px] rounded-full bg-aqua/22 blur-[160px] will-change-transform"
+        className="absolute top-10 right-[-200px] h-[680px] w-[680px] animate-pulseGlow rounded-full bg-aqua/22 blur-[160px] will-change-transform [animation-delay:1.2s]"
       />
       <motion.div
         style={{ y: yMid }}
-        className="absolute bottom-[-260px] left-[10%] h-[640px] w-[640px] rounded-full bg-magenta/22 blur-[170px] will-change-transform"
+        className="absolute bottom-[-260px] left-[10%] h-[640px] w-[640px] animate-pulseGlow rounded-full bg-magenta/22 blur-[170px] will-change-transform [animation-delay:2.1s]"
       />
 
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,6,20,0.0)_0%,rgba(10,6,20,0.55)_55%,rgba(10,6,20,0.9)_100%)]" />

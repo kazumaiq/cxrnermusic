@@ -2,54 +2,8 @@ import type { Metadata } from "next";
 import Container from "../../components/Container";
 import Reveal from "../../components/Reveal";
 
-export const metadata: Metadata = {
-  title: "Контакты — CXRNER MUSIC",
-  description: "Контакты лейбла CXRNER MUSIC: email и Telegram.",
-};
+export const metadata: Metadata = { title: "Контакты — CXRNER MUSIC", description: "Контакты лейбла CXRNER MUSIC: email и Telegram." };
 
 export default function ContactPage() {
-  return (
-    <section className="section-padding">
-      <Container>
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-neon/80">Контакты</p>
-        </Reveal>
-        <Reveal delay={0.05}>
-          <h1 className="mt-3 text-4xl font-semibold text-white md:text-5xl font-display">Свяжитесь с нами</h1>
-        </Reveal>
-        <Reveal delay={0.1}>
-          <p className="mt-6 max-w-2xl text-base text-white/70">
-            Напишите нам, если хотите отправить релиз, получить консультацию или обсудить партнерство.
-          </p>
-        </Reveal>
-
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
-          <Reveal>
-            <div className="glass rounded-2xl p-6">
-              <p className="text-sm uppercase tracking-[0.3em] text-white/60">Email</p>
-              <a
-                href="mailto:cxrner.label@gmail.com"
-                className="mt-3 block text-lg font-semibold text-white hover:text-neon"
-              >
-                cxrner.label@gmail.com
-              </a>
-            </div>
-          </Reveal>
-          <Reveal delay={0.05}>
-            <div className="glass rounded-2xl p-6">
-              <p className="text-sm uppercase tracking-[0.3em] text-white/60">Telegram</p>
-              <a
-                href="https://t.me/kazumaiq"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 block text-lg font-semibold text-white hover:text-neon"
-              >
-                @kazumaiq
-              </a>
-            </div>
-          </Reveal>
-        </div>
-      </Container>
-    </section>
-  );
+  return <main className="section-padding pt-32"><Container><Reveal><p className="eyebrow">Контакты</p><h1 className="mt-4 font-display text-5xl font-semibold tracking-tight text-white md:text-7xl">Свяжитесь с нами</h1><p className="mt-6 max-w-2xl text-base leading-7 text-white/65">Напишите нам, если хотите отправить релиз, получить консультацию или обсудить партнёрство.</p></Reveal><div className="mt-10 grid gap-4 md:grid-cols-2"><Reveal><a href="mailto:cxrner.label@gmail.com" className="info-card block"><p className="text-xs uppercase tracking-[.25em] text-white/40">Email</p><p className="mt-4 text-lg font-semibold text-white transition group-hover:text-neon">cxrner.label@gmail.com</p></a></Reveal><Reveal delay={.05}><a href="https://t.me/kazumaiq" target="_blank" rel="noopener noreferrer" className="info-card block"><p className="text-xs uppercase tracking-[.25em] text-white/40">Telegram</p><p className="mt-4 text-lg font-semibold text-white">@kazumaiq ↗</p></a></Reveal></div></Container></main>;
 }

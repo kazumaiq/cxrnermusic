@@ -1,0 +1,65 @@
+[
+  {
+    "id": "balekajon",
+    "name": "Balekajon",
+    "listeners": "259 760",
+    "avatar": "/artist/balekajon.png",
+    "bio": "Артист с узнаваемой атмосферой и собственным подходом к мелодиям.",
+    "genres": ["Phonk", "Hip-Hop"],
+    "links": []
+  },
+  {
+    "id": "cerrera-dark",
+    "name": "Cerrera D'Ark",
+    "listeners": "77 254",
+    "avatar": "/artist/cerrera-dark.png",
+    "bio": "Тёмная эстетика, плотный саунд и музыка с характером.",
+    "genres": ["Dark", "Electronic"],
+    "links": []
+  },
+  {
+    "id": "hxlkart",
+    "name": "Hxlkart",
+    "listeners": "191 340",
+    "avatar": "/artist/hxlkart.png",
+    "bio": "Современное звучание на стыке рэпа, электроники и андеграунда.",
+    "genres": ["Hip-Hop", "Trap"],
+    "links": []
+  },
+  {
+    "id": "mc-lone",
+    "name": "MC LONE",
+    "listeners": "348 861",
+    "avatar": "/artist/mc-lone.png",
+    "bio": "Энергичный артист с большим вниманием к ритму и подаче.",
+    "genres": ["Rap", "Trap"],
+    "links": []
+  },
+  {
+    "id": "mvrtx",
+    "name": "MVRTX",
+    "listeners": "389 622",
+    "avatar": "/artist/mvrtx.png",
+    "bio": "Футуристичный саунд, который соединяет клубную энергию и мелодичность.",
+    "genres": ["Electronic", "Phonk"],
+    "links": []
+  },
+  {
+    "id": "starox",
+    "name": "STAROX",
+    "listeners": "139 396",
+    "avatar": "/artist/starox.png",
+    "bio": "Артист с ярким визуальным образом и кинематографичной атмосферой.",
+    "genres": ["Electronic", "Pop"],
+    "links": []
+  },
+  {
+    "id": "tendyone",
+    "name": "TendyOne",
+    "listeners": "257 991",
+    "avatar": "/artist/tendyone.png",
+    "bio": "Мелодичный и смелый взгляд на современную сцену.",
+    "genres": ["Hip-Hop", "Pop"],
+    "links": []
+  }
+]

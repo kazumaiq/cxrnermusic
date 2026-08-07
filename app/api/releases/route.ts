@@ -1,21 +1,19 @@
 import { getReleases, setReleases } from "../../../lib/releases";
+import { requireAdmin } from "../../../lib/admin";
 
 export async function GET() {
-  try {
-    const items = await getReleases();
-    return Response.json({ ok: true, items });
-  } catch {
-    return Response.json({ ok: false, error: "Не удалось загрузить релизы" }, { status: 500 });
-  }
+  try { return Response.json({ ok: true, items: await getReleases() }); }
+  catch { return Response.json({ ok: false, error: "Не удалось загрузить релизы" }, { status: 500 }); }
 }
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { items?: unknown };
+    await requireAdmin();
+    const body = await request.json() as { items?: unknown };
     const items = Array.isArray(body.items) ? body.items : [];
-    const next = await setReleases(items as any);
-    return Response.json({ ok: true, items: next });
-  } catch {
-    return Response.json({ ok: false, error: "Не удалось сохранить релизы" }, { status: 500 });
+    return Response.json({ ok: true, items: await setReleases(items as never[]) });
+  } catch (error) {
+    const unauthorized = error instanceof Error && error.message === "ADMIN_UNAUTHORIZED";
+    return Response.json({ ok: false, error: unauthorized ? "Доступ разрешён только администратору" : "Не удалось сохранить релизы" }, { status: unauthorized ? 403 : 500 });
   }
 }

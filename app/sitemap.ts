@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
+import { getArtists } from "../lib/artists";
 
 const SITE_URL = "https://cxrnermusic.vercel.app";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const artists = await getArtists();
   return [
     {
       url: SITE_URL,
@@ -22,5 +24,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.5,
     },
+    ...artists.map((artist) => ({ url: `${SITE_URL}/artists/${artist.id}`, lastModified: new Date(), changeFrequency: "monthly" as const, priority: 0.7 })),
   ];
 }
