@@ -25,34 +25,34 @@ export default function RegisterPage() {
 
     try {
       const supabaseClient = getSupabaseBrowserClient();
+      const profile: ProfilePayload = {};
+      if (artistName.trim()) {
+        profile.artist_name = artistName.trim();
+      }
+
       const { data, error: signUpError } = await supabaseClient.auth.signUp({
         email,
         password,
+        options: { data: profile },
       });
 
       if (signUpError) throw signUpError;
       const user = data.user;
       if (!user) throw new Error("Не удалось создать пользователя");
 
-      const profile: ProfilePayload = {};
-      if (artistName.trim()) {
-        profile.artist_name = artistName.trim();
+      // With email confirmation enabled Supabase returns a user without a session.
+      // The database trigger creates the profile in that case; only upsert when
+      // a session is already available (for projects without email confirmation).
+      if (data.session) {
+        const { error: profileError } = await supabaseClient.from("cxrner_cabinet_users").upsert(
+          { user_id: user.id, profile, updated_at: new Date().toISOString() },
+          { onConflict: "user_id" },
+        );
+        if (profileError) throw profileError;
+        router.push("/dashboard");
+      } else {
+        router.push("/auth/login?registered=1");
       }
-
-      const { error: profileError } = await supabaseClient.from("cxrner_cabinet_users").upsert(
-        {
-          user_id: user.id,
-          profile,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id",
-        },
-      );
-
-      if (profileError) throw profileError;
-
-      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message ?? "Ошибка регистрации");
     } finally {
