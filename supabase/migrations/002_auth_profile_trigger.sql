@@ -22,3 +22,15 @@ drop trigger if exists on_auth_user_created_cxrner on auth.users;
 create trigger on_auth_user_created_cxrner
   after insert on auth.users
   for each row execute procedure public.handle_new_cxrner_user();
+
+-- Backfill users that were created before this trigger was installed.
+insert into public.cxrner_cabinet_users (user_id, profile)
+select
+  users.id,
+  jsonb_strip_nulls(jsonb_build_object('artist_name', users.raw_user_meta_data ->> 'artist_name'))
+from auth.users as users
+where not exists (
+  select 1
+  from public.cxrner_cabinet_users as profiles
+  where profiles.user_id = users.id
+);
