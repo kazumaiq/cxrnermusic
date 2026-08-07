@@ -10,10 +10,8 @@
     "prebuild": "node scripts/strip-bom.mjs"
   },
   "dependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.15.0",
-    "@supabase/auth-helpers-react": "^0.15.0",
-    "@supabase/supabase-js": "latest",
     "@supabase/ssr": "^0.4.0",
+    "@supabase/supabase-js": "latest",
     "framer-motion": "latest",
     "next": "latest",
     "react": "latest",
