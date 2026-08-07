@@ -35,6 +35,7 @@ POST https://адрес-бота.example.com/api/new-release
 
 ```env
 BOT_BACKEND_URL=https://адрес-бота.example.com
+BOT_BACKEND_SECRET=одинаковый-длинный-секрет-на-сайте-и-боте
 ```
 
 После добавления переменной нужен Redeploy сайта.

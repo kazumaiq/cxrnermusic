@@ -124,6 +124,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(process.env.BOT_BACKEND_SECRET ? { "x-cxrner-secret": process.env.BOT_BACKEND_SECRET } : {}),
       },
       body: JSON.stringify(botPayload),
     });
