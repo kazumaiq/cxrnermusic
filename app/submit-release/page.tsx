@@ -104,7 +104,7 @@ export default function SubmitReleasePage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="glass rounded-3xl p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="release-form glass rounded-3xl p-6 space-y-6 md:p-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/50 mb-2">
               Тип релиза
@@ -487,4 +487,3 @@ export default function SubmitReleasePage() {
     </Container>
   );
 }
-

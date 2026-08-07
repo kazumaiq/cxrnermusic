@@ -40,7 +40,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Неверные данные" }, { status: 400 });
     }
 
+    const releaseType = body.release_type === "album" ? "альбом" : "сингл";
     const formPayload = {
+      // Aliases below mirror the bot's native Telegram form schema.
+      // This lets web submissions render in the same moderation card.
+      type: releaseType,
+      name: body.track_name,
+      subname: body.subtitle ?? ".",
+      has_lyrics: body.has_words === false ? "Нет, это инструментал" : "Да",
+      nick: body.artist_name,
+      fio: body.artist_full_name ?? body.artist_name,
+      date: body.release_date ?? "",
+      version: body.version ?? "Оригинал",
+      link: body.files_link ?? body.audio_link ?? ".",
+      yandex: body.yandex_card_link ?? ".",
+      mat: body.has_explicit ? "Да" : "Нет",
+      promo: body.promo_text ?? ".",
+      comment: body.comment ?? ".",
+      tracklist: ".",
+      tg: body.contact_telegram ?? "",
       artist_name: body.artist_name,
       track_name: body.track_name,
       genre: body.genre,
@@ -54,10 +72,8 @@ export async function POST(request: Request) {
       subtitle: body.subtitle ?? null,
       has_words: body.has_words ?? null,
       artist_full_name: body.artist_full_name ?? null,
-      version: body.version ?? null,
       yandex_card_link: body.yandex_card_link ?? null,
       has_explicit: body.has_explicit ?? null,
-      comment: body.comment ?? null,
       contact_telegram: body.contact_telegram ?? null,
       source: "web",
     };
@@ -101,6 +117,7 @@ export async function POST(request: Request) {
       track_name: body.track_name,
       genre: body.genre,
       release_type: body.release_type,
+      source: "web",
     };
 
     const botRes = await fetch(`${botUrl}/api/new-release`, {
