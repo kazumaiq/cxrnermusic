@@ -121,3 +121,61 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+@media (max-width: 639px) {
+  .section-padding {
+    @apply py-16;
+  }
+
+  .eyebrow {
+    @apply text-[10px] tracking-[.16em];
+  }
+
+  .brand-text {
+    @apply text-xs tracking-[.2em];
+  }
+
+  .btn {
+    @apply min-h-12 w-full px-5 text-sm;
+  }
+
+  .feature-card {
+    @apply rounded-2xl p-2;
+  }
+
+  .feature-card .absolute.bottom-5 {
+    @apply bottom-4 left-4 right-4;
+  }
+
+  .feature-card .absolute.bottom-5 .text-2xl {
+    @apply text-xl;
+  }
+
+  .info-card, .service-card, .quote-card {
+    @apply p-5;
+  }
+
+  .panel-card {
+    @apply rounded-2xl p-4;
+  }
+
+  .admin-item {
+    @apply p-4;
+  }
+
+  .artist-card {
+    @apply gap-3 p-3;
+  }
+
+  .artist-card .ml-auto {
+    @apply hidden;
+  }
+
+  input, textarea, select {
+    font-size: 16px;
+  }
+
+  button, a {
+    touch-action: manipulation;
+  }
+}
