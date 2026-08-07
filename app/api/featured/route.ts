@@ -1,5 +1,6 @@
 import { getFeaturedRelease, setFeaturedRelease } from "../../../lib/featured";
 import { requireAdmin } from "../../../lib/admin";
+import { revalidatePath } from "next/cache";
 
 export async function GET() {
   try { return Response.json(await getFeaturedRelease()); }
@@ -11,6 +12,7 @@ export async function POST(request: Request) {
     await requireAdmin();
     const body = await request.json() as { title?: string; artist?: string; cover?: string };
     const data = await setFeaturedRelease({ title: body.title ?? "", artist: body.artist ?? "", cover: body.cover ?? "" });
+    revalidatePath("/", "page");
     return Response.json({ ok: true, data });
   } catch (error) {
     const unauthorized = error instanceof Error && error.message === "ADMIN_UNAUTHORIZED";

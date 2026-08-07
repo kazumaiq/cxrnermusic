@@ -11,6 +11,7 @@ import type { ArtistItem, ArtistLink } from "../../lib/artists";
 type Tab = "featured" | "releases" | "artists";
 type NoticeType = "success" | "error";
 type Notice = { type: NoticeType; text: string } | null;
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 const emptyFeatured: FeaturedRelease = { title: "", artist: "", cover: "" };
 const emptyRelease: ReleaseItem = { title: "", artist: "", cover: "", links: [] };
@@ -30,6 +31,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<Notice>(null);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   useEffect(() => {
     Promise.all([fetch("/api/featured", { cache: "no-store" }), fetch("/api/releases", { cache: "no-store" }), fetch("/api/artists", { cache: "no-store" })])
@@ -64,12 +67,18 @@ export default function AdminPage() {
   }
 
   async function save(url: string, body: unknown, success: string) {
+    setSaveState("saving");
     try {
       const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || "Ошибка сохранения");
+      setSaveState("saved");
+      setSavedAt(new Date());
       show("success", success);
-    } catch (error) { show("error", error instanceof Error ? error.message : "Не удалось сохранить изменения"); }
+    } catch (error) {
+      setSaveState("error");
+      show("error", error instanceof Error ? error.message : "Не удалось сохранить изменения");
+    }
   }
 
   const updateRelease = (index: number, key: keyof ReleaseItem, value: string) => setReleases((items) => items.map((item, i) => i === index ? { ...item, [key]: value } : item));
@@ -81,6 +90,7 @@ export default function AdminPage() {
     <div className="flex flex-col gap-5 border-b border-white/10 pb-8 md:flex-row md:items-end md:justify-between"><div><p className="eyebrow">CXRNER MUSIC · ADMIN</p><h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white md:text-6xl">Панель управления</h1><p className="mt-4 max-w-2xl text-sm leading-6 text-white/55">Все изменения сохраняются в Supabase и автоматически появляются на сайте. Выберите раздел, внесите изменения и нажмите «Сохранить».</p></div><div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-xs text-emerald-200">● Данные подключены к Supabase</div></div>
     <div className="mt-8 grid gap-3 sm:grid-cols-3">{stats.map((item) => <div key={item.label} className="stat-card text-left"><p className="font-display text-2xl font-semibold text-white">{item.display ?? `${item.value}${item.suffix ?? ""}`}</p><p className="mt-1 text-xs uppercase tracking-[.16em] text-white/40">{item.label}</p></div>)}</div>
     <div className="mt-10 rounded-2xl border border-white/10 bg-white/[.035] p-2"><div className="grid gap-2 sm:grid-cols-3">{([["featured", "Новинка", "Главный блок на первом экране"], ["releases", "Релизы", "Карточки и ссылки на DSP"], ["artists", "Артисты", "Фото, био и профили артистов"]] as const).map(([value, label, hint]) => <button key={value} onClick={() => setTab(value)} className={`rounded-xl px-4 py-3 text-left transition ${tab === value ? "bg-neon text-night shadow-glow" : "text-white/60 hover:bg-white/[.06] hover:text-white"}`}><span className="block text-sm font-semibold">{label}</span><span className={`mt-1 block text-xs ${tab === value ? "text-night/65" : "text-white/35"}`}>{hint}</span></button>)}</div></div>
+    {saveState !== "idle" ? <div role="status" aria-live="polite" className={`mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm ${saveState === "saving" ? "border-aqua/30 bg-aqua/10 text-aqua" : saveState === "saved" ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200" : "border-red-400/30 bg-red-400/10 text-red-200"}`}><span>{saveState === "saving" ? "Сохраняем изменения…" : saveState === "saved" ? "✓ Изменения сохранены и опубликованы на сайте" : "Не удалось сохранить изменения"}</span>{saveState === "saved" && savedAt ? <span className="text-xs opacity-70">Обновлено в {savedAt.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span> : null}</div> : null}
     {loading ? <div className="mt-10 rounded-2xl border border-white/10 bg-white/[.04] p-8 text-sm text-white/55">Загружаем данные…</div> : null}
 
     {!loading && tab === "featured" ? <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_.7fr]"><div className="panel-card"><p className="eyebrow">Первый экран</p><h2 className="mt-3 text-2xl font-semibold text-white">Управление новинкой</h2><p className="mt-2 text-sm leading-6 text-white/50">Этот релиз показывается в hero-блоке главной страницы.</p><div className="mt-7 grid gap-5"><label className="admin-label">Название релиза<input className={fieldClass} value={featured.title} onChange={(e) => setFeatured({ ...featured, title: e.target.value })} placeholder="Название трека" /></label><label className="admin-label">Артист<input className={fieldClass} value={featured.artist} onChange={(e) => setFeatured({ ...featured, artist: e.target.value })} placeholder="Имя артиста" /></label><label className="admin-label">URL обложки<input className={fieldClass} value={featured.cover} onChange={(e) => setFeatured({ ...featured, cover: e.target.value })} placeholder="https://… или /images/…" /></label><label className="admin-label">Загрузить новую обложку<input className="file-input" type="file" accept="image/*" disabled={uploading === "featured"} onChange={(e: ChangeEvent<HTMLInputElement>) => handleUpload(e.target.files?.[0], "featured", (url) => setFeatured({ ...featured, cover: url }))} /></label></div><div className="mt-7"><GlowButton onClick={() => save("/api/featured", featured, "Новинка сохранена")}>Сохранить новинку</GlowButton></div></div><div className="panel-card"><p className="eyebrow">Предпросмотр</p><div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black/30"><div className="relative aspect-square">{featured.cover ? <img src={featured.cover} alt={featured.title} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-white/30">Добавьте обложку</div>}</div><div className="p-5"><p className="text-xl font-semibold text-white">{featured.title || "Название релиза"}</p><p className="mt-1 text-sm text-white/50">{featured.artist || "Имя артиста"}</p></div></div></div></section> : null}

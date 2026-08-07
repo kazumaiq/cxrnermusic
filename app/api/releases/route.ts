@@ -1,5 +1,6 @@
 import { getReleases, setReleases } from "../../../lib/releases";
 import { requireAdmin } from "../../../lib/admin";
+import { revalidatePath } from "next/cache";
 
 export async function GET() {
   try { return Response.json({ ok: true, items: await getReleases() }); }
@@ -11,7 +12,9 @@ export async function POST(request: Request) {
     await requireAdmin();
     const body = await request.json() as { items?: unknown };
     const items = Array.isArray(body.items) ? body.items : [];
-    return Response.json({ ok: true, items: await setReleases(items as never[]) });
+    const saved = await setReleases(items as never[]);
+    revalidatePath("/", "page");
+    return Response.json({ ok: true, items: saved });
   } catch (error) {
     const unauthorized = error instanceof Error && error.message === "ADMIN_UNAUTHORIZED";
     return Response.json({ ok: false, error: unauthorized ? "Доступ разрешён только администратору" : "Не удалось сохранить релизы" }, { status: unauthorized ? 403 : 500 });
