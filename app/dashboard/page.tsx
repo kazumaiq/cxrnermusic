@@ -3,6 +3,18 @@ import GlowButton from "../../components/GlowButton";
 import DashboardReleasesTable from "../../components/DashboardReleasesTable";
 import { getSupabaseServerClient } from "../../lib/supabaseServer";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import {
+  Sparkles,
+  Disc,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowUpRight,
+  TrendingUp,
+  ShieldCheck,
+  Send,
+} from "lucide-react";
 
 type CabinetProfileRow = {
   user_id: string;
@@ -22,101 +34,159 @@ type FormRow = {
   source: string | null;
 };
 
-const statusLabels: Record<string, string> = {
-  pending: "На модерации",
-  moderation: "Модерация",
-  approved: "Принято",
-  rejected: "Отклонено",
-  uploaded: "Отгружено",
-  released: "В релизе",
-  fix_required: "На исправление",
-  deleted: "Удалено",
-};
-
-function getStatusBadge(status: string | null) {
-  if (!status) {
-    return <span className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/60">Неизвестно</span>;
-  }
-
-  const label = statusLabels[status] ?? status;
-
-  let colorClasses = "bg-white/5 text-white/80 border-white/10";
-  if (status === "pending" || status === "moderation") {
-    colorClasses = "bg-yellow-500/10 text-yellow-300 border-yellow-500/30";
-  } else if (status === "approved" || status === "uploaded" || status === "released") {
-    colorClasses = "bg-emerald-500/10 text-emerald-300 border-emerald-500/30";
-  } else if (status === "rejected") {
-    colorClasses = "bg-red-500/10 text-red-300 border-red-500/30";
-  } else if (status === "fix_required") {
-    colorClasses = "bg-orange-500/10 text-orange-300 border-orange-500/30";
-  } else if (status === "deleted") {
-    colorClasses = "bg-white/5 text-white/50 border-white/10";
-  }
-
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${colorClasses}`}>
-      {label}
-    </span>
-  );
-}
-
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const supabase = await getSupabaseServerClient();
+  let user: any = null;
+  let profileRow: CabinetProfileRow | null = null;
+  let forms: FormRow[] = [];
+  let errorNotice: string | null = null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const supabase = await getSupabaseServerClient();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
 
-  // 🔥 ВОТ ЭТО ГЛАВНЫЙ ФИКС
-  if (!user) {
-    redirect("/auth/login");
+    if (!authUser) {
+      redirect("/auth/login");
+    }
+    user = authUser;
+
+    const { data: pRow } = await supabase
+      .from("cxrner_cabinet_users")
+      .select("user_id, profile")
+      .eq("user_id", user.id)
+      .maybeSingle<CabinetProfileRow>();
+    profileRow = pRow;
+
+    const { data: fRows } = await supabase
+      .from("cxrner_forms")
+      .select("id, artist_name, track_name, genre, status, upc, created_at, source")
+      .eq("telegram_id", user.id)
+      .order("created_at", { ascending: false })
+      .returns<FormRow[]>();
+
+    forms = fRows ?? [];
+  } catch (err: any) {
+    if (err?.message === "NEXT_REDIRECT") throw err;
+    errorNotice =
+      err?.message ||
+      "Не удалось подключиться к базе данных. Проверьте настройки NEXT_PUBLIC_SUPABASE_URL.";
   }
-
-  const { data: profileRow } = await supabase
-    .from("cxrner_cabinet_users")
-    .select("user_id, profile")
-    .eq("user_id", user.id)
-    .maybeSingle<CabinetProfileRow>();
-
-  const { data: forms } = await supabase
-    .from("cxrner_forms")
-    .select("id, artist_name, track_name, genre, status, upc, created_at, source")
-    .eq("telegram_id", user.id)
-    .order("created_at", { ascending: false })
-    .returns<FormRow[]>();
 
   const artistName =
     profileRow?.profile?.artist_name ||
-    user.email ||
-    (user.user_metadata && (user.user_metadata.name as string)) ||
-    "";
+    user?.email?.split("@")[0] ||
+    "Артист";
+
+  // Calculate stats
+  const totalReleases = forms.length;
+  const inModeration = forms.filter((f) => f.status === "pending" || f.status === "moderation").length;
+  const liveReleases = forms.filter((f) => f.status === "approved" || f.status === "uploaded" || f.status === "released").length;
+  const fixRequired = forms.filter((f) => f.status === "fix_required").length;
 
   return (
-    <div className="section-padding">
+    <div className="section-padding pt-28 sm:pt-36">
       <Container>
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        {/* Welcome Header */}
+        <div className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-8 border-b border-white/10">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-neon/80">Личный кабинет</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white md:text-3xl font-display">
-              {artistName || "Артист"} — ваши релизы
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <p className="text-xs font-bold uppercase tracking-[0.25em] text-neon">
+                Личный кабинет артиста
+              </p>
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-white">
+              {artistName}
             </h1>
-            <p className="mt-2 text-sm text-white/60">
-              Отправляйте релизы через сайт и следите за статусом модерации и UPC в реальном времени.
+            <p className="mt-1 text-xs sm:text-sm text-white/60">
+              Управление вашими музыкальными релизами, статусы модерации и UPC в реальном времени.
             </p>
           </div>
-          <GlowButton href="/submit-release" variant="primary" aria-label="Отправить релиз через сайт">
-            Отправить релиз
-          </GlowButton>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/submit-release"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-neon via-magenta to-aqua text-night font-bold text-xs uppercase tracking-wider shadow-glow hover:scale-105 active:scale-95 transition"
+            >
+              <Sparkles className="w-4 h-4 fill-night" />
+              Отправить новый релиз
+            </Link>
+            <a
+              href="https://t.me/moder_cxrner_bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-3 rounded-full glass-badge border border-white/15 text-xs font-semibold text-white/80 hover:text-white transition"
+            >
+              <Send className="w-3.5 h-3.5 text-aqua" />
+              Бот модерации
+            </a>
+          </div>
         </div>
 
-        {forms && (
+        {/* Notice if Supabase offline */}
+        {errorNotice && (
+          <div className="mb-8 p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 text-xs sm:text-sm flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Внимание по конфигурации базы данных:</p>
+              <p className="text-white/70 mt-1">{errorNotice}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Stat Overview Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10">
+            <div className="flex items-center justify-between text-white/40 mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Всего релизов</span>
+              <Disc className="w-4 h-4 text-neon" />
+            </div>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-white">{totalReleases}</p>
+            <p className="text-[11px] text-white/40 mt-1">Отправлено через веб и бот</p>
+          </div>
+
+          <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10">
+            <div className="flex items-center justify-between text-white/40 mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider">На модерации</span>
+              <Clock className="w-4 h-4 text-yellow-400" />
+            </div>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-yellow-400">{inModeration}</p>
+            <p className="text-[11px] text-white/40 mt-1">Проверка A&R команды</p>
+          </div>
+
+          <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10">
+            <div className="flex items-center justify-between text-white/40 mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider">В релизе / Одобрено</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            </div>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-emerald-400">{liveReleases}</p>
+            <p className="text-[11px] text-white/40 mt-1">На мировых стримингах</p>
+          </div>
+
+          <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10">
+            <div className="flex items-center justify-between text-white/40 mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Роялти</span>
+              <TrendingUp className="w-4 h-4 text-aqua" />
+            </div>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-aqua">70%</p>
+            <p className="text-[11px] text-white/40 mt-1">Выплаты раз в квартал</p>
+          </div>
+        </div>
+
+        {/* Releases Table & Realtime Section */}
+        {user ? (
           <DashboardReleasesTable
             initialForms={forms}
             profileArtistName={profileRow?.profile?.artist_name ?? null}
             userId={user.id}
           />
+        ) : (
+          <div className="glass-panel rounded-3xl p-10 text-center border border-white/10">
+            <p className="text-white/60">Войдите в аккаунт для отображения ваших релизов.</p>
+          </div>
         )}
       </Container>
     </div>

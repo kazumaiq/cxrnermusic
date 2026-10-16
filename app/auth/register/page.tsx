@@ -2,19 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Container from "../../../components/Container";
-import GlowButton from "../../../components/GlowButton";
 import { getSupabaseBrowserClient } from "../../../lib/supabaseClient";
-
-type ProfilePayload = {
-  artist_name?: string;
-};
+import { Lock, Mail, User, Eye, EyeOff, Sparkles, ArrowLeft, Send } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [artistName, setArtistName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,31 +22,34 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-      const supabaseClient = getSupabaseBrowserClient();
-      const profile: ProfilePayload = {};
-      if (artistName.trim()) {
-        profile.artist_name = artistName.trim();
+      let supabaseClient;
+      try {
+        supabaseClient = getSupabaseBrowserClient();
+      } catch {
+        throw new Error(
+          "Supabase не настроен на сайте. Укажите NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY в Vercel или .env.local.",
+        );
       }
 
+      const profile = {
+        artist_name: artistName.trim() || undefined,
+      };
+
       const { data, error: signUpError } = await supabaseClient.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: { data: profile },
       });
 
       if (signUpError) throw signUpError;
       const user = data.user;
-      if (!user) throw new Error("Не удалось создать пользователя");
+      if (!user) throw new Error("Не удалось создать пользователя.");
 
-      // With email confirmation enabled Supabase returns a user without a session.
-      // The database trigger creates the profile in that case; only upsert when
-      // a session is already available (for projects without email confirmation).
       if (data.session) {
-        const { error: profileError } = await supabaseClient.from("cxrner_cabinet_users").upsert(
+        await supabaseClient.from("cxrner_cabinet_users").upsert(
           { user_id: user.id, profile, updated_at: new Date().toISOString() },
           { onConflict: "user_id" },
         );
-        if (profileError) throw profileError;
         router.push("/dashboard");
       } else {
         router.push("/auth/login?registered=1");
@@ -61,72 +62,113 @@ export default function RegisterPage() {
   }
 
   return (
-    <Container className="section-padding flex min-h-[70vh] items-center justify-center">
-      <div className="glass w-full max-w-md rounded-3xl p-8">
-        <h1 className="text-2xl font-semibold text-white font-display">Регистрация артиста</h1>
-        <p className="mt-2 text-sm text-white/70">
-          Создайте аккаунт, чтобы отправлять релизы и отслеживать статусы в кабинете.
-        </p>
+    <div className="section-padding pt-28 sm:pt-36 flex min-h-[80vh] items-center justify-center">
+      <Container className="max-w-md w-full">
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/50 hover:text-white transition"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            На главную
+          </Link>
+        </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
-              Email
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none ring-0 transition placeholder:text-white/40 focus:border-neon"
-              placeholder="you@email.com"
-            />
+        <div className="glass-panel rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl space-y-6">
+          <div className="text-center space-y-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass-badge text-[10px] font-bold uppercase tracking-widest text-aqua shadow-glowAqua">
+              <Sparkles className="w-3 h-3 text-aqua" />
+              Присоединиться к лейблу
+            </span>
+            <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
+              Регистрация артиста
+            </h1>
+            <p className="text-xs text-white/60">
+              Создайте профиль для отправки музыки и отслеживания роялти 70/30.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
-              Пароль
-            </label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none ring-0 transition placeholder:text-white/40 focus:border-neon"
-              placeholder="Минимум 6 символов"
-            />
-          </div>
+          {error && (
+            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-xs">
+              {error}
+            </div>
+          )}
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
-              Имя артиста (опционально)
-            </label>
-            <input
-              type="text"
-              value={artistName}
-              onChange={(e) => setArtistName(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none ring-0 transition placeholder:text-white/40 focus:border-neon"
-              placeholder="HELLBORN"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                Псевдоним артиста
+              </label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <input
+                  type="text"
+                  value={artistName}
+                  onChange={(e) => setArtistName(e.target.value)}
+                  placeholder="KAZUMAI"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-neon focus:outline-none transition"
+                />
+              </div>
+            </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                Email *
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="artist@gmail.com"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-neon focus:outline-none transition"
+                />
+              </div>
+            </div>
 
-          <div className="mt-6 flex flex-col gap-3">
-            <GlowButton type="submit" disabled={loading}>
-              {loading ? "Создание аккаунта..." : "Зарегистрироваться"}
-            </GlowButton>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                Пароль (минимум 6 символов) *
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Придумайте пароль"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-neon focus:outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
             <button
-              type="button"
-              onClick={() => router.push("/auth/login")}
-              className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline"
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-neon via-magenta to-aqua text-night font-bold text-xs uppercase tracking-wider shadow-glow hover:shadow-glowStrong active:scale-98 transition duration-200 disabled:opacity-50"
             >
-              Уже есть аккаунт? Войти
+              {loading ? "Создание профиля..." : "Зарегистрироваться"}
             </button>
+          </form>
+
+          <div className="pt-4 border-t border-white/10 flex flex-col items-center gap-3 text-xs text-white/60">
+            <Link href="/auth/login" className="hover:text-neonSoft transition">
+              Уже есть аккаунт? <strong className="text-white underline">Войти</strong>
+            </Link>
           </div>
-        </form>
-      </div>
-    </Container>
+        </div>
+      </Container>
+    </div>
   );
 }
