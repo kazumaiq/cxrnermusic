@@ -1,41 +1,50 @@
 import Link from "next/link";
 import Container from "./Container";
-import { Sparkles, Send, Globe, Disc, ShieldCheck, Mail, ArrowUpRight } from "lucide-react";
+import { Sparkles, Send, Globe, Disc, ShieldCheck, Mail, ArrowUpRight, Music } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-20 border-t border-white/10 bg-[#060606] overflow-hidden">
-      <Container className="pt-16 pb-12">
+    <footer className="relative mt-24 border-t border-purple-500/20 bg-gradient-to-b from-[#090910] to-[#040407] overflow-hidden">
+      {/* Ambient purple bloom */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-48 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      <Container className="pt-16 pb-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-12">
           {/* Column 1: Brand Info */}
           <div className="lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-3 group">
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-black border border-white/20 group-hover:border-white transition duration-300">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-purple-600/20 border border-purple-500/40 group-hover:border-purple-400 transition duration-300 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
                 <span className="font-gothic font-black text-xs text-white">CX</span>
               </div>
               <div className="flex flex-col">
-                <span className="font-gothic font-bold text-base tracking-[0.28em] text-white">
+                <span className="font-gothic font-bold text-base tracking-[0.28em] text-white group-hover:text-purple-300 transition">
                   CXRNER MUSIC
                 </span>
-                <span className="font-mono text-[9px] tracking-[0.25em] uppercase text-neutral-500">
+                <span className="font-mono text-[9px] tracking-[0.25em] uppercase text-purple-400">
                   Global Independent Label
                 </span>
               </div>
             </Link>
 
-            <p className="mt-4 max-w-sm text-xs leading-6 text-neutral-400 font-sans">
-              Международный независимый музыкальный лейбл и экосистема дистрибуции. Открываем таланты, продвигаем на 150+ платформ и сохраняем свободу творчества каждого артиста.
+            <p className="mt-4 max-w-sm text-xs leading-6 text-neutral-300 font-sans">
+              Международный независимый музыкальный лейбл и экосистема цифровой дистрибуции.
+              Выпускаем треки на 150+ стримингов, защищаем авторские права и обеспечиваем прозрачные выплаты 70/30.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-2 text-xs">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded tech-badge font-mono text-[10px] uppercase text-neutral-400">
-                <ShieldCheck className="w-3.5 h-3.5 text-neutral-300" />
-                Официальный дистрибьютор
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded tech-badge font-mono text-[10px] uppercase text-neutral-400">
-                <Globe className="w-3.5 h-3.5 text-neutral-300" />
+              <a
+                href="https://music.yandex.ru/label/5978511"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 font-mono text-[10px] uppercase text-purple-300 hover:bg-purple-500/20 transition"
+              >
+                <Music className="w-3.5 h-3.5 text-purple-400" />
+                Яндекс Музыка лейбла
+              </a>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/10 bg-white/5 font-mono text-[10px] uppercase text-neutral-300">
+                <Globe className="w-3.5 h-3.5 text-purple-400" />
                 150+ стран мира
               </span>
             </div>
@@ -43,7 +52,7 @@ export default function Footer() {
 
           {/* Column 2: Навигация */}
           <div>
-            <h4 className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-neutral-300 mb-4">// НАВИГАЦИЯ</h4>
+            <h4 className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-purple-300 mb-4">// НАВИГАЦИЯ</h4>
             <ul className="space-y-2.5 text-xs font-mono text-neutral-400">
               <li>
                 <Link href="/#releases" className="hover:text-white transition inline-flex items-center gap-1">
@@ -75,11 +84,11 @@ export default function Footer() {
 
           {/* Column 3: Артистам */}
           <div>
-            <h4 className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-neutral-300 mb-4">// АРТИСТАМ</h4>
+            <h4 className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-purple-300 mb-4">// АРТИСТАМ</h4>
             <ul className="space-y-2.5 text-xs font-mono text-neutral-400">
               <li>
-                <Link href="/submit-release" className="text-white hover:text-neutral-300 transition font-semibold inline-flex items-center gap-1">
-                  Отправить релиз <ArrowUpRight className="w-3.5 h-3.5 text-white" />
+                <Link href="/submit-release" className="text-white hover:text-purple-300 transition font-semibold inline-flex items-center gap-1">
+                  Отправить релиз <ArrowUpRight className="w-3.5 h-3.5 text-purple-400" />
                 </Link>
               </li>
               <li>
@@ -102,9 +111,9 @@ export default function Footer() {
                   href="https://t.me/moder_cxrner_bot"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white transition inline-flex items-center gap-1 text-neutral-300"
+                  className="hover:text-white transition inline-flex items-center gap-1 text-purple-300"
                 >
-                  <Send className="w-3.5 h-3.5 text-neutral-400" />
+                  <Send className="w-3.5 h-3.5 text-purple-400" />
                   Бот модерации
                 </a>
               </li>
@@ -113,7 +122,7 @@ export default function Footer() {
 
           {/* Column 4: Контакты & Соцсети */}
           <div>
-            <h4 className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-neutral-300 mb-4">// СВЯЗЬ</h4>
+            <h4 className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-purple-300 mb-4">// СВЯЗЬ</h4>
             <ul className="space-y-2.5 text-xs font-mono text-neutral-400">
               <li>
                 <a
@@ -130,7 +139,7 @@ export default function Footer() {
                   href="mailto:cxrner.label@gmail.com"
                   className="hover:text-white transition inline-flex items-center gap-1 truncate"
                 >
-                  <Mail className="w-3.5 h-3.5 text-neutral-500" />
+                  <Mail className="w-3.5 h-3.5 text-neutral-400" />
                   cxrner.label@gmail.com
                 </a>
               </li>
@@ -143,8 +152,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-neutral-500">
-          <p>© {currentYear} CXRNER MUSIC. Все права защищены. Дистрибуция и паблишинг.</p>
+        <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-neutral-400">
+          <p>© {currentYear} CXRNER MUSIC. Официальная дистрибуция и паблишинг.</p>
           <div className="flex items-center gap-6">
             <Link href="/offer" className="hover:text-white transition">
               Публичная оферта

@@ -6,80 +6,75 @@ const steps = [
     title: "Подача заявки",
     badge: "2 минуты",
     description:
-      "Заполните удобную веб-форму или напишите в Telegram-бот. Укажите название, жанр, ссылки на аудиофайлы (WAV/FLAC) и скриншот проекта DAW.",
+      "Заполните форму на сайте или отправьте трек через Telegram-бота. Укажите название, жанр и ссылку на аудио в высоком качестве (WAV/FLAC).",
     icon: FileText,
-    accent: "neon",
   },
   {
     step: "02",
-    title: "A&R Модерация",
+    title: "Модерация",
     badge: "до 3 дней",
     description:
-      "Команда оценивает сведение, мастеринг, отсутствие неавторизованных сэмплов и соответствие техническим стандартам стримингов.",
+      "Команда оценивает качество сведения, мастеринг, отсутствие неавторизованных сэмплов и соответствие техническим требованиям витрин.",
     icon: Headphones,
-    accent: "aqua",
   },
   {
     step: "03",
-    title: "Мировая отгрузка",
-    badge: "150+ DSP",
+    title: "Отгрузка на 150+ платформ",
+    badge: "Мировой охват",
     description:
-      "Присваиваем официальные UPC и ISRC коды. Релиз доставляется в Spotify, Apple Music, VK Музыку, Яндекс, Deezer, TikTok и другие сервисы.",
+      "Присваиваем официальные UPC и ISRC коды. Релиз отправляется в Яндекс Музыку, Spotify, Apple Music, VK Музыку, TikTok и другие сервисы.",
     icon: Globe2,
-    accent: "magenta",
   },
   {
     step: "04",
-    title: "Питчинг и промо",
-    badge: "Плейлисты",
+    title: "Плейлисты и промо",
+    badge: "Питчинг",
     description:
-      "Питчим треки редакторам ключевых стриминговых площадок. Помогаем попасть в официальные жанровые подборки и плейлисты новинок.",
+      "Питчим треки редакторам площадок. Помогаем попасть в официальные жанровые подборки («Громкие новинки», «Моя волна», плейлисты редакций).",
     icon: Radio,
-    accent: "aqua",
   },
   {
     step: "05",
-    title: "Выплаты 70/30",
-    badge: "Прозрачно",
+    title: "Роялти 70/30",
+    badge: "Ежеквартально",
     description:
-      "Честное разделение роялти в пользу артиста. Ежеквартальные прозрачные финансовые отчеты и вывод средств удобным способом.",
+      "Честное распределение роялти в пользу артиста (70%). Прозрачные финансовые отчеты и вывод средств удобным для вас способом.",
     icon: TrendingUp,
-    accent: "neon",
   },
 ];
 
 export default function WorkflowSection() {
   return (
     <div className="relative">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {steps.map((item) => {
           const Icon = item.icon;
           return (
             <div
               key={item.step}
-              className="group dark-panel rounded-xl p-5 border border-white/10 hover:border-white/25 transition-all duration-300 flex flex-col justify-between bg-[#0a0a0a]"
+              className="group rounded-2xl p-6 border border-purple-500/20 hover:border-purple-500/45 transition-all duration-300 flex flex-col justify-between bg-[#0c0c16]/90 backdrop-blur-md hover:shadow-[0_0_25px_rgba(168,85,247,0.15)] hover:-translate-y-1"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-mono text-xs font-bold tracking-widest text-neutral-500 group-hover:text-white transition">
+                  <span className="font-mono text-xs font-bold tracking-widest text-purple-400 group-hover:text-purple-300 transition">
                     [{item.step}]
                   </span>
-                  <span className="px-2 py-0.5 rounded font-mono text-[9px] uppercase tracking-wider bg-white/5 border border-white/10 text-neutral-400">
+                  <span className="px-2.5 py-0.5 rounded-full font-mono text-[10px] uppercase tracking-wider bg-purple-500/10 border border-purple-500/30 text-purple-300">
                     {item.badge}
                   </span>
                 </div>
 
-                <div className="w-10 h-10 rounded-lg bg-black border border-white/15 flex items-center justify-center mb-4 text-white group-hover:scale-105 group-hover:border-white/30 transition duration-300">
-                  <Icon className="w-5 h-5 text-neutral-300 group-hover:text-white" />
+                <div className="w-12 h-12 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center mb-4 text-purple-300 group-hover:scale-105 group-hover:bg-purple-600/30 group-hover:text-white transition duration-300 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
+                  <Icon className="w-6 h-6 text-purple-400 group-hover:text-purple-300" />
                 </div>
 
-                <h3 className="font-gothic text-base font-bold text-white mb-2">{item.title}</h3>
-                <p className="text-xs text-neutral-400 leading-relaxed">{item.description}</p>
+                <h3 className="font-gothic text-lg font-bold text-white mb-2 group-hover:text-purple-300 transition">{item.title}</h3>
+                <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-sans">{item.description}</p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-neutral-500 group-hover:text-neutral-300 transition">
-                <CheckCircle2 className="w-3.5 h-3.5 text-neutral-400" />
-                <span>VERIFIED STEP</span>
+              <div className="mt-5 pt-3.5 border-t border-purple-500/15 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-purple-400 group-hover:text-purple-300 transition">
+                <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" />
+                <span>Гарантия лейбла</span>
               </div>
             </div>
           );

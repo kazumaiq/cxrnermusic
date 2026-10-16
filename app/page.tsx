@@ -8,8 +8,7 @@ import ReleasesCatalog from "../components/ReleasesCatalog";
 import WorkflowSection from "../components/WorkflowSection";
 import FaqAccordion from "../components/FaqAccordion";
 import ScrollReveal from "../components/visual/ScrollReveal";
-import { ChromeStarburst, ChromeOrganicSpine, TechnicalCrosshair } from "../components/ChromeSpines";
-import { faqItems, services, stats, testimonials, whyUs } from "../data/site";
+import { faqItems, services, stats, testimonials } from "../data/site";
 import { getArtists } from "../lib/artists";
 import { getFeaturedRelease } from "../lib/featured";
 import { getReleases } from "../lib/releases";
@@ -20,11 +19,13 @@ import {
   Headphones,
   ShieldCheck,
   Disc,
-  Radio,
+  Music,
   ExternalLink,
   Users,
-  CheckCircle,
+  CheckCircle2,
   Quote,
+  Clock,
+  Radio,
 } from "lucide-react";
 
 export const revalidate = 60;
@@ -37,105 +38,91 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="relative overflow-hidden text-[#EAEAEA]">
+    <div className="relative overflow-hidden text-[#F5F5F7]">
       {/* ===================== HERO SECTION ===================== */}
-      <section id="hero" className="relative min-h-[94vh] flex flex-col justify-between pt-24 sm:pt-28 pb-12 overflow-hidden">
-        {/* Background Chrome Organic Spines & Ambient Diffraction */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-          <ChromeOrganicSpine className="absolute -top-16 -right-24 w-[780px] lg:w-[1020px] max-w-none opacity-45 mix-blend-screen" />
-          <ChromeStarburst className="absolute top-28 left-8 sm:left-24" size={32} />
-          <ChromeStarburst className="absolute top-1/2 right-12 sm:right-32" size={24} />
-          <ChromeStarburst className="absolute bottom-24 left-1/3" size={20} />
-          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-white/[0.04] blur-[120px] rounded-full pointer-events-none" />
-        </div>
+      <section id="hero" className="relative min-h-[95vh] flex flex-col justify-between pt-32 sm:pt-40 pb-16 sm:pb-24 overflow-hidden">
+        {/* Luminous Purple & Violet Ambient Lighting Blooms */}
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none -z-10" />
+        <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-indigo-600/12 rounded-full blur-[130px] pointer-events-none -z-10" />
 
         <Container className="relative z-10 w-full flex-1 flex flex-col justify-between">
-          {/* Top Technical Metadata Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-xs uppercase tracking-[0.25em]">
-            <div className="flex items-center gap-3">
-              <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
-              <span className="text-white font-bold">[CXR::RECORDINGS // UNDERGROUND_SYS]</span>
-            </div>
-            <div className="hidden sm:flex items-center gap-4 text-neutral-500">
-              <span>FREQ_RES::12Hz-28kHz</span>
-              <span>•</span>
-              <span>AUDIO_180G_VINYL</span>
-              <span>•</span>
-              <span className="text-white">150+ DSP DISTRIBUTION</span>
-            </div>
-          </div>
-
           {/* Main Hero Spatial Composition */}
-          <div className="my-auto py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            {/* Left Massive Industrial Typography & Narrative */}
+          <div className="my-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+            {/* Left Content Column */}
             <div className="lg:col-span-7 flex flex-col justify-center">
-              <div>
-                <span className="font-mono text-[11px] sm:text-xs tracking-[0.3em] uppercase text-neutral-400 mb-2.5 block">
-                  // INTERNATIONAL INDEPENDENT RECORD LABEL
-                </span>
-                <h1 className="font-heavy text-6xl sm:text-8xl md:text-9xl lg:text-[7.5rem] xl:text-[9rem] tracking-tight leading-[0.84] text-white uppercase select-none">
-                  CXRNER <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-300 to-neutral-500">
-                    MUSIC
-                  </span>
-                </h1>
-                <p className="mt-4 font-unbounded text-sm sm:text-base md:text-lg text-neutral-200 tracking-wide uppercase font-bold">
-                  БЕСКОМПРОМИССНЫЙ ЗВУК НОВОЙ ЭРЫ
-                </p>
+              {/* Badge */}
+              <div className="flex items-center gap-2 mb-4 w-fit px-3.5 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 font-mono text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                <span>МУЗЫКАЛЬНЫЙ ЛЕЙБЛ И ДИСТРИБУЦИЯ</span>
               </div>
 
-              {/* Subtitle Statement */}
-              <p className="mt-5 text-sm sm:text-base text-neutral-400 max-w-xl leading-relaxed font-sans">
-                Глобальная цифровая экосистема для артистов с бескомпромиссным характером.
-                Прямая отгрузка в Spotify, Apple Music, VK и Яндекс, редакционный питчинг
-                и честное распределение роялти 70/30.
+              {/* Headline */}
+              <h1 className="font-heavy text-6xl sm:text-7xl md:text-8xl lg:text-9xl tracking-tight leading-[0.88] text-white uppercase select-none">
+                CXRNER <br />
+                <span className="bg-gradient-to-r from-purple-400 via-violet-300 to-white bg-clip-text text-transparent">
+                  MUSIC
+                </span>
+              </h1>
+
+              {/* Subheading */}
+              <p className="mt-4 font-gothic text-lg sm:text-xl md:text-2xl text-purple-200 tracking-wide uppercase font-bold">
+                Твой трек на всех цифровых витринах мира
               </p>
 
-              {/* High Contrast Brutalist CTA Controls */}
+              {/* Factual human description */}
+              <p className="mt-4 text-sm sm:text-base text-neutral-300 max-w-xl leading-relaxed font-sans">
+                Выпускаем музыку независимых артистов в Яндекс Музыку, VK Музыку, Spotify,
+                Apple Music и еще на 150+ стримингов. Прозрачная модель роялти 70/30, оперативная
+                модерация за 24–72 часа и персональный кабинет артиста.
+              </p>
+
+              {/* CTAs */}
               <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <Link
                   href="/submit-release"
-                  className="btn-void-primary inline-flex items-center justify-center gap-2 px-8 py-4 font-mono text-xs sm:text-sm uppercase tracking-widest font-black shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-95 transition duration-200 rounded-full"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-[0_0_25px_rgba(139,92,246,0.4)] active:scale-95 transition duration-200"
                 >
                   <span>ОТПРАВИТЬ РЕЛИЗ</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
                 <a
-                  href="#releases"
-                  className="btn-void-ghost inline-flex items-center justify-center gap-2 px-8 py-4 font-mono text-xs sm:text-sm uppercase tracking-widest font-bold border border-white/25 text-neutral-300 hover:text-white hover:border-white transition duration-200 rounded-full"
+                  href="https://music.yandex.ru/label/5978511"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-semibold bg-white/10 hover:bg-white/15 border border-purple-500/30 text-white hover:border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.15)] transition duration-200"
                 >
-                  <Disc className="w-4 h-4 text-neutral-400" />
-                  <span>КАТАЛОГ МУЗЫКИ</span>
+                  <Music className="w-4 h-4 text-purple-400" />
+                  <span>ЯНДЕКС МУЗЫКА</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-purple-400" />
                 </a>
               </div>
 
-              {/* Technical Spec Badges */}
-              <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-[10px] sm:text-[11px] text-neutral-400">
+              {/* Key Guarantees & Features */}
+              <div className="mt-10 pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono text-xs text-neutral-300">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-white flex-shrink-0" />
-                  <span>РОЯЛТИ 70/30</span>
+                  <ShieldCheck className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  <span>70/30 роялти</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-white flex-shrink-0" />
-                  <span>МОДЕРАЦИЯ 24–72Ч</span>
+                  <Clock className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  <span>24–72ч старт</span>
                 </div>
-                <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
-                  <Headphones className="w-3.5 h-3.5 text-white flex-shrink-0" />
-                  <span>DSP ПИТЧИНГ</span>
+                <div className="flex items-center gap-2">
+                  <Radio className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  <span>150+ стримингов</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Headphones className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  <span>Питчинг</span>
                 </div>
               </div>
             </div>
 
-            {/* Right Dominant 3D Centerpiece */}
+            {/* Right Dominant 1-Disc 3D Centerpiece */}
             <div className="lg:col-span-5 relative flex flex-col items-center justify-center">
-              {/* Backing Subtle Starburst Flares */}
-              <div className="absolute -top-8 -right-8 pointer-events-none z-10">
-                <ChromeStarburst size={42} />
-              </div>
-
-              {/* 3D Vinyl Object (Dominant size with dynamic frustum fit) */}
-              <div className="w-full relative aspect-square max-w-[540px] lg:max-w-[620px]">
+              {/* Single Solid 3D Vinyl Record */}
+              <div className="w-full relative aspect-square max-w-[500px] lg:max-w-[560px]">
                 <VinylCanvas
                   featuredTitle={featured.title}
                   featuredArtist={featured.artist}
@@ -143,46 +130,36 @@ export default async function HomePage() {
                 />
               </div>
 
-              {/* Audio Waveform Player Bar */}
-              <div className="w-full mt-6 max-w-[540px]">
+              {/* Audio Waveform Player with real Yandex link */}
+              <div className="w-full mt-6 max-w-[500px]">
                 <InteractiveAudioPreview
                   track={{
                     title: featured.title,
                     artist: featured.artist,
                     cover: featured.cover,
-                    genre: "Phonk / Industrial Electronic",
+                    genre: "Phonk / Electronic",
                   }}
                 />
               </div>
             </div>
           </div>
-
-          {/* Bottom Technical Corner Coordinates */}
-          <div className="pt-4 border-t border-white/10 flex items-center justify-between text-neutral-500 font-mono text-[9px] uppercase tracking-widest">
-            <div className="flex items-center gap-3">
-              <TechnicalCrosshair />
-              <span>SYS::2.0_STABLE</span>
-            </div>
-            <span>[LAT 55.7558° N // LON 37.6173° E]</span>
-            <div className="flex items-center gap-3">
-              <span>© {new Date().getFullYear()} CXRNER</span>
-              <TechnicalCrosshair />
-            </div>
-          </div>
         </Container>
       </section>
 
+      {/* Smooth Ambient Transition Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent my-6" />
+
       {/* ===================== STATS BAR ===================== */}
-      <section className="relative py-10 border-y border-white/10 bg-[#070707]/90 backdrop-blur-xl">
+      <section className="relative py-16 sm:py-20 border-y border-purple-500/15 bg-gradient-to-b from-[#090912]/80 via-[#07070d]/90 to-[#090912]/80 backdrop-blur-xl">
         <Container>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {stats.map((stat, idx) => (
               <ScrollReveal key={stat.label} delay={idx * 100}>
-                <div className="p-3">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-purple-500/30 transition duration-300">
                   <p className="font-heavy text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight">
                     {stat.display ?? <Counter to={stat.value} suffix={stat.suffix} />}
                   </p>
-                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-neutral-400 font-medium">
+                  <p className="mt-2 font-mono text-xs uppercase tracking-wider text-purple-300 font-medium">
                     {stat.label}
                   </p>
                 </div>
@@ -192,28 +169,46 @@ export default async function HomePage() {
         </Container>
       </section>
 
+      {/* Smooth Ambient Transition Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/25 to-transparent my-8" />
+
       {/* ===================== RELEASES SHOWCASE ===================== */}
-      <section id="releases" className="section-padding relative">
+      <section id="releases" className="py-20 sm:py-28 relative">
         <Container>
           <ScrollReveal>
-            <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div className="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
               <div>
-                <p className="font-mono text-xs uppercase tracking-[0.25em] text-neutral-400">// КАТАЛОГ МУЗЫКИ</p>
-                <h2 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black text-white font-gothic uppercase tracking-wide">
+                <div className="flex items-center gap-2 mb-2 font-mono text-xs uppercase tracking-widest text-purple-400">
+                  <Disc className="w-4 h-4 text-purple-400" />
+                  <span>КАТАЛОГ РЕЛИЗОВ</span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-gothic uppercase tracking-wide">
                   Свежие релизы лейбла
                 </h2>
-                <p className="mt-2 text-sm text-neutral-400 max-w-xl font-sans">
-                  Открывайте новые треки резидентов CXRNER MUSIC на всех мировых цифровых витринах.
+                <p className="mt-3 text-sm sm:text-base text-neutral-300 max-w-xl font-sans">
+                  Слушайте новые треки резидентов CXRNER MUSIC на Яндекс Музыке, Spotify, Apple Music и VK.
                 </p>
               </div>
 
-              <Link
-                href="/submit-release"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full tech-badge font-mono text-xs uppercase tracking-wider text-white hover:border-white transition duration-300 w-fit"
-              >
-                <span>Выпустить свой трек</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href="https://music.yandex.ru/label/5978511"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 font-mono text-xs uppercase tracking-wider transition duration-300 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                >
+                  <Music className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Все треки на Яндекс Музыке ↗</span>
+                </a>
+
+                <Link
+                  href="/submit-release"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black hover:bg-neutral-200 font-mono text-xs uppercase tracking-wider font-bold transition duration-300 shadow-md"
+                >
+                  <span>Выпустить трек</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           </ScrollReveal>
 
@@ -221,17 +216,22 @@ export default async function HomePage() {
         </Container>
       </section>
 
+      {/* Smooth Ambient Transition Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent my-8" />
+
       {/* ===================== WORKFLOW / PROCESS ===================== */}
-      <section className="section-padding relative bg-[#070707]/90 border-y border-white/10">
+      <section className="py-20 sm:py-28 relative bg-[#08080f]/90 border-y border-purple-500/15">
         <Container>
           <ScrollReveal>
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <p className="font-mono text-xs uppercase tracking-[0.25em] text-neutral-400">// ПРОЦЕСС</p>
-              <h2 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black text-white font-gothic uppercase tracking-wide">
-                Как выпустить трек через CXRNER
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <span className="font-mono text-xs uppercase tracking-widest text-purple-400 block mb-2">
+                КАК ЭТО РАБОТАЕТ
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-gothic uppercase tracking-wide">
+                4 простых шага до релиза
               </h2>
-              <p className="mt-3 text-sm text-neutral-400 font-sans">
-                От заполнения анкеты до появления релиза на 150+ платформах и официальных выплат.
+              <p className="mt-3 text-sm sm:text-base text-neutral-300 font-sans">
+                От отправки трека до появления на стримингах и первых официальных выплат.
               </p>
             </div>
           </ScrollReveal>
@@ -239,12 +239,12 @@ export default async function HomePage() {
           <WorkflowSection />
 
           <ScrollReveal delay={200}>
-            <div className="mt-12 text-center">
+            <div className="mt-14 text-center">
               <Link
                 href="/submit-release"
-                className="btn-void-primary inline-flex items-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-bold shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-95 transition"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-[0_0_25px_rgba(139,92,246,0.35)] active:scale-95 transition"
               >
-                <span>Перейти к подаче заявки</span>
+                <span>Перейти к отправке трека</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -252,18 +252,23 @@ export default async function HomePage() {
         </Container>
       </section>
 
+      {/* Smooth Ambient Transition Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/25 to-transparent my-8" />
+
       {/* ===================== ARTISTS ROSTER ===================== */}
-      <section id="artists" className="section-padding relative">
+      <section id="artists" className="py-20 sm:py-28 relative">
         <Container>
           <ScrollReveal>
-            <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div className="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
               <div>
-                <p className="font-mono text-xs uppercase tracking-[0.25em] text-neutral-400">// РЕЗИДЕНТЫ</p>
-                <h2 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black text-white font-gothic uppercase tracking-wide">
-                  Артисты CXRNER MUSIC
+                <span className="font-mono text-xs uppercase tracking-widest text-purple-400 block mb-2">
+                  АРТИСТЫ
+                </span>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-gothic uppercase tracking-wide">
+                  Резиденты CXRNER MUSIC
                 </h2>
-                <p className="mt-2 text-sm text-neutral-400 max-w-xl font-sans">
-                  Музыканты, которые формируют неповторимый стиль и мрачное гипнотическое звучание.
+                <p className="mt-3 text-sm sm:text-base text-neutral-300 max-w-xl font-sans">
+                  Музыканты, которые сотрудничают с нами и собирают сотни тысяч прослушиваний.
                 </p>
               </div>
 
@@ -271,84 +276,67 @@ export default async function HomePage() {
                 href="https://t.me/moder_cxrner_bot"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full tech-badge font-mono text-xs uppercase tracking-wider text-neutral-300 hover:text-white hover:border-white transition duration-300 w-fit"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 font-mono text-xs uppercase tracking-wider transition duration-300 w-fit"
               >
-                <Users className="w-3.5 h-3.5 text-neutral-400" />
-                <span>Стать резидентом ↗</span>
+                <Users className="w-3.5 h-3.5 text-purple-400" />
+                <span>Стать резидентом лейбла ↗</span>
               </a>
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {artists.map((artist, idx) => (
-              <ScrollReveal key={artist.id} delay={idx * 80}>
-                <Link
-                  href={`/artists/${artist.id}`}
-                  className="group rounded-2xl p-4 border border-white/10 hover:border-white/30 transition-all duration-300 flex items-center gap-4 bg-[#0a0a0a]/90 backdrop-blur-md"
-                >
-                  <div className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-full overflow-hidden flex-shrink-0 border border-white/20 group-hover:border-white transition duration-300">
-                    <Image
-                      src={encodeURI(artist.avatar)}
-                      alt={artist.name}
-                      fill
-                      sizes="72px"
-                      className="object-cover grayscale group-hover:grayscale-0 transition duration-500"
-                    />
-                  </div>
+              <ScrollReveal key={artist.id} delay={idx * 70}>
+                <div className="group rounded-2xl p-5 border border-purple-500/15 hover:border-purple-500/40 transition-all duration-300 flex flex-col justify-between bg-[#0b0b14]/90 backdrop-blur-md hover:shadow-[0_0_25px_rgba(168,85,247,0.15)]">
+                  <div>
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-purple-500/30 group-hover:border-purple-400 transition duration-300">
+                        <Image
+                          src={encodeURI(artist.avatar)}
+                          alt={artist.name}
+                          fill
+                          sizes="64px"
+                          className="object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      </div>
 
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-gothic font-bold text-white text-base group-hover:text-neutral-200 transition truncate">
-                      {artist.name}
-                    </h3>
-                    <p className="font-mono text-xs text-neutral-500 font-medium mt-0.5">
-                      {artist.listeners} слушателей / мес
-                    </p>
-                    <p className="text-[11px] text-neutral-400 truncate mt-1">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-gothic font-bold text-white text-lg group-hover:text-purple-300 transition truncate">
+                          {artist.name}
+                        </h3>
+                        <p className="font-mono text-xs text-purple-400 font-medium mt-0.5">
+                          {artist.listeners} слушателей
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-xs text-neutral-400 line-clamp-2 leading-relaxed">
                       {artist.bio}
                     </p>
                   </div>
 
-                  <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-neutral-500 group-hover:text-white group-hover:bg-white/10 transition">
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </div>
-                </Link>
-              </ScrollReveal>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      {/* ===================== SERVICES / BENTO GRID ===================== */}
-      <section id="services" className="section-padding relative bg-[#070707]/90 border-y border-white/10">
-        <Container>
-          <ScrollReveal>
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <p className="font-mono text-xs uppercase tracking-[0.25em] text-neutral-400">// ВОЗМОЖНОСТИ</p>
-              <h2 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black text-white font-gothic uppercase tracking-wide">
-                Сервисы полного цикла для артиста
-              </h2>
-              <p className="mt-3 text-sm text-neutral-400 font-sans">
-                Всё, что необходимо для успешного релиза, мирового продвижения и защиты ваших прав.
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {services.map((service, idx) => (
-              <ScrollReveal key={service.title} delay={idx * 90}>
-                <div
-                  className="group rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 bg-[#0a0a0a]/90 backdrop-blur-md relative overflow-hidden"
-                >
-                  <div className="w-11 h-11 rounded-lg bg-black border border-white/15 flex items-center justify-center text-white group-hover:border-white/50 transition duration-300 mb-5">
-                    <Sparkles className="w-5 h-5 text-neutral-300 group-hover:text-white" />
-                  </div>
-                  <h3 className="font-gothic text-lg font-bold text-white mb-2">{service.title}</h3>
-                  <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed font-sans">
-                    {service.description}
-                  </p>
-                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-neutral-600 font-mono text-[9px] uppercase tracking-widest">
-                    <span>CXR::SPEC_0{idx + 1}</span>
-                    <span className="text-neutral-400 group-hover:text-white transition">ACTIVE</span>
+                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+                    <span className="font-mono text-[10px] text-neutral-500 uppercase">РЕЗИДЕНТ</span>
+                    {artist.links && artist.links[0] ? (
+                      <a
+                        href={artist.links[0].href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-mono text-xs text-purple-400 hover:text-purple-300 transition"
+                      >
+                        <span>Яндекс Музыка</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <a
+                        href="https://music.yandex.ru/label/5978511"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-mono text-xs text-purple-400 hover:text-purple-300 transition"
+                      >
+                        <span>Профиль ↗</span>
+                      </a>
+                    )}
                   </div>
                 </div>
               </ScrollReveal>
@@ -357,122 +345,156 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      {/* ===================== ASYMMETRICAL TESTIMONIALS / ARCHIVE ===================== */}
-      <section className="section-padding relative">
+      {/* Smooth Ambient Transition Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent my-8" />
+
+      {/* ===================== SERVICES / ADVANTAGES ===================== */}
+      <section id="services" className="py-20 sm:py-28 relative bg-[#08080f]/90 border-y border-purple-500/15">
         <Container>
           <ScrollReveal>
             <div className="text-center max-w-2xl mx-auto mb-14">
-              <p className="font-mono text-xs uppercase tracking-[0.25em] text-neutral-400">// ОТЗЫВЫ АРТИСТОВ</p>
-              <h2 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black text-white font-gothic uppercase tracking-wide">
-                Что говорят артисты лейбла
+              <span className="font-mono text-xs uppercase tracking-widest text-purple-400 block mb-2">
+                ВОЗМОЖНОСТИ
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-gothic uppercase tracking-wide">
+                Сервисы полного цикла
               </h2>
-              <p className="mt-3 text-sm text-neutral-400 font-sans">
-                Реальный опыт сотрудничества, прозрачной модерации и независимого роста.
+              <p className="mt-3 text-sm sm:text-base text-neutral-300 font-sans">
+                Всё необходимое для успешного релиза, продвижения и юридической защиты вашего творчества.
               </p>
             </div>
           </ScrollReveal>
 
-          {/* Expressive Asymmetric Editorial Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
-            {testimonials.map((item, idx) => {
-              // Asymmetric alternating columns
-              const isWide = idx % 3 === 0 || idx === 3;
-              const colSpan = isWide ? "md:col-span-7" : "md:col-span-5";
-
-              return (
-                <div key={item.name} className={`${colSpan} flex flex-col`}>
-                  <ScrollReveal delay={idx * 120} className="h-full">
-                    <div className="h-full rounded-2xl p-7 sm:p-8 border border-white/10 hover:border-white/25 transition-all duration-300 bg-gradient-to-b from-[#0e0e0e]/90 to-[#070707]/90 backdrop-blur-md flex flex-col justify-between relative group">
-                      {/* Top transmission index */}
-                      <div className="flex items-center justify-between pb-4 border-b border-white/10 text-neutral-500 font-mono text-[10px] uppercase tracking-widest">
-                        <span>[TRANSMISSION // 0{idx + 1}]</span>
-                        <span className="text-neutral-400">VERIFIED ARTIST</span>
-                      </div>
-
-                      {/* Quote Text */}
-                      <div className="my-6">
-                        <Quote className="w-6 h-6 text-neutral-600 mb-3 group-hover:text-white transition duration-300" />
-                        <p className="text-sm sm:text-base leading-relaxed text-neutral-200 font-sans font-normal italic">
-                          «{item.quote}»
-                        </p>
-                      </div>
-
-                      {/* Artist Footer */}
-                      <div className="flex items-center gap-3.5 pt-4 border-t border-white/10">
-                        <div className="relative w-11 h-11 rounded-full overflow-hidden border border-white/25 bg-black flex-shrink-0 group-hover:border-white transition duration-300">
-                          <Image
-                            src={item.avatar}
-                            alt={item.name}
-                            fill
-                            sizes="44px"
-                            className="object-cover grayscale group-hover:grayscale-0 transition duration-500"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-gothic font-bold text-white text-base tracking-wide">
-                            {item.name}
-                          </p>
-                          <p className="font-mono text-[10px] text-neutral-400 uppercase tracking-widest mt-0.5">
-                            CXRNER RESIDENT // ARTIST
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </ScrollReveal>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.map((service, idx) => (
+              <ScrollReveal key={service.title} delay={idx * 80}>
+                <div className="group rounded-2xl p-7 border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 bg-[#0d0d16]/90 backdrop-blur-md relative overflow-hidden hover:shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+                  <div className="w-12 h-12 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300 group-hover:text-white group-hover:bg-purple-600/30 transition duration-300 mb-5 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
+                    <Sparkles className="w-6 h-6 text-purple-400 group-hover:text-purple-300" />
+                  </div>
+                  <h3 className="font-gothic text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition">{service.title}</h3>
+                  <p className="text-sm text-neutral-300 leading-relaxed font-sans">
+                    {service.description}
+                  </p>
                 </div>
-              );
-            })}
+              </ScrollReveal>
+            ))}
           </div>
         </Container>
       </section>
 
-      {/* ===================== FAQ ACCORDION ===================== */}
-      <section id="faq" className="section-padding relative bg-[#070707]/90 border-t border-white/10">
+      {/* Smooth Ambient Transition Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/25 to-transparent my-8" />
+
+      {/* ===================== TESTIMONIALS ===================== */}
+      <section className="py-20 sm:py-28 relative">
         <Container>
           <ScrollReveal>
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <p className="font-mono text-xs uppercase tracking-[0.25em] text-neutral-400">// FAQ</p>
-              <h2 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black text-white font-gothic uppercase tracking-wide">
-                Часто задаваемые вопросы
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <span className="font-mono text-xs uppercase tracking-widest text-purple-400 block mb-2">
+                ОТЗЫВЫ АРТИСТОВ
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-gothic uppercase tracking-wide">
+                Что говорят артисты лейбла
               </h2>
-              <p className="mt-3 text-sm text-neutral-400 font-sans">
-                Всё, что вам нужно знать перед отправкой первого трека на лейбл.
+              <p className="mt-3 text-sm sm:text-base text-neutral-300 font-sans">
+                Реальный опыт работы, скорость модерации и уровень поддержки.
               </p>
             </div>
           </ScrollReveal>
 
-          <ScrollReveal delay={150}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {testimonials.map((item, idx) => (
+              <ScrollReveal key={item.name} delay={idx * 100}>
+                <div className="h-full rounded-2xl p-7 sm:p-8 border border-purple-500/20 hover:border-purple-500/45 transition-all duration-300 bg-[#0c0c14]/90 backdrop-blur-md flex flex-col justify-between group hover:shadow-[0_0_25px_rgba(168,85,247,0.15)]">
+                  <div>
+                    <Quote className="w-8 h-8 text-purple-500/40 mb-3 group-hover:text-purple-400 transition duration-300" />
+                    <p className="text-sm sm:text-base leading-relaxed text-neutral-200 font-sans italic">
+                      «{item.quote}»
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-4 pt-5 mt-6 border-t border-white/10">
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-purple-500/30 flex-shrink-0 group-hover:border-purple-400 transition">
+                      <Image
+                        src={item.avatar}
+                        alt={item.name}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-gothic font-bold text-white text-base tracking-wide group-hover:text-purple-300 transition">
+                        {item.name}
+                      </p>
+                      <p className="font-mono text-xs text-purple-400 mt-0.5">
+                        Артист CXRNER MUSIC
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* Smooth Ambient Transition Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent my-8" />
+
+      {/* ===================== FAQ ===================== */}
+      <section id="faq" className="py-20 sm:py-28 relative bg-[#08080f]/90 border-t border-purple-500/15">
+        <Container>
+          <ScrollReveal>
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <span className="font-mono text-xs uppercase tracking-widest text-purple-400 block mb-2">
+                ВОПРОСЫ И ОТВЕТЫ
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-gothic uppercase tracking-wide">
+                Часто задаваемые вопросы
+              </h2>
+              <p className="mt-3 text-sm sm:text-base text-neutral-300 font-sans">
+                Всё, что важно знать перед отправкой первого трека на лейбл.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={120}>
             <FaqAccordion items={faqItems} />
           </ScrollReveal>
         </Container>
       </section>
 
       {/* ===================== FINAL CALL-TO-ACTION ===================== */}
-      <section className="section-padding relative">
+      <section className="py-20 sm:py-28 relative">
         <Container>
-          <ScrollReveal scale={0.96}>
-            <div className="relative rounded-3xl overflow-hidden p-8 sm:p-12 lg:p-16 border border-white/20 bg-gradient-to-b from-[#121212]/95 to-[#070707]/95 backdrop-blur-xl shadow-2xl text-center">
+          <ScrollReveal scale={0.97}>
+            <div className="relative rounded-3xl overflow-hidden p-8 sm:p-14 lg:p-16 border border-purple-500/30 bg-gradient-to-b from-[#140e26] via-[#0d091a] to-[#07050d] backdrop-blur-2xl shadow-[0_0_50px_rgba(168,85,247,0.2)] text-center">
+              {/* Backlight Glow */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-purple-500/25 blur-3xl pointer-events-none" />
+
               <div className="relative z-10 max-w-3xl mx-auto">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded font-mono text-[10px] font-bold uppercase tracking-[0.25em] tech-badge text-neutral-300 mb-4 border border-white/15">
-                  [CXR::NEXT_RELEASE]
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-mono text-xs font-bold uppercase tracking-wider text-purple-300 mb-5 border border-purple-500/40 bg-purple-500/15">
+                  ТВОЙ СЛЕДУЮЩИЙ РЕЛИЗ
                 </span>
 
-                <h2 className="font-gothic text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight uppercase">
-                  ТВОЯ МУЗЫКА. ТВОЙ ЗВУК. <br />
-                  <span className="bg-gradient-to-r from-white via-neutral-300 to-neutral-500 bg-clip-text text-transparent">
-                    ТВОЙ РЕЛИЗ.
+                <h2 className="font-gothic text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight uppercase">
+                  ГОТОВ ВЫПУСТИТЬ ТРЕК? <br />
+                  <span className="bg-gradient-to-r from-purple-400 via-violet-300 to-white bg-clip-text text-transparent">
+                    ПРИСОЕДИНЯЙСЯ К ЛЕЙБЛУ
                   </span>
                 </h2>
 
-                <p className="mt-4 text-sm sm:text-base text-neutral-400 max-w-xl mx-auto leading-relaxed font-sans">
-                  Отправь свой трек прямо сейчас через сайт или официальный Telegram-бот.
-                  Команда модерации оценит материал и вернется с ответом в течение 24-72 часов.
+                <p className="mt-4 text-sm sm:text-base text-neutral-300 max-w-xl mx-auto leading-relaxed font-sans">
+                  Отправьте заявку через сайт или официальный Telegram-бот.
+                  Команда модерации оценит трек и свяжется с вами в течение 24–72 часов.
                 </p>
 
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                   <Link
                     href="/submit-release"
-                    className="btn-void-primary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-bold shadow-[0_0_25px_rgba(255,255,255,0.2)] active:scale-95 transition"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-[0_0_25px_rgba(139,92,246,0.4)] active:scale-95 transition"
                   >
                     <span>Отправить трек на лейбл</span>
                     <ArrowRight className="w-4 h-4" />
@@ -482,7 +504,7 @@ export default async function HomePage() {
                     href="https://t.me/moder_cxrner_bot"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-void-ghost w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-medium border border-white/20 text-neutral-300 hover:text-white transition"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-medium border border-purple-500/40 bg-purple-500/10 text-purple-200 hover:bg-purple-500/20 hover:text-white transition"
                   >
                     <span>Открыть Telegram-бота ↗</span>
                   </a>

@@ -19,7 +19,6 @@ type ReleasesRow = {
   items: ReleaseItem[];
 };
 
-const fallback: ReleaseItem[] = [];
 const releasesPath = path.join(process.cwd(), "data", "releases.json");
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -28,7 +27,7 @@ const supabaseEnabled = Boolean(supabaseUrl && (supabaseAnonKey || supabaseServi
 const RELEASES_ID = "current";
 
 function sanitize(items: ReleaseItem[] | null | undefined): ReleaseItem[] {
-  if (!items || !Array.isArray(items)) return fallback;
+  if (!items || !Array.isArray(items)) return [];
   return items
     .map((item) => ({
       title: typeof item.title === "string" ? item.title.trim() : "",
@@ -43,7 +42,7 @@ function sanitize(items: ReleaseItem[] | null | undefined): ReleaseItem[] {
             .filter((link) => link.label && link.href)
         : [],
     }))
-    .filter((item) => item.title && item.artist && item.cover);
+    .filter((item) => item.title && item.artist);
 }
 
 function getClient(key: string) {
@@ -57,7 +56,7 @@ async function readFromFile(): Promise<ReleaseItem[]> {
     const parsed = JSON.parse(raw) as ReleaseItem[];
     return sanitize(parsed);
   } catch {
-    return fallback;
+    return [];
   }
 }
 
@@ -78,33 +77,32 @@ async function readFromSupabase(): Promise<ReleaseItem[]> {
   return sanitize((data as ReleasesRow | null)?.items ?? null);
 }
 
-async function writeToSupabase(items: ReleaseItem[]): Promise<void> {
-  if (!supabaseServiceKey) throw new Error("Supabase service role key missing");
-  const client = getClient(supabaseServiceKey);
-  const payload: ReleasesRow = { id: RELEASES_ID, items };
-  const { error } = await client
-    .from("releases_config")
-    .upsert(payload, { onConflict: "id" });
-  if (error) throw error;
-}
-
 export async function getReleases(): Promise<ReleaseItem[]> {
+  const fileItems = await readFromFile();
+
   if (supabaseEnabled) {
     try {
-      return await readFromSupabase();
+      const supaItems = await readFromSupabase();
+      if (supaItems && supaItems.length > 0) {
+        return supaItems;
+      }
     } catch {
-      return readFromFile();
+      // Fallback to file items
     }
   }
-  return readFromFile();
+
+  return fileItems;
 }
 
 export async function setReleases(items: ReleaseItem[]): Promise<ReleaseItem[]> {
-  const next = sanitize(items);
-  if (supabaseEnabled) {
-    await writeToSupabase(next);
-    return next;
+  const sanitized = sanitize(items);
+  if (supabaseEnabled && supabaseServiceKey) {
+    const client = getClient(supabaseServiceKey);
+    const payload: ReleasesRow = { id: RELEASES_ID, items: sanitized };
+    await client
+      .from("releases_config")
+      .upsert(payload, { onConflict: "id" });
   }
-  await writeToFile(next);
-  return next;
+  await writeToFile(sanitized);
+  return sanitized;
 }

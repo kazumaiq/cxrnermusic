@@ -1,62 +1,80 @@
 [
   {
-    "title": "Neon Drift",
-    "artist": "KAZUMAI",
+    "title": "The Sadness of Reality",
+    "artist": "Neimeks",
     "cover": "/images/album-01.svg",
     "links": [
+      { "label": "Яндекс Музыка", "href": "https://music.yandex.ru/album/44422385" },
       { "label": "Spotify", "href": "https://open.spotify.com" },
-      { "label": "Apple Music", "href": "https://music.apple.com" },
-      { "label": "Yandex Music", "href": "https://music.yandex.ru" }
+      { "label": "Apple Music", "href": "https://music.apple.com" }
     ]
   },
   {
-    "title": "Midnight Pulse",
-    "artist": "LUXEVOID",
+    "title": "GET BACK",
+    "artist": "UNXPLXYA",
     "cover": "/images/album-02.svg",
     "links": [
+      { "label": "Яндекс Музыка", "href": "https://music.yandex.ru/album/44088019" },
       { "label": "Spotify", "href": "https://open.spotify.com" },
-      { "label": "Apple Music", "href": "https://music.apple.com" },
-      { "label": "VK Music", "href": "https://vk.com/music" }
+      { "label": "VK Музыка", "href": "https://vk.com/music" }
     ]
   },
   {
-    "title": "Crystal Echo",
-    "artist": "SYNTHR",
+    "title": "Stream Of Dreams",
+    "artist": "KXLLVURX",
     "cover": "/images/album-03.svg",
     "links": [
+      { "label": "Яндекс Музыка", "href": "https://music.yandex.ru/album/44037417" },
       { "label": "Spotify", "href": "https://open.spotify.com" },
-      { "label": "Apple Music", "href": "https://music.apple.com" },
-      { "label": "Deezer", "href": "https://www.deezer.com" }
+      { "label": "Apple Music", "href": "https://music.apple.com" }
     ]
   },
   {
-    "title": "Velocity",
-    "artist": "NEOFOX",
+    "title": "DEMURE",
+    "artist": "ViRxSdz",
     "cover": "/images/album-04.svg",
     "links": [
+      { "label": "Яндекс Музыка", "href": "https://music.yandex.ru/album/43225634" },
       { "label": "Spotify", "href": "https://open.spotify.com" },
-      { "label": "Apple Music", "href": "https://music.apple.com" },
-      { "label": "Tidal", "href": "https://tidal.com" }
+      { "label": "Apple Music", "href": "https://music.apple.com" }
     ]
   },
   {
-    "title": "Signal Bloom",
-    "artist": "VOIDRAY",
+    "title": "Celebrate",
+    "artist": "UNXPLXYA, ETERNXL SXNNER",
     "cover": "/images/album-05.svg",
     "links": [
+      { "label": "Яндекс Музыка", "href": "https://music.yandex.ru/album/43863222" },
       { "label": "Spotify", "href": "https://open.spotify.com" },
-      { "label": "Apple Music", "href": "https://music.apple.com" },
-      { "label": "YouTube Music", "href": "https://music.youtube.com" }
+      { "label": "VK Музыка", "href": "https://vk.com/music" }
     ]
   },
   {
-    "title": "Aurora Tape",
-    "artist": "NIRAH",
+    "title": "TERANUM",
+    "artist": "Zarl1t ft, evxlshvdow邪惡",
     "cover": "/images/album-06.svg",
     "links": [
+      { "label": "Яндекс Музыка", "href": "https://music.yandex.ru/album/43724370" },
       { "label": "Spotify", "href": "https://open.spotify.com" },
-      { "label": "Apple Music", "href": "https://music.apple.com" },
-      { "label": "Amazon Music", "href": "https://music.amazon.com" }
+      { "label": "Apple Music", "href": "https://music.apple.com" }
+    ]
+  },
+  {
+    "title": "Paranoia is everywhere",
+    "artist": "Neimeks",
+    "cover": "/images/album-01.svg",
+    "links": [
+      { "label": "Яндекс Музыка", "href": "https://music.yandex.ru/album/43844944" },
+      { "label": "Spotify", "href": "https://open.spotify.com" }
+    ]
+  },
+  {
+    "title": "HALLUCINATIONN",
+    "artist": "DrXer28",
+    "cover": "/images/album-02.svg",
+    "links": [
+      { "label": "Яндекс Музыка", "href": "https://music.yandex.ru/album/43586186" },
+      { "label": "Spotify", "href": "https://open.spotify.com" }
     ]
   }
 ]

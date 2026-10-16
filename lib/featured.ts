@@ -11,8 +11,8 @@ export type FeaturedRelease = {
 type FeaturedRow = FeaturedRelease & { id: string };
 
 const fallback: FeaturedRelease = {
-  title: "Neon Drift",
-  artist: "KAZUMAI",
+  title: "The Sadness of Reality",
+  artist: "Neimeks",
   cover: "/images/album-01.svg",
 };
 
@@ -66,22 +66,15 @@ async function readFromSupabase(): Promise<FeaturedRelease> {
   return sanitize(data ?? null);
 }
 
-async function writeToSupabase(data: FeaturedRelease): Promise<void> {
-  if (!supabaseServiceKey) throw new Error("Supabase service role key missing");
-  const client = getClient(supabaseServiceKey);
-  const payload: FeaturedRow = { id: FEATURED_ID, ...data };
-  const { error } = await client
-    .from("featured_release")
-    .upsert(payload, { onConflict: "id" });
-  if (error) throw error;
-}
-
 export async function getFeaturedRelease(): Promise<FeaturedRelease> {
   if (supabaseEnabled) {
     try {
-      return await readFromSupabase();
+      const data = await readFromSupabase();
+      if (data && data.title && data.artist) {
+        return data;
+      }
     } catch {
-      return readFromFile();
+      // Fallback to file
     }
   }
   return readFromFile();
@@ -89,9 +82,12 @@ export async function getFeaturedRelease(): Promise<FeaturedRelease> {
 
 export async function setFeaturedRelease(data: FeaturedRelease): Promise<FeaturedRelease> {
   const next = sanitize(data);
-  if (supabaseEnabled) {
-    await writeToSupabase(next);
-    return next;
+  if (supabaseEnabled && supabaseServiceKey) {
+    const client = getClient(supabaseServiceKey);
+    const payload: FeaturedRow = { id: FEATURED_ID, ...next };
+    await client
+      .from("featured_release")
+      .upsert(payload, { onConflict: "id" });
   }
   await writeToFile(next);
   return next;

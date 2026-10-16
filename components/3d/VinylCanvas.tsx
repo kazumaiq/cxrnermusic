@@ -11,8 +11,8 @@ interface VinylCanvasProps {
 }
 
 export default function VinylCanvas({
-  featuredTitle = "BREAKTHROUGH",
-  featuredArtist = "UNXPLXYA",
+  featuredTitle = "The Sadness of Reality",
+  featuredArtist = "Neimeks",
   featuredCover,
 }: VinylCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -22,7 +22,6 @@ export default function VinylCanvas({
   const [soundEnabled, setSoundEnabled] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // References to pass state into render loop without re-instantiating WebGL
   const targetSpeedRef = useRef<number>((33 / 60) * Math.PI * 2);
   const currentSpeedRef = useRef<number>((33 / 60) * Math.PI * 2);
 
@@ -61,306 +60,249 @@ export default function VinylCanvas({
     renderer.setSize(initialWidth, initialHeight);
     renderer.setPixelRatio(Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35;
+    renderer.toneMappingExposure = 1.3;
 
-    // Clear previous canvas
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
-    // Master Group for 3D Vinyl
+    // Master Group for 1 Single 3D Vinyl
     const vinylGroup = new THREE.Group();
-    // Dramatic isometric studio angle: reveals surface grooves AND 180g edge profile
-    const baseRotX = 0.52;
-    const baseRotY = -0.24;
+    // Balanced isometric tilt: shows circular silhouette and edge thickness simultaneously
+    const baseRotX = 0.48;
+    const baseRotY = -0.22;
     vinylGroup.rotation.x = baseRotX;
     vinylGroup.rotation.y = baseRotY;
-    vinylGroup.scale.set(0.9, 0.9, 0.9); // Initial scale for smooth load entrance
     scene.add(vinylGroup);
 
     // ==============================================================
-    // 1. PROCEDURAL 2048x2048 ANISOTROPIC VINYL GROOVES & BUMP TEXTURE
+    // 1. PROCEDURAL ULTRA-REALISTIC VINYL GROOVE TEXTURE (1024x1024)
     // ==============================================================
-    const texSize = 2048;
+    const texSize = 1024;
     const canvas = document.createElement("canvas");
     canvas.width = texSize;
     canvas.height = texSize;
     const ctx = canvas.getContext("2d");
 
     if (ctx) {
-      // Deep lustrous black obsidian base
-      ctx.fillStyle = "#070707";
+      // Obsidian black vinyl base
+      ctx.fillStyle = "#09090b";
       ctx.fillRect(0, 0, texSize, texSize);
 
       const cx = texSize / 2;
       const cy = texSize / 2;
 
-      // Draw two dual-lobe anisotropic specular sheen gradients
-      // This replicates the light reflecting off micro-grooves at 45-degree angles
-      for (let angle = 0; angle < Math.PI * 2; angle += 0.008) {
-        // High intensity at ~45° and ~225° angles, and ~135° / 315°
-        const intensity1 = Math.pow(Math.cos(angle * 2 - 0.4), 6);
-        const intensity2 = Math.pow(Math.cos(angle * 2 + 1.2), 8) * 0.5;
-        const sheen = Math.max(0, intensity1 + intensity2);
+      // Anisotropic specular sheen lobes with subtle violet/silver reflection
+      for (let angle = 0; angle < Math.PI * 2; angle += 0.012) {
+        const sheen1 = Math.pow(Math.cos(angle * 2 - 0.35), 6);
+        const sheen2 = Math.pow(Math.cos(angle * 2 + 1.2), 6) * 0.6;
+        const totalSheen = Math.max(0, sheen1 + sheen2);
 
-        if (sheen > 0.05) {
+        if (totalSheen > 0.04) {
           ctx.beginPath();
           ctx.moveTo(cx, cy);
-          ctx.arc(cx, cy, 980, angle - 0.005, angle + 0.005);
+          ctx.arc(cx, cy, 490, angle - 0.008, angle + 0.008);
           ctx.closePath();
-          ctx.fillStyle = `rgba(220, 230, 245, ${sheen * 0.16})`;
+          // Cold silver + subtle purple iridescence
+          ctx.fillStyle = `rgba(180, 160, 240, ${totalSheen * 0.18})`;
           ctx.fill();
         }
       }
 
-      // Three distinct song tracks with inter-track gap bands (like a real LP)
-      const trackBands = [
-        { start: 360, end: 540 },
-        { start: 565, end: 750 },
-        { start: 775, end: 960 },
+      // Three album tracks with fine concentric micro-grooves
+      const tracks = [
+        { start: 175, end: 265 },
+        { start: 275, end: 375 },
+        { start: 385, end: 480 },
       ];
 
-      // Ultra-dense micro-grooves inside each track band
-      trackBands.forEach((band) => {
-        for (let r = band.start; r < band.end; r += 2.2) {
+      tracks.forEach((track) => {
+        for (let r = track.start; r < track.end; r += 2.2) {
           ctx.beginPath();
           ctx.arc(cx, cy, r, 0, Math.PI * 2);
-          const grooveSheen = (Math.sin(r * 0.4) * 0.5 + 0.5) * 0.22 + 0.04;
-          ctx.strokeStyle = `rgba(255, 255, 255, ${grooveSheen})`;
+          const grooveAlpha = (Math.sin(r * 0.45) * 0.5 + 0.5) * 0.22 + 0.05;
+          ctx.strokeStyle = `rgba(255, 255, 255, ${grooveAlpha})`;
           ctx.lineWidth = 1;
           ctx.stroke();
         }
       });
 
-      // Inter-track silent gap rings (quieter, darker mirror sheen)
-      [552, 762].forEach((r) => {
+      // Inter-track bands
+      [270, 380].forEach((r) => {
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2.5;
         ctx.stroke();
       });
 
-      // Run-out groove (dead wax zone)
-      for (let r = 270; r < 350; r += 6) {
+      // Run-out dead wax
+      for (let r = 135; r < 170; r += 5) {
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.09)";
-        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+        ctx.lineWidth = 1.2;
         ctx.stroke();
       }
 
-      // Spiral lead-out groove cutting toward the center label
-      ctx.beginPath();
-      for (let a = 0; a < Math.PI * 4; a += 0.05) {
-        const spiralR = 340 - a * 16;
-        const sx = cx + Math.cos(a) * spiralR;
-        const sy = cy + Math.sin(a) * spiralR;
-        if (a === 0) ctx.moveTo(sx, sy);
-        else ctx.lineTo(sx, sy);
-      }
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-      ctx.lineWidth = 1.6;
-      ctx.stroke();
-
-      // Hand-etched matrix / runout inscriptions
+      // Dead wax matrix stamping
       ctx.save();
       ctx.translate(cx, cy);
-      ctx.rotate(0.95);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
-      ctx.font = "bold 15px monospace";
+      ctx.rotate(0.9);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      ctx.font = "bold 9px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("CXR-2026-A1  STEREO  //  MASTERDISK  NYC  //  [180G]", 0, -305);
+      ctx.fillText("CXRNER-2026 // MASTERDISK // 180G VINYL", 0, -150);
       ctx.restore();
 
-      // Outer lead-in guard edge groove
+      // Outer rim edge groove
       ctx.beginPath();
-      ctx.arc(cx, cy, 975, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 488, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 3;
       ctx.stroke();
     }
 
     const vinylTexture = new THREE.CanvasTexture(canvas);
-    vinylTexture.wrapS = THREE.ClampToEdgeWrapping;
-    vinylTexture.wrapT = THREE.ClampToEdgeWrapping;
 
     // ==============================================================
-    // 2. MULTI-MATERIAL 3D CYLINDER: SEPARATE PROFILE RIM & BEVEL
+    // 2. ONE SINGLE SOLID 3D VINYL DISC (NO FLOATING EXTRA DISCS)
     // ==============================================================
     const discRadius = 1.5;
-    const discThickness = 0.085; // Solid 180g audiophile pressing thickness
+    const discThickness = 0.075;
 
     const discGeometry = new THREE.CylinderGeometry(
       discRadius,
       discRadius,
       discThickness,
       128,
-      4,
+      2,
       false
     );
 
-    // Material 0: Side rim (catching razor-sharp side reflections to show depth)
+    // Side rim material: polished edge reflecting light
     const sideMaterial = new THREE.MeshStandardMaterial({
-      color: 0x181818,
-      roughness: 0.18,
-      metalness: 0.92,
+      color: 0x16161a,
+      roughness: 0.2,
+      metalness: 0.9,
     });
 
-    // Material 1 & 2: Top & bottom grooved faces
+    // Face material: obsidian black with groove texture
     const faceMaterial = new THREE.MeshStandardMaterial({
-      color: 0x090909,
-      roughness: 0.22,
-      metalness: 0.88,
+      color: 0x0c0c0e,
+      roughness: 0.24,
+      metalness: 0.85,
       map: vinylTexture,
       bumpMap: vinylTexture,
-      bumpScale: 0.015,
+      bumpScale: 0.012,
     });
 
-    // Apply materials: [side, top, bottom]
-    const discMaterials = [sideMaterial, faceMaterial, faceMaterial];
-    const discMesh = new THREE.Mesh(discGeometry, discMaterials);
+    // Material array: [side, top, bottom]
+    const discMesh = new THREE.Mesh(discGeometry, [sideMaterial, faceMaterial, faceMaterial]);
     discMesh.rotation.x = Math.PI / 2;
     vinylGroup.add(discMesh);
 
-    // Beveled outer rim (Torus lip) to catch bright silver grazing rim light
-    const outerBevelGeom = new THREE.TorusGeometry(discRadius - 0.005, 0.018, 20, 128);
-    const outerBevelMat = new THREE.MeshStandardMaterial({
-      color: 0x222222,
-      roughness: 0.15,
-      metalness: 0.95,
-    });
-    const outerBevelMesh = new THREE.Mesh(outerBevelGeom, outerBevelMat);
-    vinylGroup.add(outerBevelMesh);
-
     // ==============================================================
-    // 3. CONTACT SHADOW & AMBIENT DEPTH BACKPLANE
-    // ==============================================================
-    // Placed slightly behind the disc (Z = -0.25) to cast depth onto background
-    const shadowCanvas = document.createElement("canvas");
-    shadowCanvas.width = 512;
-    shadowCanvas.height = 512;
-    const sCtx = shadowCanvas.getContext("2d");
-    if (sCtx) {
-      const sGrad = sCtx.createRadialGradient(256, 256, 120, 256, 256, 250);
-      sGrad.addColorStop(0, "rgba(0, 0, 0, 0.75)");
-      sGrad.addColorStop(0.65, "rgba(0, 0, 0, 0.4)");
-      sGrad.addColorStop(0.85, "rgba(255, 255, 255, 0.06)"); // subtle silver edge aura
-      sGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
-      sCtx.fillStyle = sGrad;
-      sCtx.fillRect(0, 0, 512, 512);
-    }
-    const shadowTexture = new THREE.CanvasTexture(shadowCanvas);
-    const shadowGeom = new THREE.PlaneGeometry(3.6, 3.6);
-    const shadowMat = new THREE.MeshBasicMaterial({
-      map: shadowTexture,
-      transparent: true,
-      depthWrite: false,
-    });
-    const shadowMesh = new THREE.Mesh(shadowGeom, shadowMat);
-    shadowMesh.position.z = -0.22;
-    vinylGroup.add(shadowMesh);
-
-    // ==============================================================
-    // 4. MATTE CENTER LABEL & CHROME SPINDLE BUSHING
+    // 3. FLUSH CENTER LABEL (ATTACHED DIRECTLY TO THE DISC)
     // ==============================================================
     const labelCanvas = document.createElement("canvas");
-    labelCanvas.width = 1024;
-    labelCanvas.height = 1024;
+    labelCanvas.width = 512;
+    labelCanvas.height = 512;
     const lCtx = labelCanvas.getContext("2d");
+
     if (lCtx) {
-      // Matte charcoal paper finish
-      lCtx.fillStyle = "#111111";
-      lCtx.fillRect(0, 0, 1024, 1024);
+      // Matte dark purple / charcoal background
+      const grad = lCtx.createRadialGradient(256, 256, 20, 256, 256, 256);
+      grad.addColorStop(0, "#1e1333");
+      grad.addColorStop(0.7, "#120d1c");
+      grad.addColorStop(1, "#0a0710");
+      lCtx.fillStyle = grad;
+      lCtx.fillRect(0, 0, 512, 512);
 
-      // Fine concentric silver rings
-      lCtx.strokeStyle = "rgba(255, 255, 255, 0.65)";
-      lCtx.lineWidth = 4;
+      // Silver & purple accent concentric rings
+      lCtx.strokeStyle = "rgba(168, 85, 247, 0.7)";
+      lCtx.lineWidth = 3;
       lCtx.beginPath();
-      lCtx.arc(512, 512, 475, 0, Math.PI * 2);
+      lCtx.arc(256, 256, 242, 0, Math.PI * 2);
       lCtx.stroke();
 
-      lCtx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-      lCtx.lineWidth = 2;
+      lCtx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+      lCtx.lineWidth = 1.5;
       lCtx.beginPath();
-      lCtx.arc(512, 512, 440, 0, Math.PI * 2);
+      lCtx.arc(256, 256, 225, 0, Math.PI * 2);
       lCtx.stroke();
 
-      // Outer track speed & format text
-      lCtx.fillStyle = "rgba(255, 255, 255, 0.5)";
-      lCtx.font = "bold 20px monospace";
+      // CXRNER MUSIC Brand Header
+      lCtx.fillStyle = "#A855F7";
+      lCtx.font = "bold 13px monospace";
       lCtx.textAlign = "center";
-      lCtx.fillText("★ 180G AUDIOPHILE PRESSING • 33⅓ RPM STEREO ★", 512, 190);
+      lCtx.fillText("★ CXRNER MUSIC LABEL ★", 256, 160);
 
-      // CXRNER MUSIC Monogram & Main Title
+      // Track Title
       lCtx.fillStyle = "#FFFFFF";
-      lCtx.font = "900 68px sans-serif";
-      lCtx.letterSpacing = "6px";
-      lCtx.fillText("C X R N E R", 512, 360);
+      lCtx.font = "900 24px sans-serif";
+      const displayTitle = featuredTitle.length > 22 ? featuredTitle.slice(0, 20) + "..." : featuredTitle;
+      lCtx.fillText(displayTitle.toUpperCase(), 256, 210);
 
-      lCtx.fillStyle = "#A3A3A3";
-      lCtx.font = "bold 22px monospace";
-      lCtx.fillText("M U S I C   L A B E L", 512, 410);
+      // Artist Name
+      lCtx.fillStyle = "#D8B4FE";
+      lCtx.font = "bold 16px monospace";
+      lCtx.fillText(featuredArtist.toUpperCase(), 256, 245);
 
       // Divider line
-      lCtx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      lCtx.strokeStyle = "rgba(168, 85, 247, 0.5)";
       lCtx.lineWidth = 2;
       lCtx.beginPath();
-      lCtx.moveTo(312, 440);
-      lCtx.lineTo(712, 440);
+      lCtx.moveTo(156, 265);
+      lCtx.lineTo(356, 265);
       lCtx.stroke();
 
-      // Featured Track & Artist
-      lCtx.fillStyle = "#FFFFFF";
-      lCtx.font = "bold 34px sans-serif";
-      lCtx.fillText(featuredTitle.toUpperCase(), 512, 610);
+      // Specification
+      lCtx.fillStyle = "#9CA3AF";
+      lCtx.font = "bold 12px monospace";
+      lCtx.fillText("33⅓ RPM • STEREO • 180G", 256, 320);
 
-      lCtx.fillStyle = "#737373";
-      lCtx.font = "bold 24px monospace";
-      lCtx.fillText(`ARTIST: ${featuredArtist.toUpperCase()}`, 512, 660);
+      lCtx.fillStyle = "#6B7280";
+      lCtx.font = "10px monospace";
+      lCtx.fillText("CAT::CXR-001 // YANDEX MUSIC", 256, 345);
 
-      // Catalog & Matrix specification
-      lCtx.fillStyle = "#525252";
-      lCtx.font = "bold 18px monospace";
-      lCtx.fillText("[CAT::CXR-002A // SIDE A // STEREO]", 512, 820);
-
-      // Center Spindle Hole & Bushing ring
+      // Center Spindle Hole
       lCtx.fillStyle = "#000000";
       lCtx.beginPath();
-      lCtx.arc(512, 512, 48, 0, Math.PI * 2);
+      lCtx.arc(256, 256, 28, 0, Math.PI * 2);
       lCtx.fill();
 
-      lCtx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-      lCtx.lineWidth = 4;
+      lCtx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+      lCtx.lineWidth = 2.5;
       lCtx.stroke();
     }
 
     const labelTexture = new THREE.CanvasTexture(labelCanvas);
-    const labelRadius = 0.52;
-    // Slightly elevated cylinder for the label
+    const labelRadius = 0.54;
+    // Raised just 0.002 above disc surface to prevent Z-fighting, fully flush
     const labelGeometry = new THREE.CylinderGeometry(
       labelRadius,
       labelRadius,
-      discThickness + 0.006,
+      discThickness + 0.002,
       64
     );
     const labelMaterial = new THREE.MeshStandardMaterial({
       map: labelTexture,
-      roughness: 0.5,
-      metalness: 0.15,
+      roughness: 0.45,
+      metalness: 0.1,
     });
     const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
     labelMesh.rotation.x = Math.PI / 2;
     vinylGroup.add(labelMesh);
 
-    // 3D Metal Chrome Spindle Bushing
+    // Chrome Center Spindle Bushing
     const spindleGeometry = new THREE.CylinderGeometry(
-      0.068,
-      0.068,
-      discThickness + 0.06,
+      0.065,
+      0.065,
+      discThickness + 0.04,
       32
     );
     const spindleMaterial = new THREE.MeshStandardMaterial({
-      color: 0xf5f5f5,
+      color: 0xf3f4f6,
       roughness: 0.08,
       metalness: 0.98,
     });
@@ -369,37 +311,36 @@ export default function VinylCanvas({
     vinylGroup.add(spindleMesh);
 
     // ==============================================================
-    // 5. CONTROLLED STUDIO LIGHTING: GRAZING RIM & HIGHLIGHTS
+    // 4. STUDIO LIGHTING: CONTROLLED VIOLET & SILVER HIGHLIGHTS
     // ==============================================================
-    // Ambient fill keeps darks rich without washing out
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    // Ambient light so darks remain deep without crushing
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     scene.add(ambientLight);
 
-    // Key Light: Soft studio diffuse white illuminating the face
-    const keyLight = new THREE.DirectionalLight(0xffffff, 4.6);
-    keyLight.position.set(-5, 6, 6);
+    // Studio Key Light (soft white key)
+    const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
+    keyLight.position.set(-4, 5, 5);
     scene.add(keyLight);
 
-    // Rim Grazing Light: Razor-sharp silver light hitting the edge & outer bevel
-    const rimLight = new THREE.DirectionalLight(0xffffff, 5.0);
-    rimLight.position.set(5.5, -3.5, 3.2);
-    scene.add(rimLight);
+    // Purple Rim Grazing Light (gives edge character and ties to label branding)
+    const purpleRimLight = new THREE.DirectionalLight(0xa855f7, 4.8);
+    purpleRimLight.position.set(5, -3, 3);
+    scene.add(purpleRimLight);
 
-    // Counter Rim Light: Back bottom-left to outline silhouette
-    const backRimLight = new THREE.DirectionalLight(0xd4d4d4, 3.2);
-    backRimLight.position.set(-4, -6, 2.5);
-    scene.add(backRimLight);
+    // Silver Kick Light
+    const silverKickLight = new THREE.DirectionalLight(0xe0e7ff, 2.5);
+    silverKickLight.position.set(-3, -5, 2);
+    scene.add(silverKickLight);
 
-    // Dynamic pointer light catching the sound grooves interactively
-    const cursorLight = new THREE.PointLight(0xffffff, 2.8, 14);
-    cursorLight.position.set(0, 1.5, 4);
+    // Interactive pointer light
+    const cursorLight = new THREE.PointLight(0xd8b4fe, 2.2, 10);
+    cursorLight.position.set(0, 1, 4);
     scene.add(cursorLight);
 
     // ==============================================================
-    // 6. RESPONSIVE CAMERA & ZERO-CLIPPING FRUSTUM GUARANTEE
+    // 5. CAMERA & ZERO-CLIPPING RESPONSIVE CALCULATION
     // ==============================================================
-    // Bounding radius including disc, outer bevel, and margin
-    const boundingSphereRadius = discRadius + 0.06; // ~1.56
+    const boundingSphereRadius = discRadius + 0.05;
 
     const updateCameraFrustum = () => {
       if (!container || !camera || !renderer) return;
@@ -410,16 +351,15 @@ export default function VinylCanvas({
       const aspect = width / height;
       camera.aspect = aspect;
 
-      // 1.25 margin factor: record is visually dominant (large!),
-      // while ensuring a comfortable 20-25% breathing room around all edges.
-      const marginFactor = 1.22;
+      // 1.25 safety margin: disc is large & impactful, 25% clear breathing room
+      const marginFactor = 1.25;
       const fovY = (camera.fov * Math.PI) / 180;
 
       const distVertical = (boundingSphereRadius * marginFactor) / Math.tan(fovY / 2);
       const fovX = 2 * Math.atan(Math.tan(fovY / 2) * aspect);
       const distHorizontal = (boundingSphereRadius * marginFactor) / Math.tan(fovX / 2);
 
-      const finalDist = Math.max(distVertical, distHorizontal, 4.9);
+      const finalDist = Math.max(distVertical, distHorizontal, 4.8);
       camera.position.set(0, 0, finalDist);
       camera.updateProjectionMatrix();
 
@@ -434,14 +374,13 @@ export default function VinylCanvas({
     resizeObserver.observe(container);
 
     // ==============================================================
-    // 7. INTERACTIVE PHYSICS, CURSOR TILT & SCROLL PARALLAX
+    // 6. INTERACTION & ROTATION INERTIA
     // ==============================================================
     let targetRotX = baseRotX;
     let targetRotY = baseRotY;
     let isDragging = false;
     let lastPointerX = 0;
     let lastPointerY = 0;
-    let scrollParallaxY = 0;
 
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
       isDragging = true;
@@ -459,8 +398,8 @@ export default function VinylCanvas({
       const mx = ((clientX - rect.left) / rect.width) * 2 - 1;
       const my = -(((clientY - rect.top) / rect.height) * 2 - 1);
 
-      cursorLight.position.x = mx * 3.2;
-      cursorLight.position.y = my * 3.2 + 1;
+      cursorLight.position.x = mx * 3;
+      cursorLight.position.y = my * 3 + 1;
 
       if (isDragging) {
         const dx = clientX - lastPointerX;
@@ -470,19 +409,13 @@ export default function VinylCanvas({
         lastPointerX = clientX;
         lastPointerY = clientY;
       } else {
-        targetRotY = baseRotY + mx * 0.32;
-        targetRotX = baseRotX - my * 0.25;
+        targetRotY = baseRotY + mx * 0.28;
+        targetRotX = baseRotX - my * 0.22;
       }
     };
 
     const onPointerUp = () => {
       isDragging = false;
-    };
-
-    const onScroll = () => {
-      const scroll = window.scrollY;
-      // Gentle parallax tilt and lift as page scrolls down
-      scrollParallaxY = Math.min(scroll * 0.0008, 0.3);
     };
 
     container.addEventListener("mousedown", onPointerDown);
@@ -492,14 +425,12 @@ export default function VinylCanvas({
     container.addEventListener("touchstart", onPointerDown, { passive: true });
     container.addEventListener("touchmove", onPointerMove, { passive: true });
     window.addEventListener("touchend", onPointerUp);
-    window.addEventListener("scroll", onScroll, { passive: true });
 
     // ==============================================================
-    // 8. RENDER LOOP WITH RPM INERTIA & ENTRANCE ANIMATION
+    // 7. RENDER LOOP
     // ==============================================================
     let rotationAngle = 0;
     let lastTime = performance.now();
-    let entranceProgress = 0;
 
     const animate = (currentTime: number) => {
       animationFrameId = requestAnimationFrame(animate);
@@ -507,7 +438,7 @@ export default function VinylCanvas({
       const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
       lastTime = currentTime;
 
-      // Smooth RPM acceleration / deceleration with inertia
+      // Smooth RPM acceleration / deceleration
       currentSpeedRef.current = THREE.MathUtils.lerp(
         currentSpeedRef.current,
         targetSpeedRef.current,
@@ -515,24 +446,16 @@ export default function VinylCanvas({
       );
       rotationAngle += currentSpeedRef.current * delta;
 
-      // Spin disc around its Z axis
+      // Spin single disc & flush label around Z
       discMesh.rotation.z = rotationAngle;
       labelMesh.rotation.z = rotationAngle;
 
-      // Smooth camera tilt lerp
-      vinylGroup.rotation.x +=
-        (targetRotX + scrollParallaxY - vinylGroup.rotation.x) * 0.08;
+      // Smooth tilt lerp
+      vinylGroup.rotation.x += (targetRotX - vinylGroup.rotation.x) * 0.08;
       vinylGroup.rotation.y += (targetRotY - vinylGroup.rotation.y) * 0.08;
 
-      // Smooth load entrance zoom
-      if (entranceProgress < 1) {
-        entranceProgress += delta * 1.5;
-        const scaleVal = THREE.MathUtils.lerp(0.88, 1.0, Math.min(entranceProgress, 1));
-        vinylGroup.scale.set(scaleVal, scaleVal, scaleVal);
-      }
-
-      // Delicate floating bob
-      const wobble = Math.sin(currentTime * 0.0018) * 0.025;
+      // Gentle floating bob
+      const wobble = Math.sin(currentTime * 0.0016) * 0.02;
       vinylGroup.position.y = wobble;
 
       renderer?.render(scene, camera);
@@ -550,22 +473,16 @@ export default function VinylCanvas({
       container.removeEventListener("touchstart", onPointerDown);
       container.removeEventListener("touchmove", onPointerMove);
       window.removeEventListener("touchend", onPointerUp);
-      window.removeEventListener("scroll", onScroll);
 
       discGeometry.dispose();
       sideMaterial.dispose();
       faceMaterial.dispose();
-      outerBevelGeom.dispose();
-      outerBevelMat.dispose();
       labelGeometry.dispose();
       labelMaterial.dispose();
       spindleGeometry.dispose();
       spindleMaterial.dispose();
-      shadowGeom.dispose();
-      shadowMat.dispose();
       vinylTexture.dispose();
       labelTexture.dispose();
-      shadowTexture.dispose();
       renderer?.dispose();
     };
   }, [featuredTitle, featuredArtist]);
@@ -614,7 +531,10 @@ export default function VinylCanvas({
   }, []);
 
   return (
-    <div className="relative w-full aspect-square max-w-[580px] lg:max-w-[640px] mx-auto flex items-center justify-center select-none overflow-visible">
+    <div className="relative w-full aspect-square max-w-[520px] lg:max-w-[580px] mx-auto flex items-center justify-center select-none overflow-visible">
+      {/* Soft Purple Ambient Backlight */}
+      <div className="absolute inset-4 rounded-full bg-purple-600/15 blur-3xl pointer-events-none -z-10" />
+
       {/* 3D WebGL Canvas */}
       <div
         ref={mountRef}
@@ -626,46 +546,46 @@ export default function VinylCanvas({
       {/* Instant CSS Fallback */}
       {!webGlLoaded && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
-          <div className="relative w-full aspect-square max-w-[420px] rounded-full bg-[#080808] border-2 border-white/20 shadow-[0_0_60px_rgba(255,255,255,0.12)] flex items-center justify-center animate-spin-slow">
+          <div className="relative w-full aspect-square max-w-[400px] rounded-full bg-[#0a0a0c] border-2 border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.2)] flex items-center justify-center animate-spin-slow">
             <div className="absolute inset-4 rounded-full border border-white/10" />
             <div className="absolute inset-10 rounded-full border border-white/10" />
-            <div className="absolute inset-16 rounded-full border border-white/15" />
-            <div className="absolute inset-24 rounded-full border border-white/15" />
-            <div className="absolute inset-32 rounded-full border border-white/20" />
-            <div className="w-36 h-36 rounded-full bg-[#111111] border-2 border-white/40 flex flex-col items-center justify-center text-center p-3">
-              <span className="font-mono text-[9px] font-bold tracking-widest text-neutral-400">CXRNER</span>
-              <span className="font-heavy text-xs text-white uppercase mt-1 tracking-wider truncate max-w-[120px]">
+            <div className="absolute inset-18 rounded-full border border-purple-500/20" />
+            <div className="w-36 h-36 rounded-full bg-gradient-to-br from-[#1a102a] to-[#0a0712] border-2 border-purple-400/50 flex flex-col items-center justify-center text-center p-3 shadow-inner">
+              <span className="font-mono text-[9px] font-bold tracking-widest text-purple-400">CXRNER</span>
+              <span className="font-gothic text-xs text-white uppercase mt-1 tracking-wider truncate max-w-[120px]">
                 {featuredTitle}
               </span>
-              <span className="w-3 h-3 rounded-full bg-white border border-neutral-400 mt-2 shadow-[0_0_8px_white]" />
+              <span className="w-3 h-3 rounded-full bg-purple-400 mt-2 shadow-[0_0_8px_#c084fc]" />
             </div>
           </div>
         </div>
       )}
 
-      {/* Industrial Playback / RPM Controls Bar */}
-      <div className="absolute -bottom-4 sm:bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/90 border border-white/20 shadow-2xl backdrop-blur-md z-20">
+      {/* Playback / RPM Controls Bar */}
+      <div className="absolute -bottom-4 sm:bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#09090e]/95 border border-purple-500/30 shadow-[0_0_20px_rgba(0,0,0,0.8)] backdrop-blur-md z-20">
         <button
           type="button"
           onClick={() => setIsPlaying(!isPlaying)}
           className={`flex items-center gap-1.5 px-3 py-1 text-[11px] font-mono tracking-wider transition rounded-full ${
-            isPlaying ? "bg-white text-black font-bold shadow-[0_0_12px_rgba(255,255,255,0.4)]" : "text-neutral-400 hover:text-white"
+            isPlaying
+              ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold shadow-[0_0_12px_rgba(168,85,247,0.4)]"
+              : "text-neutral-400 hover:text-white"
           }`}
-          title={isPlaying ? "Остановить вращение" : "Запустить пластинку"}
+          title={isPlaying ? "Остановить пластинку" : "Запустить вращение"}
         >
           {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
-          <span>{isPlaying ? "SPINNING" : "STOP"}</span>
+          <span>{isPlaying ? "ВРАЩАЕТСЯ" : "ПАУЗА"}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setRpm(rpm === 33 ? 45 : 33)}
           className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono transition rounded-full ${
-            rpm === 45 ? "text-white font-bold bg-white/15" : "text-neutral-400 hover:text-white"
+            rpm === 45 ? "text-purple-300 font-bold bg-purple-500/20" : "text-neutral-400 hover:text-white"
           }`}
           title="Переключить скорость (33⅓ / 45 RPM)"
         >
-          <RotateCw className="w-3 h-3 text-neutral-400" />
+          <RotateCw className="w-3 h-3 text-purple-400" />
           <span>{rpm === 33 ? "33⅓" : "45"} RPM</span>
         </button>
 
@@ -673,20 +593,13 @@ export default function VinylCanvas({
           type="button"
           onClick={toggleSound}
           className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono transition rounded-full ${
-            soundEnabled ? "text-black bg-white font-bold shadow-[0_0_12px_rgba(255,255,255,0.4)]" : "text-neutral-400 hover:text-white"
+            soundEnabled ? "text-white bg-purple-600 font-bold shadow-[0_0_10px_rgba(168,85,247,0.4)]" : "text-neutral-400 hover:text-white"
           }`}
-          title="Аналоговый фоновый генератор"
+          title="Фоновый звук студии"
         >
-          {soundEnabled ? <Volume2 className="w-3 h-3 text-black" /> : <VolumeX className="w-3 h-3" />}
-          <span className="hidden sm:inline">{soundEnabled ? "AUDIO ON" : "AUDIO"}</span>
+          {soundEnabled ? <Volume2 className="w-3 h-3 text-white" /> : <VolumeX className="w-3 h-3" />}
+          <span className="hidden sm:inline">{soundEnabled ? "ЗВУК ВКЛ" : "ЗВУК"}</span>
         </button>
-      </div>
-
-      {/* Technical Object Coordinates Marker */}
-      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 pointer-events-none">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-neutral-400 bg-black/85 px-2.5 py-1 border border-white/15 rounded-md shadow-lg">
-          [OBJ::12INCH_AUDIOPHILE_180G]
-        </span>
       </div>
     </div>
   );

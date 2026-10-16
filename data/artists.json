@@ -1,21 +1,21 @@
 [
   {
-    "id": "balekajon",
-    "name": "Balekajon",
-    "listeners": "259 760",
-    "avatar": "/artist/balekajon.png",
-    "bio": "Артист с узнаваемой атмосферой и собственным подходом к мелодиям.",
-    "genres": ["Phonk", "Hip-Hop"],
-    "links": []
+    "id": "neimeks",
+    "name": "Neimeks",
+    "listeners": "312 400",
+    "avatar": "/artist/mvrtx.png",
+    "bio": "Резидент CXRNER MUSIC. Автор свежего релиза The Sadness of Reality.",
+    "genres": ["Phonk", "Electronic"],
+    "links": [{ "label": "Яндекс Музыка", "href": "https://music.yandex.ru/artist/25572730" }]
   },
   {
-    "id": "cerrera-dark",
-    "name": "Cerrera D'Ark",
-    "listeners": "77 254",
-    "avatar": "/artist/cerrera-dark.png",
-    "bio": "Тёмная эстетика, плотный саунд и музыка с характером.",
-    "genres": ["Dark", "Electronic"],
-    "links": []
+    "id": "unxplxya",
+    "name": "UNXPLXYA",
+    "listeners": "420 890",
+    "avatar": "/artist/mc-lone.png",
+    "bio": "Артист лейбла с миллионными прослушиваниями и мощным бэйс-звучанием.",
+    "genres": ["Phonk", "Drift"],
+    "links": [{ "label": "Яндекс Музыка", "href": "https://music.yandex.ru/artist/25632427" }]
   },
   {
     "id": "hxlkart",
@@ -24,7 +24,7 @@
     "avatar": "/artist/hxlkart.png",
     "bio": "Современное звучание на стыке рэпа, электроники и андеграунда.",
     "genres": ["Hip-Hop", "Trap"],
-    "links": []
+    "links": [{ "label": "Яндекс Музыка", "href": "https://music.yandex.ru/artist/19766839" }]
   },
   {
     "id": "mc-lone",
@@ -33,16 +33,25 @@
     "avatar": "/artist/mc-lone.png",
     "bio": "Энергичный артист с большим вниманием к ритму и подаче.",
     "genres": ["Rap", "Trap"],
-    "links": []
+    "links": [{ "label": "Яндекс Музыка", "href": "https://music.yandex.ru/artist/7539746" }]
   },
   {
-    "id": "mvrtx",
-    "name": "MVRTX",
-    "listeners": "389 622",
-    "avatar": "/artist/mvrtx.png",
-    "bio": "Футуристичный саунд, который соединяет клубную энергию и мелодичность.",
-    "genres": ["Electronic", "Phonk"],
-    "links": []
+    "id": "balekajon",
+    "name": "Balekajon",
+    "listeners": "259 760",
+    "avatar": "/artist/balekajon.png",
+    "bio": "Артист с узнаваемой атмосферой и собственным подходом к мелодиям.",
+    "genres": ["Phonk", "Hip-Hop"],
+    "links": [{ "label": "Яндекс Музыка", "href": "https://music.yandex.ru/artist/21526601" }]
+  },
+  {
+    "id": "cerrera-dark",
+    "name": "Cerrera D'Ark",
+    "listeners": "77 254",
+    "avatar": "/artist/cerrera-dark.png",
+    "bio": "Тёмная эстетика, плотный саунд и музыка с характером.",
+    "genres": ["Dark", "Electronic"],
+    "links": [{ "label": "Яндекс Музыка", "href": "https://music.yandex.ru/artist/22273593" }]
   },
   {
     "id": "starox",
@@ -51,15 +60,15 @@
     "avatar": "/artist/starox.png",
     "bio": "Артист с ярким визуальным образом и кинематографичной атмосферой.",
     "genres": ["Electronic", "Pop"],
-    "links": []
+    "links": [{ "label": "Яндекс Музыка", "href": "https://music.yandex.ru/artist/21215124" }]
   },
   {
     "id": "tendyone",
     "name": "TendyOne",
     "listeners": "257 991",
     "avatar": "/artist/tendyone.png",
-    "bio": "Мелодичный и смелый взгляд на современную сцену.",
-    "genres": ["Hip-Hop", "Pop"],
-    "links": []
+    "bio": "Артист лейбла с выразительным мелодическим почерком.",
+    "genres": ["Trap", "Electronic"],
+    "links": [{ "label": "Яндекс Музыка", "href": "https://music.yandex.ru/artist/17673680" }]
   }
 ]
