@@ -10,6 +10,7 @@ import InteractiveAudioPreview from "../components/InteractiveAudioPreview";
 import ReleasesCatalog from "../components/ReleasesCatalog";
 import WorkflowSection from "../components/WorkflowSection";
 import FaqAccordion from "../components/FaqAccordion";
+import { ChromeStarburst, ChromeOrganicSpine, TechnicalCrosshair } from "../components/ChromeSpines";
 import { faqItems, services, stats, testimonials, whyUs } from "../data/site";
 import { getArtists } from "../lib/artists";
 import { getFeaturedRelease } from "../lib/featured";
@@ -37,75 +38,106 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden bg-black text-[#EAEAEA]">
       {/* ===================== HERO SECTION ===================== */}
-      <section id="hero" className="relative min-h-[90vh] flex items-center pt-28 sm:pt-36 pb-16 lg:pb-24">
-        <Container>
-          <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-8">
-            {/* Left Content Column */}
-            <div className="lg:col-span-7 z-10">
-              {/* Technical Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full tech-badge font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.22em] text-neutral-300 mb-6 border border-white/20 bg-black/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                <span>[CXR::RECORDINGS // GLOBAL_DISTRIBUTION]</span>
-                <span className="text-neutral-600">|</span>
-                <span className="text-white">150+ DSP</span>
+      <section id="hero" className="relative min-h-[92vh] flex flex-col justify-between pt-24 sm:pt-32 pb-12 overflow-hidden">
+        {/* Background Chrome Organic Spines & Ambient Diffraction */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          <ChromeOrganicSpine className="absolute -top-12 -right-24 w-[750px] lg:w-[950px] max-w-none opacity-40 mix-blend-screen" />
+          <ChromeStarburst className="absolute top-28 left-8 sm:left-24 animate-pulse-subtle" size={32} />
+          <ChromeStarburst className="absolute top-1/2 right-12 sm:right-32 animate-pulse-subtle" size={24} />
+          <ChromeStarburst className="absolute bottom-20 left-1/3 animate-pulse-subtle" size={18} />
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-white/[0.03] blur-[120px] rounded-full pointer-events-none" />
+        </div>
+
+        <Container className="relative z-10 w-full flex-1 flex flex-col justify-between">
+          {/* Top Technical Metadata Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-xs uppercase tracking-[0.25em]">
+            <div className="flex items-center gap-3">
+              <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+              <span className="text-white font-bold">[CXR::RECORDINGS // UNDERGROUND_SYS]</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-4 text-neutral-500">
+              <span>FREQ_RES::12Hz-28kHz</span>
+              <span>•</span>
+              <span>AUDIO_180G_VINYL</span>
+              <span>•</span>
+              <span className="text-white">150+ DSP DISTRIBUTION</span>
+            </div>
+          </div>
+
+          {/* Main Hero Spatial Composition */}
+          <div className="my-auto py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left Massive Industrial Typography & Narrative */}
+            <div className="lg:col-span-7 flex flex-col justify-center">
+              {/* Massive Druk-Style Super Condensed Heading */}
+              <div className="relative">
+                <span className="font-mono text-[11px] sm:text-xs tracking-[0.3em] uppercase text-neutral-400 mb-2 block">
+                  // INTERNATIONAL INDEPENDENT RECORD LABEL
+                </span>
+                <h1 className="font-heavy text-6xl sm:text-8xl md:text-9xl lg:text-[7.5rem] xl:text-[9rem] tracking-tight leading-[0.84] text-white uppercase select-none">
+                  CXRNER <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-300 to-neutral-500">
+                    MUSIC
+                  </span>
+                </h1>
+                <p className="mt-4 font-unbounded text-sm sm:text-base md:text-lg text-neutral-200 tracking-wide uppercase font-bold">
+                  БЕСКОМПРОМИССНЫЙ ЗВУК НОВОЙ ЭРЫ
+                </p>
               </div>
 
-              {/* Massive Bold Heading */}
-              <h1 className="font-gothic text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95] text-white uppercase">
-                ЗВУК, КОТОРЫЙ <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-white via-neutral-300 to-neutral-500 bg-clip-text text-transparent">
-                  МЕНЯЕТ РЕАЛЬНОСТЬ.
-                </span>
-              </h1>
-
-              {/* Subtitle */}
-              <p className="mt-6 text-sm sm:text-base md:text-lg text-neutral-400 max-w-2xl leading-relaxed font-sans">
-                CXRNER MUSIC — международный независимый лейбл для артистов с бескомпромиссным характером.
-                Мы берем на себя прямую цифровую доставку, официальный ISRC/UPC кодинг, питчинг в редакторские плейлисты
-                и честные выплаты роялти 70/30.
+              {/* Subtitle Statement */}
+              <p className="mt-5 text-sm sm:text-base text-neutral-400 max-w-xl leading-relaxed font-sans">
+                Глобальная цифровая экосистема для артистов с бескомпромиссным характером.
+                Прямая отгрузка в Spotify, Apple Music, VK и Яндекс, редакционный питчинг
+                и честное распределение роялти 70/30.
               </p>
 
-              {/* CTA Buttons */}
+              {/* High Contrast Brutalist CTA Controls */}
               <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <Link
                   href="/submit-release"
-                  className="btn-void-primary inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-bold shadow-[0_0_25px_rgba(255,255,255,0.18)] active:scale-95 transition duration-300"
+                  className="btn-void-primary inline-flex items-center justify-center gap-2 px-8 py-4 rounded-none font-mono text-xs sm:text-sm uppercase tracking-widest font-black shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-95 transition duration-200"
                 >
-                  <span>Отправить релиз</span>
+                  <span>ОТПРАВИТЬ РЕЛИЗ</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
                 <a
                   href="#releases"
-                  className="btn-void-ghost inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest font-medium border border-white/20 text-neutral-300 hover:text-white hover:border-white transition duration-300"
+                  className="btn-void-ghost inline-flex items-center justify-center gap-2 px-8 py-4 rounded-none font-mono text-xs sm:text-sm uppercase tracking-widest font-bold border border-white/25 text-neutral-300 hover:text-white hover:border-white transition duration-200"
                 >
                   <Disc className="w-4 h-4 text-neutral-400" />
-                  <span>Каталог музыки</span>
+                  <span>КАТАЛОГ МУЗЫКИ</span>
                 </a>
               </div>
 
-              {/* Trust Badges */}
-              <div className="mt-10 pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-4 font-mono text-[11px] text-neutral-400">
+              {/* Technical Spec Badges */}
+              <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-[10px] sm:text-[11px] text-neutral-400">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-white flex-shrink-0" />
-                  <span>Роялти 70/30 артисту</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-white flex-shrink-0" />
+                  <span>РОЯЛТИ 70/30</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-white flex-shrink-0" />
-                  <span>Модерация 24–72 ч</span>
+                  <TrendingUp className="w-3.5 h-3.5 text-white flex-shrink-0" />
+                  <span>МОДЕРАЦИЯ 24–72Ч</span>
                 </div>
                 <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
-                  <Headphones className="w-4 h-4 text-white flex-shrink-0" />
-                  <span>Редакционный питчинг</span>
+                  <Headphones className="w-3.5 h-3.5 text-white flex-shrink-0" />
+                  <span>DSP ПИТЧИНГ</span>
                 </div>
               </div>
             </div>
 
-            {/* Right 3D Visual Centerpiece */}
+            {/* Right Dominant 3D Centerpiece */}
             <div className="lg:col-span-5 relative flex flex-col items-center justify-center">
-              <div className="w-full max-w-[500px]">
+              {/* Backing Subtle Starburst Flares */}
+              <div className="absolute -top-6 -right-6 pointer-events-none z-10">
+                <ChromeStarburst size={36} />
+              </div>
+
+              {/* 3D Vinyl Object (Guaranteed zero-clipping container) */}
+              <div className="w-full relative aspect-square max-w-[500px] lg:max-w-[560px]">
                 <VinylCanvas
                   featuredTitle={featured.title}
                   featuredArtist={featured.artist}
@@ -113,17 +145,30 @@ export default async function HomePage() {
                 />
               </div>
 
-              {/* Audio Preview Bar below 3D Vinyl */}
-              <div className="w-full mt-4 max-w-[500px]">
+              {/* Audio Waveform Player Bar */}
+              <div className="w-full mt-6 max-w-[500px]">
                 <InteractiveAudioPreview
                   track={{
                     title: featured.title,
                     artist: featured.artist,
                     cover: featured.cover,
-                    genre: "Phonk / Electronic",
+                    genre: "Phonk / Industrial Electronic",
                   }}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Bottom Technical Corner Coordinates */}
+          <div className="pt-4 border-t border-white/10 flex items-center justify-between text-neutral-500 font-mono text-[9px] uppercase tracking-widest">
+            <div className="flex items-center gap-3">
+              <TechnicalCrosshair />
+              <span>SYS::2.0_STABLE</span>
+            </div>
+            <span>[LAT 55.7558° N // LON 37.6173° E]</span>
+            <div className="flex items-center gap-3">
+              <span>© {new Date().getFullYear()} CXRNER</span>
+              <TechnicalCrosshair />
             </div>
           </div>
         </Container>
@@ -135,7 +180,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {stats.map((stat) => (
               <div key={stat.label} className="p-3">
-                <p className="font-mono text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
+                <p className="font-heavy text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight">
                   {stat.display ?? <Counter to={stat.value} suffix={stat.suffix} />}
                 </p>
                 <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-neutral-500 font-medium">

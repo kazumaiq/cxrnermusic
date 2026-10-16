@@ -23,10 +23,12 @@ const config: Config = {
         accentWine: "#3D0A14",
       },
       fontFamily: {
-        gothic: ["Cinzel", "Syne", "serif"],
-        display: ["Syne", "Space Grotesk", "sans-serif"],
+        heavy: ["'Oswald'", "'Bebas Neue'", "Impact", "sans-serif"],
+        gothic: ["'Oswald'", "'Bebas Neue'", "'Unbounded'", "Impact", "sans-serif"],
+        display: ["'Oswald'", "'Unbounded'", "'Bebas Neue'", "sans-serif"],
+        unbounded: ["'Unbounded'", "sans-serif"],
         mono: ["'Space Mono'", "monospace"],
-        body: ["Inter", "Space Grotesk", "sans-serif"],
+        body: ["Inter", "sans-serif"],
       },
       boxShadow: {
         card: "0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 30px rgba(0, 0, 0, 0.8)",
