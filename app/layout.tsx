@@ -10,7 +10,7 @@ import BackgroundFX from "../components/BackgroundFX";
 const SITE_URL = "https://cxrnermusic.vercel.app";
 
 export const viewport: Viewport = {
-  themeColor: "#08040f",
+  themeColor: "#050505",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -20,27 +20,25 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "CXRNER MUSIC 2.0 — Международный музыкальный лейбл & дистрибуция",
+    default: "CXRNER MUSIC — Independent Underground Record Label",
     template: "%s — CXRNER MUSIC",
   },
   description:
-    "CXRNER MUSIC — международный независимый музыкальный лейбл и цифровая дистрибуция. Релизы на 150+ стриминговых платформах, промо-питчинг редакторам, прозрачные роялти 70/30 и защита авторских прав.",
+    "CXRNER MUSIC — независимый андеграундный лейбл и глобальная цифровая дистрибуция. Релизы на 150+ стриминговых платформах, жесткий визуальный арт-дирекшн и монетизация.",
   keywords: [
     "CXRNER MUSIC",
     "музыкальный лейбл",
-    "дистрибуция музыки",
-    "выпустить трек",
-    "питчинг плейлистов",
-    "музыкальное промо",
+    "дистрибуция",
+    "underground",
     "phonk",
-    "hip-hop",
     "electronic",
-    "роялти",
+    "industrial",
+    "выпустить трек",
   ],
   alternates: { canonical: "/" },
   openGraph: {
-    title: "CXRNER MUSIC 2.0 — Музыкальный лейбл нового поколения",
-    description: "Глобальная дистрибуция, сильный арт-дирекшн и монетизация для артистов нового звучания.",
+    title: "CXRNER MUSIC — Independent Underground Record Label",
+    description: "Глобальная дистрибуция, бескомпромиссный арт-дирекшн и развитие артистов.",
     type: "website",
     url: SITE_URL,
     siteName: "CXRNER MUSIC",
@@ -49,7 +47,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "CXRNER MUSIC 2.0 — Музыкальный лейбл",
+    title: "CXRNER MUSIC — Underground Record Label",
     description: "Глобальная дистрибуция и развитие артистов.",
     images: ["/images/og.svg"],
   },
@@ -77,11 +75,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,300..900;1,300..900&family=Orbitron:wght@500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@700;800&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-night font-body text-white antialiased selection:bg-neon/30 selection:text-white">
+      <body className="min-h-screen bg-[#050505] text-[#EAEAEA] antialiased selection:bg-white selection:text-black">
         <Script
           id="json-ld-org"
           type="application/ld+json"

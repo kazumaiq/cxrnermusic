@@ -74,66 +74,66 @@ export default function RegisterPage() {
           </Link>
         </div>
 
-        <div className="glass-panel rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl space-y-6">
+        <div className="dark-panel rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl space-y-6 bg-[#0a0a0a]">
           <div className="text-center space-y-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass-badge text-[10px] font-bold uppercase tracking-widest text-aqua shadow-glowAqua">
-              <Sparkles className="w-3 h-3 text-aqua" />
-              Присоединиться к лейблу
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded tech-badge font-mono text-[10px] uppercase tracking-widest text-neutral-300 border border-white/15">
+              <Sparkles className="w-3 h-3 text-neutral-400" />
+              [CXR::REGISTER]
             </span>
-            <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
+            <h1 className="font-gothic text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
               Регистрация артиста
             </h1>
-            <p className="text-xs text-white/60">
-              Создайте профиль для отправки музыки и отслеживания роялти 70/30.
+            <p className="font-sans text-xs text-neutral-400">
+              Создайте профиль для отправки треков и отслеживания роялти 70/30.
             </p>
           </div>
 
           {error && (
-            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-xs">
+            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 font-mono text-xs">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+              <label className="block font-mono text-[11px] uppercase tracking-wider text-neutral-400 mb-1.5">
                 Псевдоним артиста
               </label>
               <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                 <input
                   type="text"
                   value={artistName}
                   onChange={(e) => setArtistName(e.target.value)}
                   placeholder="KAZUMAI"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-neon focus:outline-none transition"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/60 border border-white/10 font-mono text-white text-xs sm:text-sm focus:border-white/50 focus:outline-none focus:ring-1 focus:ring-white/20 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+              <label className="block font-mono text-[11px] uppercase tracking-wider text-neutral-400 mb-1.5">
                 Email *
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="artist@gmail.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-neon focus:outline-none transition"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/60 border border-white/10 font-mono text-white text-xs sm:text-sm focus:border-white/50 focus:outline-none focus:ring-1 focus:ring-white/20 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+              <label className="block font-mono text-[11px] uppercase tracking-wider text-neutral-400 mb-1.5">
                 Пароль (минимум 6 символов) *
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
@@ -141,12 +141,12 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Придумайте пароль"
-                  className="w-full pl-10 pr-10 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-neon focus:outline-none transition"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl bg-black/60 border border-white/10 font-mono text-white text-xs sm:text-sm focus:border-white/50 focus:outline-none focus:ring-1 focus:ring-white/20 transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -156,14 +156,14 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-neon via-magenta to-aqua text-night font-bold text-xs uppercase tracking-wider shadow-glow hover:shadow-glowStrong active:scale-98 transition duration-200 disabled:opacity-50"
+              className="btn-void-primary w-full py-3.5 rounded-xl font-mono font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-98 transition duration-200 disabled:opacity-50"
             >
               {loading ? "Создание профиля..." : "Зарегистрироваться"}
             </button>
           </form>
 
-          <div className="pt-4 border-t border-white/10 flex flex-col items-center gap-3 text-xs text-white/60">
-            <Link href="/auth/login" className="hover:text-neonSoft transition">
+          <div className="pt-4 border-t border-white/10 flex flex-col items-center gap-3 font-mono text-xs text-neutral-400">
+            <Link href="/auth/login" className="hover:text-white transition">
               Уже есть аккаунт? <strong className="text-white underline">Войти</strong>
             </Link>
           </div>

@@ -30,36 +30,36 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
   return (
     <div className="space-y-8">
       {/* Search and Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 glass-panel rounded-2xl p-3 sm:p-4 border border-white/10">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 dark-panel rounded-2xl p-3 sm:p-4 border border-white/10 bg-[#090909]/90">
         {/* Search Input */}
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Поиск по названию трека или артисту..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs sm:text-sm text-white placeholder:text-white/30 focus:border-neon focus:outline-none focus:ring-1 focus:ring-neon transition"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-xs sm:text-sm font-mono text-white placeholder:text-neutral-600 focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20 transition"
           />
         </div>
 
         {/* Quick Stats Indicator */}
-        <div className="flex items-center gap-2 px-3 text-xs text-white/50 whitespace-nowrap">
-          <Disc className="w-3.5 h-3.5 text-aqua" />
+        <div className="flex items-center gap-2 px-3 font-mono text-xs text-neutral-500 whitespace-nowrap">
+          <Disc className="w-3.5 h-3.5 text-neutral-400" />
           <span>Найдено: <strong className="text-white">{filteredReleases.length}</strong> релизов</span>
         </div>
       </div>
 
       {/* Grid of Releases */}
       {filteredReleases.length === 0 ? (
-        <div className="glass-panel rounded-3xl p-12 text-center border border-white/10">
-          <Disc className="w-12 h-12 text-white/20 mx-auto mb-3 animate-pulse" />
-          <p className="text-lg font-semibold text-white">Релизы не найдены</p>
-          <p className="text-sm text-white/50 mt-1">Попробуйте изменить поисковый запрос</p>
+        <div className="dark-panel rounded-2xl p-12 text-center border border-white/10 bg-[#090909]">
+          <Disc className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+          <p className="font-gothic text-lg font-bold text-white uppercase tracking-wider">Релизы не найдены</p>
+          <p className="font-mono text-xs text-neutral-500 mt-1">Попробуйте изменить поисковый запрос</p>
           <button
             type="button"
             onClick={() => setSearchQuery("")}
-            className="mt-4 px-4 py-2 rounded-full glass-badge text-xs font-semibold text-neon hover:text-white transition"
+            className="mt-4 px-4 py-2 rounded-full tech-badge font-mono text-xs uppercase tracking-wider text-white hover:border-white transition"
           >
             Сбросить поиск
           </button>
@@ -73,11 +73,11 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
             return (
               <article
                 key={`${release.title}-${index}`}
-                className="group glass-panel rounded-3xl p-4 border border-white/10 hover:border-neon/40 hover:shadow-glow transition-all duration-300 flex flex-col justify-between"
+                className="group dark-panel rounded-2xl p-4 border border-white/10 hover:border-white/25 transition-all duration-300 flex flex-col justify-between bg-[#0a0a0a]"
               >
                 <div>
                   {/* Album Cover with Overlay Effect */}
-                  <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-black/40">
+                  <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-black/60 border border-white/5">
                     {isRemote ? (
                       <img
                         src={release.cover}
@@ -95,14 +95,13 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
                       />
                     )}
 
-                    {/* Gradient Fade */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition" />
+                    {/* Subtle Dark Vignette */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-70 group-hover:opacity-40 transition" />
 
                     {/* Floating Label Badge */}
                     <div className="absolute top-3 left-3">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-[10px] font-semibold tracking-wider uppercase text-white/80">
-                        <Sparkles className="w-2.5 h-2.5 text-neon" />
-                        CXRNER RELEASE
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded font-mono text-[9px] uppercase tracking-widest bg-black/80 border border-white/15 text-neutral-300">
+                        [CXR::RELEASE]
                       </span>
                     </div>
 
@@ -112,8 +111,8 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
                       onClick={() => setPlayingTrack(isCurrentPlaying ? null : release.title)}
                       className={`absolute bottom-3 right-3 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
                         isCurrentPlaying
-                          ? "bg-neon text-night scale-100 shadow-glowStrong"
-                          : "bg-black/60 backdrop-blur-md text-white border border-white/20 hover:bg-neon hover:text-night hover:scale-105"
+                          ? "bg-white text-black scale-100 shadow-[0_0_20px_rgba(255,255,255,0.25)]"
+                          : "bg-black/80 backdrop-blur-md text-white border border-white/20 hover:bg-white hover:text-black hover:scale-105"
                       }`}
                       aria-label={`Воспроизвести ${release.title}`}
                     >
@@ -127,10 +126,10 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
 
                   {/* Track Info */}
                   <div className="mt-4">
-                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-neonSoft transition truncate">
+                    <h3 className="font-gothic text-base sm:text-lg font-bold text-white group-hover:text-neutral-200 transition truncate">
                       {release.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-white/50 font-medium truncate mt-0.5">
+                    <p className="font-mono text-xs text-neutral-500 font-medium truncate mt-0.5">
                       {release.artist}
                     </p>
                   </div>
@@ -144,10 +143,10 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-neon/15 hover:border-neon/40 border border-white/10 text-[11px] font-medium text-white/70 hover:text-white transition"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 hover:border-white/30 border border-white/10 font-mono text-[10px] uppercase tracking-wider text-neutral-400 hover:text-white transition"
                     >
                       <span>{link.label}</span>
-                      <ExternalLink className="w-2.5 h-2.5 text-white/40" />
+                      <ExternalLink className="w-2.5 h-2.5 text-neutral-500" />
                     </a>
                   ))}
                 </div>

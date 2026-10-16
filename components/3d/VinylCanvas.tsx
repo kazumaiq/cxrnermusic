@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { Disc3, Volume2, VolumeX, Sparkles, RotateCw } from "lucide-react";
+import { Disc3, Volume2, VolumeX, RotateCw } from "lucide-react";
 
 interface VinylCanvasProps {
   featuredTitle?: string;
@@ -11,66 +11,58 @@ interface VinylCanvasProps {
 }
 
 export default function VinylCanvas({
-  featuredTitle = "NEON DRIFT",
-  featuredArtist = "KAZUMAI",
-  featuredCover = "/images/album-01.svg",
+  featuredTitle = "BREAKTHROUGH",
+  featuredArtist = "UNXPLXYA",
+  featuredCover,
 }: VinylCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
   const [rpm, setRpm] = useState<33 | 45>(33);
-  const [webGlSupported, setWebGlSupported] = useState(true);
-
-  // Audio preview synthesis ref
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const isAudioActiveRef = useRef(false);
+  const [webGlLoaded, setWebGlLoaded] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
-    // Check WebGL availability
+    // Check WebGL availability safely
+    let renderer: THREE.WebGLRenderer | null = null;
     try {
-      const canvas = document.createElement("canvas");
-      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-      if (!gl) {
-        setWebGlSupported(false);
-        return;
-      }
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance",
+      });
     } catch {
-      setWebGlSupported(false);
+      setWebGlLoaded(false);
       return;
     }
 
     let animationFrameId: number;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const width = container.clientWidth || 320;
+    const height = container.clientHeight || 320;
 
-    // 1. Scene, Camera, Renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0, 5.8);
+    camera.position.set(0, 0, 5.6);
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: "high-performance",
-    });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.1;
+
+    // Append canvas
+    container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
-    // 2. Vinyl Group
+    // Group
     const vinylGroup = new THREE.Group();
-    // Tilt slightly forward to look like an angled display
-    vinylGroup.rotation.x = 0.38;
-    vinylGroup.rotation.y = -0.22;
+    vinylGroup.rotation.x = 0.35;
+    vinylGroup.rotation.y = -0.18;
     scene.add(vinylGroup);
 
-    // 3. Create Grooved Vinyl Texture
+    // Procedural Monochromatic Grooved Texture
     const textureSize = 1024;
     const canvas = document.createElement("canvas");
     canvas.width = textureSize;
@@ -78,105 +70,103 @@ export default function VinylCanvas({
     const ctx = canvas.getContext("2d");
 
     if (ctx) {
-      // Base dark vinyl
-      ctx.fillStyle = "#0c0a13";
+      // Deep obsidian vinyl base
+      ctx.fillStyle = "#0a0a0a";
       ctx.fillRect(0, 0, textureSize, textureSize);
 
-      const centerX = textureSize / 2;
-      const centerY = textureSize / 2;
+      const cx = textureSize / 2;
+      const cy = textureSize / 2;
 
-      // Draw realistic sound grooves
-      for (let r = 180; r < 480; r += 2) {
+      // Concentric sound grooves (fine silver-white specular rings)
+      for (let r = 180; r < 485; r += 2) {
         ctx.beginPath();
-        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
-        const opacity = (Math.sin(r * 0.4) * 0.5 + 0.5) * 0.18 + 0.04;
-        ctx.strokeStyle = `rgba(210, 139, 255, ${opacity})`;
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        const alpha = (Math.sin(r * 0.45) * 0.5 + 0.5) * 0.14 + 0.02;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.lineWidth = 1;
         ctx.stroke();
       }
 
-      // Run-out groove (dead wax area)
+      // Run-out dead wax groove
       for (let r = 150; r < 180; r += 4) {
         ctx.beginPath();
-        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(100, 60, 150, 0.25)";
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
 
-      // Outer rim
+      // Outer rim reflection line
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 495, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(180, 75, 255, 0.4)";
-      ctx.lineWidth = 4;
+      ctx.arc(cx, cy, 498, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.lineWidth = 2.5;
       ctx.stroke();
     }
 
     const vinylTexture = new THREE.CanvasTexture(canvas);
-    vinylTexture.wrapS = THREE.RepeatWrapping;
-    vinylTexture.wrapT = THREE.RepeatWrapping;
 
-    // Disc Geometry: Cylinder with bevel
+    // Disc Mesh
     const discGeometry = new THREE.CylinderGeometry(2.1, 2.1, 0.04, 64);
     const discMaterial = new THREE.MeshStandardMaterial({
-      color: 0x120e1e,
-      roughness: 0.28,
-      metalness: 0.85,
+      color: 0x0c0c0c,
+      roughness: 0.22,
+      metalness: 0.88,
       map: vinylTexture,
       bumpMap: vinylTexture,
-      bumpScale: 0.02,
+      bumpScale: 0.015,
     });
     const discMesh = new THREE.Mesh(discGeometry, discMaterial);
     discMesh.rotation.x = Math.PI / 2;
     vinylGroup.add(discMesh);
 
-    // 4. Center Label Geometry
+    // Matte Center Label
     const labelCanvas = document.createElement("canvas");
     labelCanvas.width = 512;
     labelCanvas.height = 512;
     const lCtx = labelCanvas.getContext("2d");
     if (lCtx) {
-      // Label background: deep purple holographic gradient
-      const grad = lCtx.createRadialGradient(256, 256, 10, 256, 256, 256);
-      grad.addColorStop(0, "#ff4bd6");
-      grad.addColorStop(0.45, "#b44bff");
-      grad.addColorStop(0.85, "#16072b");
-      grad.addColorStop(1, "#090314");
-      lCtx.fillStyle = grad;
+      // Matte charcoal label
+      lCtx.fillStyle = "#121212";
       lCtx.fillRect(0, 0, 512, 512);
 
-      // Label border
-      lCtx.strokeStyle = "rgba(83, 246, 255, 0.8)";
-      lCtx.lineWidth = 6;
+      // Fine technical border rings
+      lCtx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      lCtx.lineWidth = 2;
       lCtx.beginPath();
       lCtx.arc(256, 256, 240, 0, Math.PI * 2);
       lCtx.stroke();
 
-      // CXRNER MUSIC typography on label
-      lCtx.fillStyle = "#ffffff";
-      lCtx.font = "bold 32px sans-serif";
-      lCtx.textAlign = "center";
-      lCtx.fillText("CXRNER MUSIC", 256, 175);
-
-      lCtx.fillStyle = "#53f6ff";
-      lCtx.font = "600 22px sans-serif";
-      lCtx.fillText(featuredTitle.toUpperCase(), 256, 220);
-
-      lCtx.fillStyle = "rgba(255, 255, 255, 0.75)";
-      lCtx.font = "500 18px sans-serif";
-      lCtx.fillText(featuredArtist.toUpperCase(), 256, 255);
-
-      lCtx.fillStyle = "#d28bff";
-      lCtx.font = "14px monospace";
-      lCtx.fillText("33⅓ RPM · STEREO · CXR-02", 256, 320);
-
-      // Spindle hole
-      lCtx.fillStyle = "#08040f";
+      lCtx.strokeStyle = "rgba(255, 255, 255, 0.15)";
       lCtx.beginPath();
-      lCtx.arc(256, 256, 24, 0, Math.PI * 2);
+      lCtx.arc(256, 256, 220, 0, Math.PI * 2);
+      lCtx.stroke();
+
+      // Minimalist Label Typography
+      lCtx.fillStyle = "#FFFFFF";
+      lCtx.font = "bold 26px sans-serif";
+      lCtx.textAlign = "center";
+      lCtx.fillText("C X R N E R", 256, 170);
+
+      lCtx.fillStyle = "#A1A1A1";
+      lCtx.font = "600 16px sans-serif";
+      lCtx.fillText(featuredTitle.toUpperCase(), 256, 215);
+
+      lCtx.fillStyle = "#666666";
+      lCtx.font = "14px monospace";
+      lCtx.fillText(featuredArtist.toUpperCase(), 256, 245);
+
+      lCtx.fillStyle = "#888888";
+      lCtx.font = "12px monospace";
+      lCtx.fillText("CAT# CXR-002 · 33⅓ RPM · STEREO", 256, 325);
+
+      // Center Spindle Hole
+      lCtx.fillStyle = "#050505";
+      lCtx.beginPath();
+      lCtx.arc(256, 256, 22, 0, Math.PI * 2);
       lCtx.fill();
       lCtx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      lCtx.lineWidth = 3;
+      lCtx.lineWidth = 2;
       lCtx.stroke();
     }
 
@@ -184,127 +174,104 @@ export default function VinylCanvas({
     const labelGeometry = new THREE.CylinderGeometry(0.82, 0.82, 0.043, 48);
     const labelMaterial = new THREE.MeshStandardMaterial({
       map: labelTexture,
-      roughness: 0.35,
-      metalness: 0.4,
+      roughness: 0.5,
+      metalness: 0.2,
     });
     const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
     labelMesh.rotation.x = Math.PI / 2;
     vinylGroup.add(labelMesh);
 
-    // 5. Holographic Ambient Particle Ring
-    const particleCount = 120;
+    // Subtle Monochromatic Ambient Dust (Fine white specks, NO rainbow colors)
+    const particleCount = 60;
     const particleGeometry = new THREE.BufferGeometry();
     const particlePositions = new Float32Array(particleCount * 3);
-    const particleColors = new Float32Array(particleCount * 3);
-
-    const colorA = new THREE.Color(0xb44bff);
-    const colorB = new THREE.Color(0x53f6ff);
-    const colorC = new THREE.Color(0xff4bd6);
 
     for (let i = 0; i < particleCount; i++) {
-      const angle = (i / particleCount) * Math.PI * 2 + Math.random() * 0.2;
-      const radius = 2.2 + Math.random() * 0.4;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      const z = (Math.random() - 0.5) * 0.4;
-
-      particlePositions[i * 3] = x;
-      particlePositions[i * 3 + 1] = y;
-      particlePositions[i * 3 + 2] = z;
-
-      const mixedColor = i % 3 === 0 ? colorA : i % 3 === 1 ? colorB : colorC;
-      particleColors[i * 3] = mixedColor.r;
-      particleColors[i * 3 + 1] = mixedColor.g;
-      particleColors[i * 3 + 2] = mixedColor.b;
+      const angle = (i / particleCount) * Math.PI * 2 + Math.random() * 0.15;
+      const radius = 2.25 + Math.random() * 0.35;
+      particlePositions[i * 3] = Math.cos(angle) * radius;
+      particlePositions[i * 3 + 1] = Math.sin(angle) * radius;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
     }
-
     particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
-    particleGeometry.setAttribute("color", new THREE.BufferAttribute(particleColors, 3));
 
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.04,
-      vertexColors: true,
+      size: 0.03,
+      color: 0xcccccc,
       transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending,
+      opacity: 0.6,
     });
     const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
     vinylGroup.add(particleSystem);
 
-    // 6. Lighting
-    const ambientLight = new THREE.AmbientLight(0x22133b, 1.8);
+    // Museum-Grade Lighting (Monochromatic White / Silver)
+    const ambientLight = new THREE.AmbientLight(0x1a1a1a, 2.2);
     scene.add(ambientLight);
 
-    const purpleLight = new THREE.DirectionalLight(0xb44bff, 3.2);
-    purpleLight.position.set(-4, 3, 4);
-    scene.add(purpleLight);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.8);
+    keyLight.position.set(-3.5, 3.5, 4);
+    scene.add(keyLight);
 
-    const cyanLight = new THREE.DirectionalLight(0x53f6ff, 2.8);
-    cyanLight.position.set(4, -2, 3);
-    scene.add(cyanLight);
+    const rimLight = new THREE.DirectionalLight(0x888888, 2.2);
+    rimLight.position.set(3.5, -2, 3);
+    scene.add(rimLight);
 
-    const magentaSpot = new THREE.PointLight(0xff4bd6, 4.5, 12);
-    magentaSpot.position.set(0, 3, 3);
-    scene.add(magentaSpot);
+    const cursorSpot = new THREE.PointLight(0xffffff, 2.5, 10);
+    cursorSpot.position.set(0, 2, 3);
+    scene.add(cursorSpot);
 
-    // Interactive mouse / touch coordinates
-    let targetRotationX = 0.38;
-    let targetRotationY = -0.22;
-    let mouseX = 0;
-    let mouseY = 0;
+    // Mouse / Touch Interaction
+    let targetRotationX = 0.35;
+    let targetRotationY = -0.18;
 
     const onPointerMove = (e: MouseEvent | TouchEvent) => {
       const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
       const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
       const rect = container.getBoundingClientRect();
 
-      mouseX = ((clientX - rect.left) / rect.width) * 2 - 1;
-      mouseY = -(((clientY - rect.top) / rect.height) * 2 - 1);
+      const mx = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const my = -(((clientY - rect.top) / rect.height) * 2 - 1);
 
-      targetRotationY = -0.22 + mouseX * 0.45;
-      targetRotationX = 0.38 - mouseY * 0.35;
+      targetRotationY = -0.18 + mx * 0.35;
+      targetRotationX = 0.35 - my * 0.25;
 
-      // Move dynamic light with mouse
-      magentaSpot.position.x = mouseX * 3.5;
-      magentaSpot.position.y = mouseY * 3.5 + 2;
+      cursorSpot.position.x = mx * 3;
+      cursorSpot.position.y = my * 3 + 1;
     };
 
     container.addEventListener("mousemove", onPointerMove);
     container.addEventListener("touchmove", onPointerMove, { passive: true });
 
-    // Handle Resize
     const handleResize = () => {
-      if (!container) return;
-      const newW = container.clientWidth;
-      const newH = container.clientHeight;
-      camera.aspect = newW / newH;
+      if (!container || !renderer) return;
+      const nw = container.clientWidth || 320;
+      const nh = container.clientHeight || 320;
+      camera.aspect = nw / nh;
       camera.updateProjectionMatrix();
-      renderer.setSize(newW, newH);
+      renderer.setSize(nw, nh);
     };
 
     window.addEventListener("resize", handleResize);
 
-    // Render Loop
-    let clock = new THREE.Clock();
+    setWebGlLoaded(true);
+
+    const clock = new THREE.Clock();
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
       const delta = clock.getDelta();
-      const currentRpmSpeed = rpm === 45 ? 2.4 : 1.7;
+      const speed = rpm === 45 ? 2.2 : 1.6;
 
       if (isPlaying) {
-        discMesh.rotation.y += delta * currentRpmSpeed;
-        labelMesh.rotation.y += delta * currentRpmSpeed;
-        particleSystem.rotation.z += delta * 0.4;
+        discMesh.rotation.y += delta * speed;
+        labelMesh.rotation.y += delta * speed;
+        particleSystem.rotation.z += delta * 0.2;
       }
 
-      // Smooth camera / rotation interpolation (damping)
-      vinylGroup.rotation.x += (targetRotationX - vinylGroup.rotation.x) * 0.06;
-      vinylGroup.rotation.y += (targetRotationY - vinylGroup.rotation.y) * 0.06;
-
-      // Slight floating motion
-      vinylGroup.position.y = Math.sin(clock.getElapsedTime() * 1.5) * 0.08;
+      vinylGroup.rotation.x += (targetRotationX - vinylGroup.rotation.x) * 0.05;
+      vinylGroup.rotation.y += (targetRotationY - vinylGroup.rotation.y) * 0.05;
+      vinylGroup.position.y = Math.sin(clock.getElapsedTime() * 1.2) * 0.05;
 
       renderer.render(scene, camera);
     };
@@ -316,7 +283,9 @@ export default function VinylCanvas({
       window.removeEventListener("resize", handleResize);
       container.removeEventListener("mousemove", onPointerMove);
       container.removeEventListener("touchmove", onPointerMove);
-      renderer.dispose();
+      if (renderer) {
+        renderer.dispose();
+      }
       discGeometry.dispose();
       discMaterial.dispose();
       labelGeometry.dispose();
@@ -329,7 +298,7 @@ export default function VinylCanvas({
     };
   }, [isPlaying, rpm, featuredTitle, featuredArtist]);
 
-  // Audio synthesizer for audio preview
+  // Audio synthesizer preview (dark atmospheric sub-bass chord)
   const toggleSound = () => {
     if (!soundEnabled) {
       try {
@@ -337,26 +306,25 @@ export default function VinylCanvas({
         const ctx = new AudioCtx();
         audioCtxRef.current = ctx;
 
-        // Create an ambient cyberpunk synth chord
-        const notes = [130.81, 196.0, 233.08, 261.63]; // C3, G3, Bb3, C4 phonk/dark synth chord
+        // Dark underground sub-bass drone
         const masterGain = ctx.createGain();
-        masterGain.gain.setValueAtTime(0.12, ctx.currentTime);
+        masterGain.gain.setValueAtTime(0.09, ctx.currentTime);
         masterGain.connect(ctx.destination);
 
-        notes.forEach((freq, idx) => {
+        const freqs = [65.41, 98.0, 130.81]; // C2, G2, C3 dark industrial bass
+        freqs.forEach((freq, idx) => {
           const osc = ctx.createOscillator();
           const filter = ctx.createBiquadFilter();
           filter.type = "lowpass";
-          filter.frequency.setValueAtTime(800 + idx * 250, ctx.currentTime);
+          filter.frequency.setValueAtTime(350 + idx * 100, ctx.currentTime);
 
-          osc.type = idx === 0 ? "sawtooth" : "sine";
+          osc.type = "sawtooth";
           osc.frequency.setValueAtTime(freq, ctx.currentTime);
           osc.connect(filter);
           filter.connect(masterGain);
           osc.start();
         });
 
-        isAudioActiveRef.current = true;
         setSoundEnabled(true);
       } catch {
         setSoundEnabled(false);
@@ -366,71 +334,83 @@ export default function VinylCanvas({
         audioCtxRef.current.close();
         audioCtxRef.current = null;
       }
-      isAudioActiveRef.current = false;
       setSoundEnabled(false);
     }
   };
 
   return (
-    <div
-      className="relative w-full aspect-square max-w-[540px] mx-auto flex items-center justify-center select-none"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* 3D Three.js Container */}
-      {webGlSupported ? (
-        <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
-      ) : (
-        /* Fallback CSS 3D Vinyl */
-        <div className="relative w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full bg-[#110c1c] border-4 border-neon/40 shadow-glowStrong flex items-center justify-center animate-spin-slow">
-          <div className="w-40 h-40 rounded-full bg-gradient-to-tr from-magenta via-neon to-aqua flex items-center justify-center text-center p-2 text-xs font-bold text-white shadow-inner">
-            {featuredTitle}
+    <div className="relative w-full aspect-square max-w-[480px] mx-auto flex items-center justify-center select-none">
+      {/* 3D Three.js Mounting Container (Always visible, clean background) */}
+      <div
+        ref={mountRef}
+        className={`w-full h-full cursor-grab active:cursor-grabbing ${
+          webGlLoaded ? "opacity-100" : "opacity-0"
+        } transition-opacity duration-500`}
+      />
+
+      {/* Immediate CSS Fallback (Rendered immediately so mobile screen is NEVER blank!) */}
+      {!webGlLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-[#0d0d0d] border border-white/20 shadow-2xl flex items-center justify-center animate-spin-slow">
+            {/* Concentric rings */}
+            <div className="absolute inset-4 rounded-full border border-white/5" />
+            <div className="absolute inset-10 rounded-full border border-white/5" />
+            <div className="absolute inset-16 rounded-full border border-white/10" />
+            <div className="absolute inset-24 rounded-full border border-white/10" />
+
+            {/* Center label */}
+            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#141414] border border-white/30 flex flex-col items-center justify-center text-center p-2">
+              <span className="font-mono text-[10px] tracking-widest text-white/40">CXRNER</span>
+              <span className="font-bold text-xs text-white uppercase mt-1 truncate max-w-[90px]">
+                {featuredTitle}
+              </span>
+              <span className="w-3 h-3 rounded-full bg-black border border-white/30 mt-2" />
+            </div>
           </div>
         </div>
       )}
 
-      {/* Interactive Controls Overlay */}
-      <div className="absolute -bottom-4 sm:bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel border border-white/15 shadow-2xl backdrop-blur-2xl z-20">
+      {/* Minimalist Industrial Controls */}
+      <div className="absolute -bottom-3 sm:bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#0c0c0c] border border-[#262626] shadow-xl z-20">
         <button
           type="button"
           onClick={() => setIsPlaying(!isPlaying)}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition ${
-            isPlaying ? "bg-neon text-night font-bold shadow-glow" : "bg-white/10 text-white/70 hover:text-white"
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono tracking-wider transition ${
+            isPlaying ? "bg-white text-black font-bold" : "text-[#888888] hover:text-white"
           }`}
-          title={isPlaying ? "Остановить вращение" : "Запустить пластинку"}
+          title={isPlaying ? "Пауза" : "Воспроизвести"}
         >
-          <Disc3 className={`w-3.5 h-3.5 ${isPlaying ? "animate-spin" : ""}`} />
-          <span>{isPlaying ? "33⅓ RPM" : "PAUSED"}</span>
+          <Disc3 className={`w-3 h-3 ${isPlaying ? "animate-spin" : ""}`} />
+          <span>{isPlaying ? "33 RPM" : "PAUSE"}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setRpm(rpm === 33 ? 45 : 33)}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white/5 hover:bg-white/15 text-white/80 transition"
-          title="Сменить скорость воспроизведения"
+          className="flex items-center gap-1 px-2 py-1 text-[11px] font-mono text-[#888888] hover:text-white transition"
+          title="Скорость"
         >
-          <RotateCw className="w-3 h-3 text-aqua" />
+          <RotateCw className="w-2.5 h-2.5 text-white/50" />
           <span>{rpm}</span>
         </button>
 
         <button
           type="button"
           onClick={toggleSound}
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition ${
-            soundEnabled ? "bg-aqua/20 text-aqua border border-aqua/40" : "bg-white/5 text-white/70 hover:text-white"
+          className={`flex items-center gap-1 px-2 py-1 text-[11px] font-mono transition ${
+            soundEnabled ? "text-white bg-white/15" : "text-[#666666] hover:text-white"
           }`}
-          title="Звуковой превью синтезатора"
+          title="Синтезатор"
         >
-          {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-aqua animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
-          <span className="hidden sm:inline">{soundEnabled ? "АУДИО ВКЛ" : "ПРЕВЬЮ"}</span>
+          {soundEnabled ? <Volume2 className="w-3 h-3 text-white" /> : <VolumeX className="w-3 h-3" />}
+          <span className="hidden sm:inline">{soundEnabled ? "AUDIO ON" : "PREVIEW"}</span>
         </button>
       </div>
 
-      {/* Floating Holographic Badge */}
-      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 pointer-events-none">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full glass-badge text-[10px] font-semibold tracking-widest uppercase text-aqua shadow-glowAqua border-aqua/30">
-          <Sparkles className="w-3 h-3 text-aqua animate-spin-slow" />
-          3D VINYL
+      {/* Technical Corner Stamp */}
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 pointer-events-none">
+        <span className="tech-badge">
+          OBJ::VINYL_02
         </span>
       </div>
     </div>

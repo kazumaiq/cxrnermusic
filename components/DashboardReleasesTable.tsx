@@ -208,7 +208,7 @@ export default function DashboardReleasesTable({
           {forms.length === 0 && (
             <Link
               href="/submit-release"
-              className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-neon to-aqua text-night font-bold text-xs uppercase tracking-wider shadow-glow hover:scale-105 transition"
+              className="mt-6 btn-void-primary inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(255,255,255,0.15)] transition"
             >
               Отправить релиз
             </Link>

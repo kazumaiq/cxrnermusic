@@ -100,32 +100,32 @@ export default function InteractiveAudioPreview({ track }: AudioPreviewProps) {
   }, []);
 
   return (
-    <div className="w-full glass-panel rounded-2xl p-4 sm:p-5 border border-white/10 hover:border-neon/40 transition duration-300">
+    <div className="w-full dark-panel rounded-2xl p-4 sm:p-5 border border-white/10 hover:border-white/20 transition duration-300 bg-[#090909]/90">
       <div className="flex items-center gap-4">
         {/* Play/Pause Button */}
         <button
           type="button"
           onClick={togglePlayback}
-          className="relative flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-neon via-magenta to-aqua flex items-center justify-center text-night font-bold shadow-glow hover:scale-105 active:scale-95 transition"
+          className="relative flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white flex items-center justify-center text-black font-bold shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:scale-105 active:scale-95 transition"
           aria-label={isPlaying ? "Пауза" : "Воспроизвести превью"}
         >
-          {isPlaying ? <Pause className="w-5 h-5 fill-night" /> : <Play className="w-5 h-5 fill-night ml-0.5" />}
+          {isPlaying ? <Pause className="w-5 h-5 fill-black text-black" /> : <Play className="w-5 h-5 fill-black text-black ml-0.5" />}
         </button>
 
         {/* Track Metadata & Waveform */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="truncate">
-              <h4 className="font-semibold text-white text-sm sm:text-base truncate flex items-center gap-1.5">
+              <h4 className="font-gothic font-bold text-white text-sm sm:text-base truncate flex items-center gap-2">
                 {track.title}
                 {isPlaying && (
-                  <span className="inline-block w-2 h-2 rounded-full bg-aqua animate-ping" />
+                  <span className="inline-block w-2 h-2 rounded-full bg-white animate-ping" />
                 )}
               </h4>
-              <p className="text-xs text-white/50 truncate">{track.artist}</p>
+              <p className="font-mono text-xs text-neutral-400 truncate">{track.artist}</p>
             </div>
             {track.genre && (
-              <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider text-neon border border-neon/30 bg-neon/10">
+              <span className="hidden sm:inline-block px-2.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-widest text-neutral-400 border border-white/10 bg-white/5">
                 {track.genre}
               </span>
             )}
@@ -138,8 +138,8 @@ export default function InteractiveAudioPreview({ track }: AudioPreviewProps) {
               return (
                 <div
                   key={i}
-                  className={`flex-1 rounded-full transition-all duration-150 ${
-                    active ? "bg-gradient-to-t from-neon to-aqua" : "bg-white/15"
+                  className={`flex-1 rounded-sm transition-all duration-150 ${
+                    active ? "bg-white" : "bg-white/15"
                   } ${isPlaying ? "hover:scale-y-125" : ""}`}
                   style={{
                     height: `${isPlaying ? Math.max(15, height * 100 * (0.8 + Math.random() * 0.4)) : height * 100}%`,

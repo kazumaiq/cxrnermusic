@@ -52,34 +52,34 @@ export default function WorkflowSection() {
   return (
     <div className="relative">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {steps.map((item, index) => {
+        {steps.map((item) => {
           const Icon = item.icon;
           return (
             <div
               key={item.step}
-              className="group glass-panel rounded-2xl p-5 border border-white/10 hover:border-neon/40 hover:shadow-glow transition-all duration-300 flex flex-col justify-between"
+              className="group dark-panel rounded-xl p-5 border border-white/10 hover:border-white/25 transition-all duration-300 flex flex-col justify-between bg-[#0a0a0a]"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-mono text-xs font-bold tracking-widest text-white/40 group-hover:text-neonSoft transition">
-                    {item.step}
+                  <span className="font-mono text-xs font-bold tracking-widest text-neutral-500 group-hover:text-white transition">
+                    [{item.step}]
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-white/5 border border-white/10 text-white/70">
+                  <span className="px-2 py-0.5 rounded font-mono text-[9px] uppercase tracking-wider bg-white/5 border border-white/10 text-neutral-400">
                     {item.badge}
                   </span>
                 </div>
 
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:border-neon/40 group-hover:bg-neon/10 transition duration-300">
-                  <Icon className="w-5 h-5 text-neon" />
+                <div className="w-10 h-10 rounded-lg bg-black border border-white/15 flex items-center justify-center mb-4 text-white group-hover:scale-105 group-hover:border-white/30 transition duration-300">
+                  <Icon className="w-5 h-5 text-neutral-300 group-hover:text-white" />
                 </div>
 
-                <h3 className="text-base font-bold text-white mb-2">{item.title}</h3>
-                <p className="text-xs text-white/60 leading-relaxed">{item.description}</p>
+                <h3 className="font-gothic text-base font-bold text-white mb-2">{item.title}</h3>
+                <p className="text-xs text-neutral-400 leading-relaxed">{item.description}</p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-1.5 text-[11px] text-white/40 group-hover:text-aqua transition">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Контроль каждого шага</span>
+              <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-neutral-500 group-hover:text-neutral-300 transition">
+                <CheckCircle2 className="w-3.5 h-3.5 text-neutral-400" />
+                <span>VERIFIED STEP</span>
               </div>
             </div>
           );

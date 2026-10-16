@@ -23,10 +23,10 @@ export default function FaqAccordion({ items }: FaqAccordionProps) {
         return (
           <div
             key={item.question}
-            className={`glass-panel rounded-2xl border transition-all duration-300 overflow-hidden ${
+            className={`dark-panel rounded-xl border transition-all duration-300 overflow-hidden bg-[#090909] ${
               isOpen
-                ? "border-neon/40 bg-white/[0.07] shadow-glow"
-                : "border-white/10 hover:border-white/20 hover:bg-white/[0.04]"
+                ? "border-white/30 bg-[#0e0e0e]"
+                : "border-white/10 hover:border-white/20"
             }`}
           >
             <button
@@ -35,13 +35,13 @@ export default function FaqAccordion({ items }: FaqAccordionProps) {
               className="w-full px-5 sm:px-6 py-4.5 flex items-center justify-between gap-4 text-left focus:outline-none"
               aria-expanded={isOpen}
             >
-              <span className="font-semibold text-white text-sm sm:text-base flex items-center gap-2.5">
-                <span className="text-xs font-mono text-neon/70">0{index + 1}</span>
+              <span className="font-gothic font-bold text-white text-sm sm:text-base flex items-center gap-3">
+                <span className="font-mono text-xs text-neutral-500">[{index + 1 < 10 ? `0${index + 1}` : index + 1}]</span>
                 {item.question}
               </span>
               <div
                 className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300 ${
-                  isOpen ? "rotate-180 bg-neon/20 text-neon" : "bg-white/5 text-white/50"
+                  isOpen ? "rotate-180 bg-white text-black" : "bg-white/5 text-neutral-400"
                 }`}
               >
                 <ChevronDown className="w-4 h-4" />
@@ -49,11 +49,11 @@ export default function FaqAccordion({ items }: FaqAccordionProps) {
             </button>
 
             {isOpen && (
-              <div className="px-5 sm:px-6 pb-5 pt-1 text-xs sm:text-sm leading-relaxed text-white/70 border-t border-white/5 space-y-3">
+              <div className="px-5 sm:px-6 pb-5 pt-1 text-xs sm:text-sm leading-relaxed text-neutral-400 font-sans border-t border-white/5 space-y-3">
                 <p>{item.answer}</p>
 
                 {item.bullets && item.bullets.length > 0 && (
-                  <ul className="space-y-1.5 pl-4 list-disc marker:text-aqua">
+                  <ul className="space-y-1.5 pl-4 list-disc marker:text-white">
                     {item.bullets.map((bullet, idx) => (
                       <li key={idx}>{bullet}</li>
                     ))}
@@ -68,10 +68,10 @@ export default function FaqAccordion({ items }: FaqAccordionProps) {
                         href={link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-neon/15 hover:bg-neon/25 text-neonSoft text-xs font-semibold transition border border-neon/30"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white font-mono text-xs transition border border-white/20"
                       >
-                        {link.label}
-                        <ArrowUpRight className="w-3 h-3" />
+                        <span>{link.label}</span>
+                        <ArrowUpRight className="w-3 h-3 text-neutral-400" />
                       </a>
                     ))}
                   </div>

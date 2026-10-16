@@ -93,35 +93,35 @@ export default async function DashboardPage() {
         <div className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-8 border-b border-white/10">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-neon">
-                Личный кабинет артиста
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              <p className="font-mono text-xs uppercase tracking-[0.25em] text-neutral-400">
+                // ЛИЧНЫЙ КАБИНЕТ АРТИСТА
               </p>
             </div>
-            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-white">
+            <h1 className="font-gothic text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase">
               {artistName}
             </h1>
-            <p className="mt-1 text-xs sm:text-sm text-white/60">
-              Управление вашими музыкальными релизами, статусы модерации и UPC в реальном времени.
+            <p className="mt-1 text-xs sm:text-sm text-neutral-400 font-sans">
+              Управление вашими релизами, отслеживание модерации и официальных кодов UPC/ISRC.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/submit-release"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-neon via-magenta to-aqua text-night font-bold text-xs uppercase tracking-wider shadow-glow hover:scale-105 active:scale-95 transition"
+              className="btn-void-primary inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono text-xs uppercase tracking-widest font-bold shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-95 transition"
             >
-              <Sparkles className="w-4 h-4 fill-night" />
-              Отправить новый релиз
+              <span>Отправить новый релиз</span>
+              <ArrowUpRight className="w-4 h-4" />
             </Link>
             <a
               href="https://t.me/moder_cxrner_bot"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-3 rounded-full glass-badge border border-white/15 text-xs font-semibold text-white/80 hover:text-white transition"
+              className="btn-void-ghost inline-flex items-center gap-1.5 px-4 py-3 rounded-full border border-white/15 font-mono text-xs uppercase tracking-wider text-neutral-300 hover:text-white transition"
             >
-              <Send className="w-3.5 h-3.5 text-aqua" />
-              Бот модерации
+              <Send className="w-3.5 h-3.5 text-neutral-400" />
+              <span>Бот модерации</span>
             </a>
           </div>
         </div>

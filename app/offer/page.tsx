@@ -25,11 +25,11 @@ export default function OfferPage() {
         </div>
 
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass-badge text-[11px] font-bold uppercase tracking-widest text-neon mb-3 shadow-glow">
-            <Scale className="w-3.5 h-3.5 text-neon" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full tech-badge font-mono text-[10px] uppercase tracking-widest text-neutral-300 mb-3 border border-white/15">
+            <Scale className="w-3.5 h-3.5 text-white" />
             Юридический документ
           </span>
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-white">
+          <h1 className="font-gothic text-3xl sm:text-4xl md:text-5xl font-extrabold text-white">
             Публичная оферта
           </h1>
           <p className="mt-3 text-sm text-white/60 leading-relaxed">
@@ -38,9 +38,9 @@ export default function OfferPage() {
         </div>
 
         {/* Legal Paper Container */}
-        <div className="glass-panel rounded-3xl p-6 sm:p-10 border border-white/10 space-y-8 text-sm leading-relaxed text-white/75">
+        <div className="dark-panel bg-[#0a0a0a] rounded-3xl p-6 sm:p-10 border border-white/10 space-y-8 text-sm leading-relaxed text-white/75">
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2 text-aqua">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2 text-neutral-300">
               <span className="font-mono text-xs text-white/40">01.</span>
               Общие положения
             </h2>
@@ -48,12 +48,12 @@ export default function OfferPage() {
               1.1. Настоящая публичная оферта является официальным предложением независимого музыкального лейбла CXRNER MUSIC заключить договор цифровой дистрибуции и паблишинга на изложенных ниже условиях.
             </p>
             <p>
-              1.2. Акцептом настоящей оферты признается направление артистом заявки на релиз через официальную форму сайта (<Link href="/submit-release" className="text-neon hover:underline">cxrnermusic.vercel.app/submit-release</Link>) или официального Telegram-бота (<a href="https://t.me/moder_cxrner_bot" target="_blank" rel="noopener noreferrer" className="text-aqua hover:underline">@moder_cxrner_bot</a>).
+              1.2. Акцептом настоящей оферты признается направление артистом заявки на релиз через официальную форму сайта (<Link href="/submit-release" className="text-white hover:underline">cxrnermusic.vercel.app/submit-release</Link>) или официального Telegram-бота (<a href="https://t.me/moder_cxrner_bot" target="_blank" rel="noopener noreferrer" className="text-neutral-300 hover:underline">@moder_cxrner_bot</a>).
             </p>
           </section>
 
           <section className="space-y-3 pt-4 border-t border-white/5">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2 text-neon">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2 text-white">
               <span className="font-mono text-xs text-white/40">02.</span>
               Предмет соглашения
             </h2>
@@ -66,7 +66,7 @@ export default function OfferPage() {
           </section>
 
           <section className="space-y-3 pt-4 border-t border-white/5">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2 text-magenta">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2 text-white">
               <span className="font-mono text-xs text-white/40">03.</span>
               Распределение роялти и выплаты (70/30)
             </h2>
@@ -79,7 +79,7 @@ export default function OfferPage() {
           </section>
 
           <section className="space-y-3 pt-4 border-t border-white/5">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2 text-aqua">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2 text-neutral-300">
               <span className="font-mono text-xs text-white/40">04.</span>
               Отказ от эксклюзивности каталога
             </h2>
@@ -93,9 +93,9 @@ export default function OfferPage() {
               <span className="font-mono text-xs text-white/40">05.</span>
               Контакты и реквизиты
             </h2>
-            <p>Официальный канал связи: <a href="https://t.me/kazumaiq" target="_blank" rel="noopener noreferrer" className="text-aqua hover:underline">@kazumaiq</a></p>
-            <p>Email: <a href="mailto:cxrner.label@gmail.com" className="text-neon hover:underline">cxrner.label@gmail.com</a></p>
-            <p>Telegram-бот: <a href="https://t.me/moder_cxrner_bot" target="_blank" rel="noopener noreferrer" className="text-aqua hover:underline">@moder_cxrner_bot</a></p>
+            <p>Официальный канал связи: <a href="https://t.me/kazumaiq" target="_blank" rel="noopener noreferrer" className="text-neutral-300 hover:underline">@kazumaiq</a></p>
+            <p>Email: <a href="mailto:cxrner.label@gmail.com" className="text-white hover:underline">cxrner.label@gmail.com</a></p>
+            <p>Telegram-бот: <a href="https://t.me/moder_cxrner_bot" target="_blank" rel="noopener noreferrer" className="text-neutral-300 hover:underline">@moder_cxrner_bot</a></p>
           </section>
         </div>
       </Container>

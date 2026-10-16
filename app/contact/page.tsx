@@ -24,16 +24,16 @@ export default function ContactPage() {
       <Container className="max-w-4xl">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass-badge text-[11px] font-bold uppercase tracking-widest text-aqua mb-3 shadow-glowAqua">
-            <Sparkles className="w-3.5 h-3.5 text-aqua" />
-            Всегда на связи
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full tech-badge font-mono text-[10px] uppercase tracking-widest text-neutral-300 mb-3 border border-white/15">
+            <Sparkles className="w-3.5 h-3.5 text-neutral-400" />
+            [CXR::COMMUNICATIONS]
           </span>
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-white">
+          <h1 className="font-gothic text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase tracking-tight">
             Контакты лейбла
           </h1>
-          <p className="mt-3 text-sm text-white/60 leading-relaxed">
+          <p className="mt-3 text-sm text-neutral-400 leading-relaxed font-sans">
             Есть вопросы по отгрузке трека, роялти или промо? Свяжитесь с нами напрямую
-            через Telegram или отправьте запрос по электронной почте.
+            через официальный Telegram или отправьте запрос по электронной почте.
           </p>
         </div>
 
@@ -44,25 +44,25 @@ export default function ContactPage() {
             href="https://t.me/moder_cxrner_bot"
             target="_blank"
             rel="noopener noreferrer"
-            className="group glass-panel rounded-3xl p-6 border border-white/10 hover:border-neon/50 hover:shadow-glow transition-all duration-300 flex flex-col justify-between"
+            className="group dark-panel rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 flex flex-col justify-between bg-[#0a0a0a]"
           >
             <div>
-              <div className="w-12 h-12 rounded-2xl bg-neon/15 border border-neon/30 flex items-center justify-center text-neon mb-5 group-hover:scale-110 transition duration-300">
-                <Send className="w-6 h-6 text-neon" />
+              <div className="w-12 h-12 rounded-lg bg-black border border-white/20 flex items-center justify-center text-white mb-5 group-hover:border-white/40 transition duration-300">
+                <Send className="w-5 h-5 text-neutral-300 group-hover:text-white" />
               </div>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-neon mb-1">
-                Бот модерации 24/7
+              <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-neutral-400 mb-1">
+                // БОТ МОДЕРАЦИИ
               </p>
-              <h3 className="text-lg font-bold text-white group-hover:text-neonSoft transition">
+              <h3 className="font-gothic text-lg font-bold text-white group-hover:text-neutral-200 transition">
                 @moder_cxrner_bot
               </h3>
-              <p className="text-xs text-white/60 mt-2 leading-relaxed">
+              <p className="text-xs text-neutral-400 mt-2 leading-relaxed font-sans">
                 Подача заявок на дистрибуцию, проверка статуса треков и оперативная связь.
               </p>
             </div>
-            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-white/40 group-hover:text-white">
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between font-mono text-xs text-neutral-500 group-hover:text-white">
               <span>Открыть бота</span>
-              <ArrowRight className="w-4 h-4 text-neon" />
+              <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-white" />
             </div>
           </a>
 
@@ -71,74 +71,74 @@ export default function ContactPage() {
             href="https://t.me/kazumaiq"
             target="_blank"
             rel="noopener noreferrer"
-            className="group glass-panel rounded-3xl p-6 border border-white/10 hover:border-aqua/50 hover:shadow-glowAqua transition-all duration-300 flex flex-col justify-between"
+            className="group dark-panel rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 flex flex-col justify-between bg-[#0a0a0a]"
           >
             <div>
-              <div className="w-12 h-12 rounded-2xl bg-aqua/15 border border-aqua/30 flex items-center justify-center text-aqua mb-5 group-hover:scale-110 transition duration-300">
-                <MessageSquare className="w-6 h-6 text-aqua" />
+              <div className="w-12 h-12 rounded-lg bg-black border border-white/20 flex items-center justify-center text-white mb-5 group-hover:border-white/40 transition duration-300">
+                <MessageSquare className="w-5 h-5 text-neutral-300 group-hover:text-white" />
               </div>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-aqua mb-1">
-                Основатель / A&R
+              <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-neutral-400 mb-1">
+                // ОСНОВАТЕЛЬ / A&R
               </p>
-              <h3 className="text-lg font-bold text-white group-hover:text-aqua transition">
+              <h3 className="font-gothic text-lg font-bold text-white group-hover:text-neutral-200 transition">
                 @kazumaiq
               </h3>
-              <p className="text-xs text-white/60 mt-2 leading-relaxed">
-                Вопросы спецпроектов, эксклюзивного контракта, YouTube OAC и TikTok верификации.
+              <p className="text-xs text-neutral-400 mt-2 leading-relaxed font-sans">
+                Спецпроекты, эксклюзивные контракты, YouTube OAC и TikTok верификация.
               </p>
             </div>
-            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-white/40 group-hover:text-white">
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between font-mono text-xs text-neutral-500 group-hover:text-white">
               <span>Написать в Telegram</span>
-              <ArrowRight className="w-4 h-4 text-aqua" />
+              <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-white" />
             </div>
           </a>
 
           {/* Channel 3: Email */}
           <a
             href="mailto:cxrner.label@gmail.com"
-            className="group glass-panel rounded-3xl p-6 border border-white/10 hover:border-magenta/50 hover:shadow-glowMagenta transition-all duration-300 flex flex-col justify-between"
+            className="group dark-panel rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 flex flex-col justify-between bg-[#0a0a0a]"
           >
             <div>
-              <div className="w-12 h-12 rounded-2xl bg-magenta/15 border border-magenta/30 flex items-center justify-center text-magenta mb-5 group-hover:scale-110 transition duration-300">
-                <Mail className="w-6 h-6 text-magenta" />
+              <div className="w-12 h-12 rounded-lg bg-black border border-white/20 flex items-center justify-center text-white mb-5 group-hover:border-white/40 transition duration-300">
+                <Mail className="w-5 h-5 text-neutral-300 group-hover:text-white" />
               </div>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-magenta mb-1">
-                Официальная почта
+              <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-neutral-400 mb-1">
+                // ОФИЦИАЛЬНАЯ ПОЧТА
               </p>
-              <h3 className="text-base font-bold text-white group-hover:text-magenta transition truncate">
+              <h3 className="font-mono text-sm font-bold text-white group-hover:text-neutral-200 transition truncate">
                 cxrner.label@gmail.com
               </h3>
-              <p className="text-xs text-white/60 mt-2 leading-relaxed">
-                Для официальных запросов правообладателей, юридических вопросов и партнёрств.
+              <p className="text-xs text-neutral-400 mt-2 leading-relaxed font-sans">
+                Официальные запросы правообладателей, юридические вопросы и партнерства.
               </p>
             </div>
-            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-white/40 group-hover:text-white">
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between font-mono text-xs text-neutral-500 group-hover:text-white">
               <span>Отправить email</span>
-              <ArrowRight className="w-4 h-4 text-magenta" />
+              <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-white" />
             </div>
           </a>
         </div>
 
         {/* Operating Hours & Guarantee Banner */}
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="dark-panel rounded-2xl p-6 sm:p-8 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-6 bg-[#0a0a0a]">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0 text-aqua">
-              <Clock className="w-6 h-6 text-aqua" />
+            <div className="w-12 h-12 rounded-lg bg-black border border-white/15 flex items-center justify-center flex-shrink-0 text-white">
+              <Clock className="w-5 h-5 text-neutral-400" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-base">Регламент ответа команды</h3>
-              <p className="text-xs text-white/60 mt-0.5">
-                Модерация релизов: от 12 часов до 3 дней. Ответы в Telegram: в течение дня.
+              <h3 className="font-gothic font-bold text-white text-base uppercase">Регламент ответа команды</h3>
+              <p className="font-sans text-xs text-neutral-400 mt-0.5">
+                Модерация релизов: от 24 до 72 часов. Ответы в Telegram: в течение рабочего дня.
               </p>
             </div>
           </div>
 
           <Link
             href="/submit-release"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-neon to-aqua text-night font-bold text-xs uppercase tracking-wider shadow-glow hover:scale-105 active:scale-95 transition whitespace-nowrap"
+            className="btn-void-primary inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono text-xs uppercase tracking-widest font-bold shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-95 transition whitespace-nowrap"
           >
-            <Sparkles className="w-4 h-4 fill-night" />
-            Отправить релиз
+            <span>Отправить релиз</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </Container>

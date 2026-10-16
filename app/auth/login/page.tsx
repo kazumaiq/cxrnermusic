@@ -58,62 +58,62 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        <div className="glass-panel rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl space-y-6">
+        <div className="dark-panel rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl space-y-6 bg-[#0a0a0a]">
           <div className="text-center space-y-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass-badge text-[10px] font-bold uppercase tracking-widest text-neon shadow-glow">
-              <Sparkles className="w-3 h-3 text-neon" />
-              Кабинет артиста
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded tech-badge font-mono text-[10px] uppercase tracking-widest text-neutral-300 border border-white/15">
+              <Sparkles className="w-3 h-3 text-neutral-400" />
+              [CXR::AUTH]
             </span>
-            <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
+            <h1 className="font-gothic text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
               Вход в аккаунт
             </h1>
-            <p className="text-xs text-white/60">
+            <p className="font-sans text-xs text-neutral-400">
               Отслеживайте модерацию треков, UPC и начисления роялти.
             </p>
           </div>
 
           {error && (
-            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-xs">
+            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 font-mono text-xs">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+              <label className="block font-mono text-[11px] uppercase tracking-wider text-neutral-400 mb-1.5">
                 Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="artist@gmail.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-neon focus:outline-none transition"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/60 border border-white/10 font-mono text-white text-xs sm:text-sm focus:border-white/50 focus:outline-none focus:ring-1 focus:ring-white/20 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+              <label className="block font-mono text-[11px] uppercase tracking-wider text-neutral-400 mb-1.5">
                 Пароль
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Ваш пароль"
-                  className="w-full pl-10 pr-10 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-neon focus:outline-none transition"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl bg-black/60 border border-white/10 font-mono text-white text-xs sm:text-sm focus:border-white/50 focus:outline-none focus:ring-1 focus:ring-white/20 transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -123,14 +123,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-neon via-magenta to-aqua text-night font-bold text-xs uppercase tracking-wider shadow-glow hover:shadow-glowStrong active:scale-98 transition duration-200 disabled:opacity-50"
+              className="btn-void-primary w-full py-3.5 rounded-xl font-mono font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-98 transition duration-200 disabled:opacity-50"
             >
               {loading ? "Авторизация..." : "Войти в кабинет"}
             </button>
           </form>
 
-          <div className="pt-4 border-t border-white/10 flex flex-col items-center gap-3 text-xs text-white/60">
-            <Link href="/auth/register" className="hover:text-neonSoft transition">
+          <div className="pt-4 border-t border-white/10 flex flex-col items-center gap-3 font-mono text-xs text-neutral-400">
+            <Link href="/auth/register" className="hover:text-white transition">
               Еще нет аккаунта? <strong className="text-white underline">Зарегистрироваться</strong>
             </Link>
 
@@ -138,9 +138,9 @@ export default function LoginPage() {
               href="https://t.me/moder_cxrner_bot"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-white/40 hover:text-white transition"
+              className="inline-flex items-center gap-1.5 text-neutral-500 hover:text-neutral-300 transition"
             >
-              <Send className="w-3 h-3 text-aqua" />
+              <Send className="w-3 h-3 text-neutral-400" />
               Войти через Telegram-бота
             </a>
           </div>

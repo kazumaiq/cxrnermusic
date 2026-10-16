@@ -10,62 +10,42 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        night: "#08040f",
-        nightSurface: "#0f081d",
-        nightElevated: "#160c2b",
-        panel: "rgba(18, 10, 32, 0.7)",
-        neon: {
-          DEFAULT: "#b44bff",
-          soft: "#d28bff",
-          glow: "#9326eb",
-          dark: "#6812b3",
-        },
-        aqua: {
-          DEFAULT: "#53f6ff",
-          soft: "#9bf9ff",
-          glow: "#00d5e8",
-        },
-        magenta: {
-          DEFAULT: "#ff4bd6",
-          soft: "#ff82e2",
-          glow: "#e600b3",
-        },
+        void: "#030303",
+        night: "#080808",
+        surface: "#101010",
+        elevated: "#181818",
+        borderDark: "#222222",
+        borderLight: "#333333",
+        textPrimary: "#EAEAEA",
+        textSecondary: "#A1A1A1",
+        textMuted: "#666666",
+        accentSilver: "#D4D4D8",
+        accentWine: "#3D0A14",
       },
       fontFamily: {
-        display: ["var(--font-display)", "Orbitron", "sans-serif"],
-        heading: ["var(--font-heading)", "Syne", "sans-serif"],
-        body: ["var(--font-body)", "'Exo 2'", "sans-serif"],
+        gothic: ["Cinzel", "Syne", "serif"],
+        display: ["Syne", "Space Grotesk", "sans-serif"],
+        mono: ["'Space Mono'", "monospace"],
+        body: ["Inter", "Space Grotesk", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 0 30px -5px rgba(180, 75, 255, 0.5), 0 0 60px -10px rgba(83, 246, 255, 0.2)",
-        glowStrong: "0 0 40px -2px rgba(180, 75, 255, 0.75), 0 0 90px rgba(255, 75, 214, 0.35)",
-        glowAqua: "0 0 30px -5px rgba(83, 246, 255, 0.5), 0 0 60px -10px rgba(83, 246, 255, 0.2)",
-        glowMagenta: "0 0 30px -5px rgba(255, 75, 214, 0.5), 0 0 60px -10px rgba(255, 75, 214, 0.2)",
-        innerGlow: "inset 0 0 25px rgba(180, 75, 255, 0.25)",
-      },
-      backgroundImage: {
-        "radial-glow":
-          "radial-gradient(1200px circle at 20% 10%, rgba(180,75,255,0.22), transparent 60%), radial-gradient(1000px circle at 80% 20%, rgba(83,246,255,0.18), transparent 60%), radial-gradient(1200px circle at 50% 80%, rgba(255,75,214,0.14), transparent 70%)",
-        grid: "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+        card: "0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 30px rgba(0, 0, 0, 0.8)",
+        glowWhite: "0 0 30px rgba(255, 255, 255, 0.15)",
+        insetDark: "inset 0 0 20px rgba(0, 0, 0, 0.9)",
       },
       keyframes: {
-        float: {
-          "0%, 100%": { transform: "translateY(0px)" },
-          "50%": { transform: "translateY(-10px)" },
+        spinSlow: {
+          from: { transform: "rotate(0deg)" },
+          to: { transform: "rotate(360deg)" },
         },
-        pulseGlow: {
-          "0%, 100%": { opacity: "0.5", transform: "scale(1)" },
-          "50%": { opacity: "0.9", transform: "scale(1.05)" },
-        },
-        shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
+        pulseSubtle: {
+          "0%, 100%": { opacity: "0.8" },
+          "50%": { opacity: "1" },
         },
       },
       animation: {
-        float: "float 6s ease-in-out infinite",
-        pulseGlow: "pulseGlow 4s ease-in-out infinite",
-        shimmer: "shimmer 3s ease-in-out infinite",
+        "spin-slow": "spinSlow 24s linear infinite",
+        "pulse-subtle": "pulseSubtle 4s ease-in-out infinite",
       },
     },
   },
