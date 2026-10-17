@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X, ArrowUpRight, User, Disc, Music, Sparkles } from "lucide-react";
 
@@ -52,8 +53,14 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
           onClick={() => setIsOpen(false)}
           className="flex items-center gap-2.5"
         >
-          <div className="w-9 h-9 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center font-gothic font-black text-sm text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-            CX
+          <div className="relative w-9 h-9 rounded-xl bg-black/80 border border-purple-500/40 overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+            <Image
+              src="/logo.png"
+              alt="CXRNER MUSIC"
+              width={36}
+              height={36}
+              className="object-contain w-full h-full p-0.5"
+            />
           </div>
           <div className="flex flex-col">
             <span className="font-gothic font-bold text-sm tracking-[0.25em] text-white">

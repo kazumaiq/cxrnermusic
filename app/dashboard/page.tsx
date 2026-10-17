@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Container from "../../components/Container";
 import GlowButton from "../../components/GlowButton";
 import DashboardReleasesTable from "../../components/DashboardReleasesTable";
@@ -91,19 +92,31 @@ export default async function DashboardPage() {
       <Container>
         {/* Welcome Header */}
         <div className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-8 border-b border-white/10">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <p className="font-mono text-xs uppercase tracking-[0.25em] text-neutral-400">
-                // ЛИЧНЫЙ КАБИНЕТ АРТИСТА
+          <div className="flex items-start gap-4">
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-black/80 border border-purple-500/40 p-1 shadow-[0_0_20px_rgba(168,85,247,0.3)] flex-shrink-0 mt-1">
+              <Image
+                src="/logo.png"
+                alt="CXRNER MUSIC"
+                width={56}
+                height={56}
+                className="object-contain w-full h-full p-0.5"
+                priority
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                <p className="font-mono text-xs uppercase tracking-[0.25em] text-purple-400 font-semibold">
+                  // ЛИЧНЫЙ КАБИНЕТ АРТИСТА
+                </p>
+              </div>
+              <h1 className="font-gothic text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase">
+                {artistName}
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm text-neutral-400 font-sans">
+                Управление вашими релизами, отслеживание модерации и официальных кодов UPC/ISRC.
               </p>
             </div>
-            <h1 className="font-gothic text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase">
-              {artistName}
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm text-neutral-400 font-sans">
-              Управление вашими релизами, отслеживание модерации и официальных кодов UPC/ISRC.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

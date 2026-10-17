@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import Container from "./Container";
 import { Sparkles, Send, Globe, Disc, ShieldCheck, Mail, ArrowUpRight, Music } from "lucide-react";
 
@@ -15,8 +16,14 @@ export default function Footer() {
           {/* Column 1: Brand Info */}
           <div className="lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-3 group">
-              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-purple-600/20 border border-purple-500/40 group-hover:border-purple-400 transition duration-300 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
-                <span className="font-gothic font-black text-xs text-white">CX</span>
+              <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-black/80 border border-purple-500/40 group-hover:border-purple-400 overflow-hidden transition duration-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                <Image
+                  src="/logo.png"
+                  alt="CXRNER MUSIC"
+                  width={40}
+                  height={40}
+                  className="object-contain w-full h-full p-1 group-hover:scale-105 transition"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="font-gothic font-bold text-base tracking-[0.28em] text-white group-hover:text-purple-300 transition">

@@ -50,10 +50,22 @@ export default async function HomePage() {
           <div className="my-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
             {/* Left Content Column */}
             <div className="lg:col-span-7 flex flex-col justify-center">
-              {/* Badge */}
-              <div className="flex items-center gap-2 mb-4 w-fit px-3.5 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 font-mono text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-                <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                <span>МУЗЫКАЛЬНЫЙ ЛЕЙБЛ И ДИСТРИБУЦИЯ</span>
+              {/* Brand Logo & Category Badge */}
+              <div className="flex items-center gap-3.5 mb-5">
+                <div className="relative w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-black/80 border border-purple-500/40 p-1 shadow-[0_0_20px_rgba(168,85,247,0.35)] flex-shrink-0">
+                  <Image
+                    src="/logo.png"
+                    alt="CXRNER MUSIC"
+                    width={48}
+                    height={48}
+                    className="object-contain w-full h-full p-0.5"
+                    priority
+                  />
+                </div>
+                <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 font-mono text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                  <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                  <span>МУЗЫКАЛЬНЫЙ ЛЕЙБЛ И ДИСТРИБУЦИЯ</span>
+                </div>
               </div>
 
               {/* Headline */}

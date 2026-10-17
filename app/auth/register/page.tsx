@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import Container from "../../../components/Container";
 import { getSupabaseBrowserClient } from "../../../lib/supabaseClient";
 import { Lock, Mail, User, Eye, EyeOff, Sparkles, ArrowLeft } from "lucide-react";
@@ -108,11 +109,23 @@ export default function RegisterPage() {
           {/* Ambient Purple Glow */}
           <div className="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="text-center space-y-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-[10px] uppercase tracking-widest text-purple-300 border border-purple-500/30 bg-purple-500/10">
-              <Sparkles className="w-3 h-3 text-purple-400" />
-              РЕГИСТРАЦИЯ АРТИСТА
-            </span>
+          <div className="text-center space-y-3">
+            <div className="mx-auto w-16 h-16 relative flex items-center justify-center p-2 rounded-2xl bg-black/60 border border-purple-500/30 shadow-[0_0_25px_rgba(168,85,247,0.3)]">
+              <Image
+                src="/logo.png"
+                alt="CXRNER MUSIC"
+                width={56}
+                height={56}
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-[10px] uppercase tracking-widest text-purple-300 border border-purple-500/30 bg-purple-500/10">
+                <Sparkles className="w-3 h-3 text-purple-400" />
+                РЕГИСТРАЦИЯ АРТИСТА
+              </span>
+            </div>
             <h1 className="font-gothic text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
               Создать профиль
             </h1>

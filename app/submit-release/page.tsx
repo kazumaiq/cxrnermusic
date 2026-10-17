@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import Container from "../../components/Container";
 import confetti from "canvas-confetti";
 import {
@@ -284,8 +285,18 @@ export default function SubmitReleasePage() {
       <Container className="max-w-3xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full tech-badge font-mono text-[10px] uppercase tracking-widest text-neutral-300 mb-3 border border-white/15">
-            <Sparkles className="w-3.5 h-3.5 text-neutral-400" />
+          <div className="mx-auto w-14 h-14 relative flex items-center justify-center p-1.5 rounded-2xl bg-black/70 border border-purple-500/40 shadow-[0_0_20px_rgba(168,85,247,0.35)] mb-3">
+            <Image
+              src="/logo.png"
+              alt="CXRNER MUSIC"
+              width={48}
+              height={48}
+              className="object-contain"
+              priority
+            />
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full tech-badge font-mono text-[10px] uppercase tracking-widest text-purple-300 mb-3 border border-purple-500/30 bg-purple-500/10">
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
             [CXR::DIGITAL_DISTRIBUTION]
           </span>
           <h1 className="font-gothic text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase tracking-tight">
@@ -304,9 +315,16 @@ export default function SubmitReleasePage() {
 
         {/* Success Modal / Card */}
         {submittedId ? (
-          <div className="dark-panel rounded-3xl p-8 sm:p-10 border border-white/20 text-center shadow-2xl space-y-6 bg-[#0a0a0a]">
-            <div className="w-16 h-16 rounded-full bg-white text-black p-0.5 mx-auto shadow-[0_0_25px_rgba(255,255,255,0.2)] flex items-center justify-center">
-              <Check className="w-8 h-8 text-black" />
+          <div className="dark-panel rounded-3xl p-8 sm:p-10 border border-purple-500/30 text-center shadow-2xl space-y-6 bg-[#0a0a0e]/95 backdrop-blur-xl">
+            <div className="mx-auto w-16 h-16 relative flex items-center justify-center p-2 rounded-2xl bg-black/80 border border-purple-500/40 shadow-[0_0_25px_rgba(168,85,247,0.4)]">
+              <Image
+                src="/logo.png"
+                alt="CXRNER MUSIC"
+                width={56}
+                height={56}
+                className="object-contain"
+                priority
+              />
             </div>
 
             <div>

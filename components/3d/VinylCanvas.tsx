@@ -231,11 +231,21 @@ export default function VinylCanvas({
       lCtx.arc(256, 256, 225, 0, Math.PI * 2);
       lCtx.stroke();
 
-      // CXRNER MUSIC Brand Header
+      // CXRNER MUSIC Brand Header with Official Logo
+      if (typeof window !== "undefined") {
+        const logoImg = new window.Image();
+        logoImg.crossOrigin = "anonymous";
+        logoImg.src = "/logo.png";
+        logoImg.onload = () => {
+          lCtx.drawImage(logoImg, 256 - 42, 75, 84, 52);
+          labelTexture.needsUpdate = true;
+        };
+      }
+
       lCtx.fillStyle = "#A855F7";
-      lCtx.font = "bold 13px monospace";
+      lCtx.font = "bold 12px monospace";
       lCtx.textAlign = "center";
-      lCtx.fillText("★ CXRNER MUSIC LABEL ★", 256, 160);
+      lCtx.fillText("★ CXRNER MUSIC ★", 256, 155);
 
       // Track Title
       lCtx.fillStyle = "#FFFFFF";

@@ -35,21 +35,29 @@ export const metadata: Metadata = {
     "industrial",
     "выпустить трек",
   ],
+  icons: {
+    icon: [
+      { url: "/logo.png", sizes: "any" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: ["/logo.png"],
+  },
   alternates: { canonical: "/" },
   openGraph: {
     title: "CXRNER MUSIC — Independent Underground Record Label",
-    description: "Глобальная дистрибуция, бескомпромиссный арт-дирекшн и развитие артистов.",
+    description: "Глобальная цифровая дистрибуция, бескомпромиссный арт-дирекшн и развитие независимых артистов.",
     type: "website",
     url: SITE_URL,
     siteName: "CXRNER MUSIC",
     locale: "ru_RU",
-    images: [{ url: "/images/og.svg", width: 1200, height: 630, alt: "CXRNER MUSIC" }],
+    images: [{ url: "/logo.png", width: 1024, height: 1024, alt: "CXRNER MUSIC" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "CXRNER MUSIC — Underground Record Label",
     description: "Глобальная дистрибуция и развитие артистов.",
-    images: ["/images/og.svg"],
+    images: ["/logo.png"],
   },
   robots: {
     index: true,
@@ -64,8 +72,11 @@ const jsonLd = {
   name: "CXRNER MUSIC",
   url: SITE_URL,
   logo: `${SITE_URL}/logo.png`,
+  image: `${SITE_URL}/logo.png`,
+  description:
+    "CXRNER MUSIC — независимый андеграундный лейбл и глобальная цифровая дистрибуция. Релизы на 150+ стриминговых платформах, жесткий визуальный арт-дирекшн и монетизация.",
   email: "cxrner.label@gmail.com",
-  sameAs: ["https://t.me/kazumaiq", "https://t.me/moder_cxrner_bot"],
+  sameAs: ["https://t.me/kazumaiq", "https://t.me/moder_cxrner_bot", "https://music.yandex.ru/label/5978511"],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

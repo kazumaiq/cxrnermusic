@@ -33,8 +33,15 @@ export default async function Header() {
         <div className="rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-[#09090e]/90">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group">
-            <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-black border border-purple-500/40 group-hover:border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.25)] transition duration-300">
-              <span className="font-gothic font-black text-xs tracking-tighter text-white">CX</span>
+            <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-black/80 border border-purple-500/40 group-hover:border-purple-400 overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.3)] transition duration-300">
+              <Image
+                src="/logo.png"
+                alt="CXRNER MUSIC logo"
+                width={36}
+                height={36}
+                className="object-contain w-full h-full p-0.5 group-hover:scale-110 transition duration-300"
+                priority
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-gothic font-bold text-xs sm:text-sm tracking-[0.28em] text-white group-hover:text-purple-300 transition">
