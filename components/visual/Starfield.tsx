@@ -1,18 +1,29 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import * as THREE from "three";
 
-interface Star3D {
-  x: number;
-  y: number;
-  z: number;
-  prevZ: number;
-  size: number;
-  color: string;
-  twinkle: number;
-  twinkleSpeed: number;
-}
-
+/**
+ * Interactive Fullscreen 3D Starfield in Cyber-Dark / Sci-Fi aesthetic (dynexmusic.com style).
+ * 
+ * Features:
+ * 1. Fixed fullscreen canvas (position: fixed, inset: 0, pointer-events: none, z-index: -1).
+ * 2. Scene clear color: deep cosmic void black #020204.
+ * 3. PerspectiveCamera: FOV 45 (desktop) / 58 (mobile), near: 0.5, far: 8000.
+ * 4. Adaptive DPR: Math.min(devicePixelRatio, 1.5) desktop, 1.1 mobile.
+ * 5. Page Visibility API: halts animation loop when tab is hidden.
+ * 6. 4-Layer Starfield Depth:
+ *    - Layer 1: Deep Stars (1100 desktop / 180 mobile, box 4500x3000x8000, 1.2px, opacity 0.5, monochrome)
+ *    - Layer 2: Mid Stars (600 desktop / 100 mobile, box 3000x2000x7500, 1.8px, opacity 0.7, 3% Red, 3.5% Purple)
+ *    - Layer 3: Near Stars (200 desktop / 40 mobile, box 1600x1200x7000, 2.5px, opacity 0.85, 4% Red, 4% Purple)
+ *    - Layer 4: Foreground Micro-Sparks (50 desktop / 15 mobile, box 750x600x6000, 3.5px, opacity 0.95, 6% Red, 6% Purple)
+ * 7. BufferGeometry with Float32Array positions and colors.
+ * 8. Mouse parallax with smooth lerp & subtle camera tilt (desktop only).
+ * 9. Scroll Z-travel moving camera through tunnel (Z = 0 down to Z = -5500) via Cosine S-curve.
+ * 10. Atmospheric lighting: ambientLight (#D8D8D5, 0.45), directionalLight (#F2F2EE, 0.85),
+ *     and two moving point lights (Red #E61924, Purple #8B5CF6) following camera.
+ * 11. Complete disposal of geometries, materials, textures, and renderer on unmount.
+ */
 export default function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -20,214 +31,398 @@ export default function Starfield() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d", { alpha: true });
-    if (!ctx) return;
-
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
+    // Detect environment & device type
     const isMobile =
       typeof window !== "undefined" &&
       (window.innerWidth < 768 ||
         /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
 
-    const starCount = isMobile ? 300 : 550;
-    const stars: Star3D[] = [];
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-    let width = 0;
-    let height = 0;
-    let cx = 0;
-    let cy = 0;
-    let animationFrameId: number;
+    // 1. SCENE SETUP
+    const scene = new THREE.Scene();
 
-    let scrollY = window.scrollY;
-    let scrollVelocity = 0;
-    let scrollImpulse = 0;
+    // 2. CAMERA SETUP
+    const fov = isMobile ? 58 : 45;
+    const camera = new THREE.PerspectiveCamera(
+      fov,
+      width / Math.max(height, 1),
+      0.5,
+      8000
+    );
+    camera.position.set(0, 0, 0);
 
-    let mouseX = 0;
-    let mouseY = 0;
-    let targetMouseX = 0;
-    let targetMouseY = 0;
-    let lastTime = performance.now();
-
-    const maxDepth = 1000;
-    const baseSpeed = prefersReducedMotion ? 0 : 0.9;
-
-    // High-visibility luminous palette: bright white, electric violet, neon purple, bright silver, cyan-white
-    const starColors = [
-      "#ffffff",
-      "#ffffff",
-      "#fdf4ff",
-      "#f3e8ff",
-      "#e9d5ff",
-      "#d8b4fe",
-      "#c084fc",
-      "#a855f7",
-      "#a5b4fc",
-      "#e0e7ff",
-    ];
-
-    const initStars = () => {
-      stars.length = 0;
-      for (let i = 0; i < starCount; i++) {
-        const z = Math.random() * maxDepth + 1;
-        stars.push({
-          x: (Math.random() - 0.5) * width * 3.0,
-          y: (Math.random() - 0.5) * height * 3.0,
-          z,
-          prevZ: z,
-          size: Math.random() * 2.2 + 1.2, // Crisp, easily visible star size
-          color: starColors[Math.floor(Math.random() * starColors.length)],
-          twinkle: Math.random() * Math.PI * 2,
-          twinkleSpeed: Math.random() * 0.05 + 0.02,
-        });
-      }
-    };
-
-    const handleResize = () => {
-      if (!canvas) return;
-      width = window.innerWidth;
-      height = window.innerHeight;
-      cx = width / 2;
-      cy = height / 2;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      ctx.scale(dpr, dpr);
-      initStars();
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize, { passive: true });
-
-    let lastScrollTimestamp = performance.now();
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      const now = performance.now();
-      const dt = Math.max((now - lastScrollTimestamp) / 1000, 0.016);
-      lastScrollTimestamp = now;
-
-      const deltaY = currentScrollY - scrollY;
-      scrollY = currentScrollY;
-
-      // Add immediate scroll impulse
-      scrollImpulse = deltaY / dt * 0.003;
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    const handleMouseMove = (e: MouseEvent) => {
-      targetMouseX = (e.clientX - cx) * 0.08;
-      targetMouseY = (e.clientY - cy) * 0.08;
-    };
-    if (!isMobile) {
-      window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    // 3. RENDERER SETUP
+    let renderer: THREE.WebGLRenderer | null = null;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: false,
+        antialias: false,
+        powerPreference: "high-performance",
+      });
+    } catch {
+      return;
     }
 
-    // 60FPS Render Loop
-    const render = (now: number) => {
-      animationFrameId = requestAnimationFrame(render);
+    renderer.setClearColor(0x020204, 1.0);
+    const dpr = isMobile ? 1.1 : Math.min(window.devicePixelRatio || 1, 1.5);
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(width, height);
 
-      const delta = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
+    // 4. ATMOSPHERIC LIGHTING
+    const ambientLight = new THREE.AmbientLight(0xd8d8d5, 0.45);
+    scene.add(ambientLight);
 
-      // Smooth decay of scroll velocity and impulse
-      scrollVelocity += (scrollImpulse - scrollVelocity) * 0.2;
-      scrollImpulse *= 0.88;
+    const directionalLight = new THREE.DirectionalLight(0xf2f2ee, 0.85);
+    directionalLight.position.set(0, 1000, 1000);
+    scene.add(directionalLight);
 
-      mouseX += (targetMouseX - mouseX) * 0.06;
-      mouseY += (targetMouseY - mouseY) * 0.06;
+    // Dynamic point lights that follow the camera
+    const redLight = new THREE.PointLight(0xe61924, 1.2, 180);
+    const purpleLight = new THREE.PointLight(0x8b5cf6, 0.65, 240);
+    scene.add(redLight);
+    scene.add(purpleLight);
 
-      ctx.clearRect(0, 0, width, height);
+    // Helper: generate soft circular glow particle texture in memory
+    const createCircleTexture = () => {
+      const texCanvas = document.createElement("canvas");
+      texCanvas.width = 64;
+      texCanvas.height = 64;
+      const ctx = texCanvas.getContext("2d");
+      if (!ctx) return null;
 
-      // 2. 3D Stars Flight Simulation with Scroll Reaction
-      // User scrolls down -> stars rush toward the viewer with light streaks
-      // User scrolls up -> stars reverse through the void
-      const absVelocity = Math.abs(scrollVelocity);
-      const warpSpeed = Math.min(absVelocity * 3.5, 25);
-      const speed = (baseSpeed + warpSpeed) * 60 * delta;
-      const fov = 340;
-      const isWarping = warpSpeed > 0.15;
+      const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0, "rgba(255, 255, 255, 1)");
+      grad.addColorStop(0.2, "rgba(255, 255, 255, 0.85)");
+      grad.addColorStop(0.55, "rgba(255, 255, 255, 0.35)");
+      grad.addColorStop(1, "rgba(255, 255, 255, 0)");
 
-      for (let i = 0; i < stars.length; i++) {
-        const star = stars[i];
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 64, 64);
 
-        star.prevZ = star.z;
-        // Direction follows scroll: forward flight with acceleration
-        star.z -= speed * 4.0;
-
-        // Reset star if it passes the camera or goes beyond bounds
-        if (star.z <= 2) {
-          star.z = maxDepth;
-          star.prevZ = maxDepth;
-          star.x = (Math.random() - 0.5) * width * 3.0;
-          star.y = (Math.random() - 0.5) * height * 3.0;
-        } else if (star.z > maxDepth) {
-          star.z = 2;
-          star.prevZ = 2;
-        }
-
-        // 3D perspective projection
-        const k = fov / star.z;
-        const px = star.x * k + cx - mouseX * (1 - star.z / maxDepth);
-        const py = star.y * k + cy - mouseY * (1 - star.z / maxDepth);
-
-        // Previous point for light streak effect
-        const prevK = fov / star.prevZ;
-        const prevPx = star.x * prevK + cx - mouseX * (1 - star.prevZ / maxDepth);
-        const prevPy = star.y * prevK + cy - mouseY * (1 - star.prevZ / maxDepth);
-
-        if (px < -50 || px > width + 50 || py < -50 || py > height + 50) {
-          continue;
-        }
-
-        // Visibility & Brightness calculation
-        const depthRatio = 1 - star.z / maxDepth;
-        const depthAlpha = Math.max(0.25, depthRatio);
-        star.twinkle += star.twinkleSpeed;
-        const twinkleAlpha = Math.sin(star.twinkle) * 0.2 + 0.8;
-        const alpha = Math.min(1, depthAlpha * twinkleAlpha);
-
-        const currentSize = Math.max(1.2, depthRatio * star.size * 2.2);
-
-        ctx.strokeStyle = star.color;
-        ctx.fillStyle = star.color;
-        ctx.globalAlpha = alpha;
-
-        // When scrolling/warping, draw distinct 3D motion streaks
-        if (isWarping && Math.hypot(px - prevPx, py - prevPy) > 1.2) {
-          ctx.lineWidth = Math.max(1.4, currentSize * 1.1);
-          ctx.beginPath();
-          ctx.moveTo(prevPx, prevPy);
-          ctx.lineTo(px, py);
-          ctx.stroke();
-        } else {
-          // Idle floating star with crisp core
-          ctx.beginPath();
-          ctx.arc(px, py, currentSize, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Luminous aura for closer stars
-          if (star.z < 450) {
-            ctx.beginPath();
-            ctx.arc(px, py, currentSize * 2.8, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(192, 132, 252, 0.28)";
-            ctx.fill();
-          }
-        }
-      }
-
-      ctx.globalAlpha = 1;
+      const texture = new THREE.CanvasTexture(texCanvas);
+      texture.needsUpdate = true;
+      return texture;
     };
 
+    const particleTexture = createCircleTexture();
+
+    // 5. 4-LAYER STARFIELD GENERATION
+    interface LayerConfig {
+      count: number;
+      boxX: number;
+      boxY: number;
+      boxZ: number;
+      size: number;
+      opacity: number;
+      colorGenerator: (index: number, count: number) => [number, number, number];
+      rotSpeed: number;
+    }
+
+    const signalRed = new THREE.Color("#EB1A26");
+    const cyberPurple = new THREE.Color("#A661FA");
+    const nearRed = new THREE.Color("#F21F2E");
+    const nearPurple = new THREE.Color("#B36CFF");
+    const neonRed = new THREE.Color("#FF1E27");
+    const brightPurple = new THREE.Color("#BF55EC");
+    const pureWhite = new THREE.Color(1, 1, 1);
+
+    const layerConfigs: LayerConfig[] = [
+      // Layer 1: Deep Stars (far cosmic background)
+      {
+        count: isMobile ? 180 : 1100,
+        boxX: 4500,
+        boxY: 3000,
+        boxZ: 8000,
+        size: 1.2,
+        opacity: 0.5,
+        colorGenerator: () => {
+          // Monochrome brightness from 0.25 to 0.60
+          const b = 0.25 + Math.random() * 0.35;
+          return [b, b, b];
+        },
+        rotSpeed: 0.002,
+      },
+      // Layer 2: Mid Stars (main volume)
+      {
+        count: isMobile ? 100 : 600,
+        boxX: 3000,
+        boxY: 2000,
+        boxZ: 7500,
+        size: 1.8,
+        opacity: 0.7,
+        colorGenerator: () => {
+          const rand = Math.random();
+          if (rand < 0.03) {
+            return [signalRed.r, signalRed.g, signalRed.b];
+          } else if (rand < 0.065) {
+            return [cyberPurple.r, cyberPurple.g, cyberPurple.b];
+          }
+          // Neutral silver-white
+          const w = 0.82 + Math.random() * 0.18;
+          return [w, w, Math.min(1, w + 0.05)];
+        },
+        rotSpeed: 0.005,
+      },
+      // Layer 3: Near Stars (closer presence)
+      {
+        count: isMobile ? 40 : 200,
+        boxX: 1600,
+        boxY: 1200,
+        boxZ: 7000,
+        size: 2.5,
+        opacity: 0.85,
+        colorGenerator: () => {
+          const rand = Math.random();
+          if (rand < 0.04) {
+            return [nearRed.r, nearRed.g, nearRed.b];
+          } else if (rand < 0.08) {
+            return [nearPurple.r, nearPurple.g, nearPurple.b];
+          }
+          return [pureWhite.r, pureWhite.g, pureWhite.b];
+        },
+        rotSpeed: 0.008,
+      },
+      // Layer 4: Foreground Micro-Sparks (floating close)
+      {
+        count: isMobile ? 15 : 50,
+        boxX: 750,
+        boxY: 600,
+        boxZ: 6000,
+        size: 3.5,
+        opacity: 0.95,
+        colorGenerator: () => {
+          const rand = Math.random();
+          if (rand < 0.06) {
+            return [neonRed.r, neonRed.g, neonRed.b];
+          } else if (rand < 0.12) {
+            return [brightPurple.r, brightPurple.g, brightPurple.b];
+          }
+          return [1, 1, 1];
+        },
+        rotSpeed: 0.015,
+      },
+    ];
+
+    const starMeshes: {
+      points: THREE.Points;
+      geometry: THREE.BufferGeometry;
+      material: THREE.PointsMaterial;
+      rotSpeed: number;
+    }[] = [];
+
+    layerConfigs.forEach((cfg) => {
+      const positions = new Float32Array(cfg.count * 3);
+      const colors = new Float32Array(cfg.count * 3);
+
+      for (let i = 0; i < cfg.count; i++) {
+        // Distribute within box bounds along the camera travel tunnel
+        // Camera travels from Z = 0 to Z = -5500
+        positions[i * 3] = (Math.random() - 0.5) * cfg.boxX;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * cfg.boxY;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * cfg.boxZ - 2500;
+
+        const [r, g, b] = cfg.colorGenerator(i, cfg.count);
+        colors[i * 3] = r;
+        colors[i * 3 + 1] = g;
+        colors[i * 3 + 2] = b;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: cfg.size,
+        vertexColors: true,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: cfg.opacity,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        map: particleTexture || undefined,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      scene.add(points);
+
+      starMeshes.push({
+        points,
+        geometry,
+        material,
+        rotSpeed: cfg.rotSpeed,
+      });
+    });
+
+    // 6. CAMERA RIG, MOUSE PARALLAX & SCROLL INTERACTION
+    let pointerX = 0;
+    let pointerY = 0;
+    let targetCameraX = 0;
+    let targetCameraY = 0;
+    let targetCameraZ = 0;
+    let targetTiltX = 0;
+    let targetTiltY = 0;
+
+    const onPointerMove = (e: MouseEvent) => {
+      // Normalized pointer coordinates [-1, 1]
+      pointerX = (e.clientX / window.innerWidth) * 2 - 1;
+      pointerY = (e.clientY / window.innerHeight) * 2 - 1;
+
+      // Parallax target positions
+      targetCameraX = pointerX * 80;
+      targetCameraY = -pointerY * 60;
+
+      // Subtle tilt in the direction of cursor
+      targetTiltY = -pointerX * 0.025;
+      targetTiltX = pointerY * 0.018;
+    };
+
+    if (!isMobile) {
+      window.addEventListener("mousemove", onPointerMove, { passive: true });
+    }
+
+    // Scroll tracking
+    const updateScrollProgress = () => {
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      const maxScroll = Math.max(
+        document.documentElement.scrollHeight - window.innerHeight,
+        1
+      );
+      const progress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
+
+      // Smooth Cosine S-curve from Z = 0 into Z = -5200
+      const sCurve = (1 - Math.cos(progress * Math.PI)) / 2;
+      targetCameraZ = -sCurve * 5200;
+    };
+
+    updateScrollProgress();
+    window.addEventListener("scroll", updateScrollProgress, { passive: true });
+
+    // Handle Window Resize
+    const onResize = () => {
+      if (!canvas || !renderer) return;
+      const newW = window.innerWidth;
+      const newH = window.innerHeight;
+      camera.aspect = newW / Math.max(newH, 1);
+      camera.fov = isMobile ? 58 : 45;
+      camera.updateProjectionMatrix();
+
+      const newDpr = isMobile ? 1.1 : Math.min(window.devicePixelRatio || 1, 1.5);
+      renderer.setPixelRatio(newDpr);
+      renderer.setSize(newW, newH);
+      updateScrollProgress();
+    };
+
+    window.addEventListener("resize", onResize, { passive: true });
+
+    // 7. PAGE VISIBILITY API & RENDER LOOP
+    let animationFrameId = 0;
+    let lastTime = performance.now();
+    let isRendering = true;
+
+    const render = (time: number) => {
+      if (!isRendering) return;
+      animationFrameId = requestAnimationFrame(render);
+
+      const delta = Math.min((time - lastTime) / 1000, 0.1);
+      lastTime = time;
+
+      // Rotate star layers independently
+      const timeSec = time * 0.001;
+      for (let i = 0; i < starMeshes.length; i++) {
+        const item = starMeshes[i];
+        item.points.rotation.y = timeSec * item.rotSpeed;
+      }
+
+      // Camera Rig physics
+      const lerpSpeed = Math.min(delta * 3.0, 0.25);
+
+      if (!isMobile) {
+        camera.position.x += (targetCameraX - camera.position.x) * lerpSpeed;
+        camera.position.y += (targetCameraY - camera.position.y) * lerpSpeed;
+        camera.rotation.y += (targetTiltY - camera.rotation.y) * lerpSpeed;
+        camera.rotation.x += (targetTiltX - camera.rotation.x) * lerpSpeed;
+      }
+
+      // Scroll Z-travel interpolation
+      camera.position.z += (targetCameraZ - camera.position.z) * lerpSpeed;
+
+      // Move Point Lights along with Camera
+      redLight.position.set(
+        camera.position.x - 35,
+        camera.position.y + 20,
+        camera.position.z - 30
+      );
+      purpleLight.position.set(
+        camera.position.x + 35,
+        camera.position.y - 20,
+        camera.position.z - 40
+      );
+
+      if (renderer) {
+        renderer.render(scene, camera);
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        isRendering = false;
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = 0;
+        }
+      } else {
+        isRendering = true;
+        lastTime = performance.now();
+        if (!animationFrameId) {
+          animationFrameId = requestAnimationFrame(render);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
     animationFrameId = requestAnimationFrame(render);
 
+    // 8. DISPOSAL AND CLEANUP
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("scroll", handleScroll);
+      isRendering = false;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", updateScrollProgress);
       if (!isMobile) {
-        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mousemove", onPointerMove);
+      }
+
+      // Dispose lights
+      scene.remove(ambientLight);
+      ambientLight.dispose();
+      scene.remove(directionalLight);
+      directionalLight.dispose();
+      scene.remove(redLight);
+      redLight.dispose();
+      scene.remove(purpleLight);
+      purpleLight.dispose();
+
+      // Dispose Starfield layers
+      starMeshes.forEach((item) => {
+        scene.remove(item.points);
+        item.geometry.dispose();
+        item.material.dispose();
+      });
+
+      if (particleTexture) {
+        particleTexture.dispose();
+      }
+
+      if (renderer) {
+        renderer.dispose();
+        renderer.forceContextLoss();
       }
     };
   }, []);
@@ -235,8 +430,13 @@ export default function Starfield() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none w-full h-full select-none"
-      style={{ zIndex: 0 }}
+      className="fixed inset-0 pointer-events-none select-none w-full h-full"
+      style={{
+        position: "fixed",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: -1,
+      }}
       aria-hidden="true"
     />
   );

@@ -81,7 +81,7 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru" className="dark scroll-smooth">
+    <html lang="ru" className="dark scroll-smooth bg-[#020204]">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -90,7 +90,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-[#050505] text-[#EAEAEA] antialiased selection:bg-white selection:text-black">
+      <body className="min-h-screen bg-transparent text-[#EAEAEA] antialiased selection:bg-white selection:text-black">
         <Script
           id="json-ld-org"
           type="application/ld+json"

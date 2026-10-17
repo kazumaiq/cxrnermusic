@@ -7,7 +7,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-24 border-t border-purple-500/20 bg-gradient-to-b from-[#090910] to-[#040407] overflow-hidden">
+    <footer className="relative mt-24 border-t border-purple-500/20 bg-gradient-to-b from-[#090910]/75 to-[#040407]/85 backdrop-blur-md overflow-hidden">
       {/* Ambient purple bloom */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-48 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 
