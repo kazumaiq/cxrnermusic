@@ -146,9 +146,12 @@ export default async function HomePage() {
               <div className="w-full mt-6 max-w-[500px]">
                 <InteractiveAudioPreview
                   track={{
-                    title: featured.title,
-                    artist: featured.artist,
-                    cover: featured.cover,
+                    title: featured.title || "The Sadness of Reality",
+                    artist: featured.artist || "Neimeks",
+                    cover: featured.cover || "/covers/the-sadness-of-reality.jpg",
+                    audioSrc: "/audio/the-sadness-of-reality.mp3",
+                    yandexUrl: "https://music.yandex.ru/album/44422385?utm_source=web&utm_medium=copy_link",
+                    artistUrl: "https://music.yandex.ru/artist/25572730",
                     genre: "Phonk / Electronic",
                   }}
                 />

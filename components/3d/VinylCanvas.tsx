@@ -231,6 +231,23 @@ export default function VinylCanvas({
       lCtx.arc(256, 256, 225, 0, Math.PI * 2);
       lCtx.stroke();
 
+      // Draw Actual Album Cover in center if provided
+      if (typeof window !== "undefined" && featuredCover) {
+        const coverImg = new window.Image();
+        coverImg.crossOrigin = "anonymous";
+        coverImg.src = featuredCover;
+        coverImg.onload = () => {
+          lCtx.save();
+          lCtx.beginPath();
+          lCtx.arc(256, 256, 230, 0, Math.PI * 2);
+          lCtx.clip();
+          lCtx.globalAlpha = 0.42;
+          lCtx.drawImage(coverImg, 256 - 230, 256 - 230, 460, 460);
+          lCtx.restore();
+          labelTexture.needsUpdate = true;
+        };
+      }
+
       // CXRNER MUSIC Brand Header with Official Logo
       if (typeof window !== "undefined") {
         const logoImg = new window.Image();

@@ -13,7 +13,7 @@ type FeaturedRow = FeaturedRelease & { id: string };
 const fallback: FeaturedRelease = {
   title: "The Sadness of Reality",
   artist: "Neimeks",
-  cover: "/images/album-01.svg",
+  cover: "/covers/the-sadness-of-reality.jpg",
 };
 
 const featuredPath = path.join(process.cwd(), "data", "featured.json");
