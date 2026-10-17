@@ -131,65 +131,99 @@ export async function POST(request: Request) {
       );
     }
 
-    // Notify Telegram bot if configured
+    // Notify Telegram bot or direct Telegram API
     const botUrl = process.env.BOT_BACKEND_URL;
-    if (!botUrl) {
-      // Saved in Supabase successfully, but bot backend is not yet attached
-      return NextResponse.json({
-        ok: true,
-        id: data.id,
-        botNotified: false,
-        warning: "Заявка успешно сохранена в базе. Уведомление в Telegram-бот ожидает настройки BOT_BACKEND_URL.",
-      });
-    }
+    let deliveredViaBot = false;
 
-    try {
-      const botPayload = {
-        form_id: data.id,
-        artist_name: body.artist_name.trim(),
-        track_name: body.track_name.trim(),
-        genre: body.genre.trim(),
-        release_type: body.release_type,
-        source: "web",
-      };
+    if (botUrl) {
+      try {
+        const botPayload = {
+          form_id: data.id,
+          artist_name: body.artist_name.trim(),
+          track_name: body.track_name.trim(),
+          genre: body.genre.trim(),
+          release_type: body.release_type,
+          source: "web",
+        };
 
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (process.env.BOT_BACKEND_SECRET) {
-        headers["x-cxrner-secret"] = process.env.BOT_BACKEND_SECRET;
-        headers["authorization"] = `Bearer ${process.env.BOT_BACKEND_SECRET}`;
-        headers["x-secret-key"] = process.env.BOT_BACKEND_SECRET;
-        headers["x-api-key"] = process.env.BOT_BACKEND_SECRET;
-      }
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (process.env.BOT_BACKEND_SECRET) {
+          headers["x-cxrner-secret"] = process.env.BOT_BACKEND_SECRET;
+          headers["authorization"] = `Bearer ${process.env.BOT_BACKEND_SECRET}`;
+          headers["x-secret-key"] = process.env.BOT_BACKEND_SECRET;
+          headers["x-api-key"] = process.env.BOT_BACKEND_SECRET;
+        }
 
-      const botRes = await fetch(`${botUrl}/api/new-release`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(botPayload),
-      });
-
-      if (!botRes.ok) {
-        const text = await botRes.text().catch(() => "");
-        console.warn(
-          `[Forms Submit] Release ${data.id} saved in Supabase, but Telegram bot webhook returned status ${botRes.status}: ${text || botRes.statusText}`,
-        );
-        return NextResponse.json({
-          ok: true,
-          id: data.id,
-          botNotified: false,
+        const botRes = await fetch(`${botUrl}/api/new-release`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(botPayload),
         });
-      }
 
-      return NextResponse.json({ ok: true, id: data.id, botNotified: true });
-    } catch (botErr: any) {
-      console.warn(`[Forms Submit] Release ${data.id} saved in Supabase, but bot unreachable:`, botErr.message);
-      return NextResponse.json({
-        ok: true,
-        id: data.id,
-        botNotified: false,
-      });
+        if (botRes.ok) {
+          deliveredViaBot = true;
+        } else {
+          const text = await botRes.text().catch(() => "");
+          console.warn(
+            `[Forms Submit] Release ${data.id} saved in Supabase, but bot webhook returned ${botRes.status}: ${text || botRes.statusText}`,
+          );
+        }
+      } catch (botErr: any) {
+        console.warn(`[Forms Submit] Release ${data.id} saved in Supabase, but bot webhook failed:`, botErr.message);
+      }
     }
+
+    // Direct Telegram Bot API Notification Fallback (if bot host is offline, sleeping or credentials set on Vercel)
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
+    const tgChat = process.env.MODERATION_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
+    if (!deliveredViaBot && tgToken && tgChat) {
+      try {
+        const yandexText =
+          formPayload.yandex === "create_new_card"
+            ? "Создать новую карточку"
+            : formPayload.yandex || ".";
+
+        const lines = [
+          "🎵 <b>НОВАЯ АНКЕТА!</b>",
+          "Источник: 🌐 САЙТ",
+          `От: ${body.contact_telegram ? body.contact_telegram : "—"}`,
+          `ID заявки: <code>${data.id}</code>`,
+          `Тип: ${releaseType}`,
+          "",
+          `🎵 <b>Название:</b> ${body.track_name.trim()}`,
+          `✨ <b>Саб-название:</b> ${body.subtitle?.trim() || "."}`,
+          `🎤 <b>Ник:</b> ${body.artist_name.trim()}`,
+          `🪪 <b>ФИО:</b> ${body.artist_full_name?.trim() || body.artist_name.trim()}`,
+          `📅 <b>Дата:</b> ${body.release_date || "—"}`,
+          `🧩 <b>Версия:</b> ${body.version?.trim() || "Оригинал"}`,
+          `🏷 <b>Жанр:</b> ${body.genre.trim()}`,
+          `🔗 <b>Ссылка:</b> ${filesLink || "—"}`,
+          `🟡 <b>Яндекс Музыка:</b> ${yandexText}`,
+          `⚠️ <b>Мат:</b> ${body.has_explicit ? "Да" : "Нет"}`,
+          `📢 <b>Промо:</b> ${body.promo_text?.trim() || "."}`,
+          `💬 <b>Комментарий:</b> ${body.comment?.trim() || "."}`,
+          `📱 <b>Tg:</b> ${body.contact_telegram?.trim() || "—"}`,
+        ];
+
+        await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: tgChat,
+            text: lines.join("\n"),
+            parse_mode: "HTML",
+            disable_web_page_preview: true,
+          }),
+        });
+        deliveredViaBot = true;
+      } catch (tgErr: any) {
+        console.error("[Forms Submit] Direct Telegram notification failed:", tgErr.message);
+      }
+    }
+
+    return NextResponse.json({ ok: true, id: data.id, botNotified: deliveredViaBot });
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error?.message || "Внутренняя ошибка сервера" },
