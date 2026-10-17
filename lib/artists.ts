@@ -41,19 +41,49 @@ function client() {
   return createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 }
 
-export async function getArtists() {
+let artistsMemoryCache: { data: ArtistItem[]; expiresAt: number } | null = null;
+
+async function withTimeout<T>(promise: Promise<T>, ms = 700): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("TIMEOUT")), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
+export async function getArtists(): Promise<ArtistItem[]> {
+  const now = Date.now();
+  if (artistsMemoryCache && now < artistsMemoryCache.expiresAt) {
+    return artistsMemoryCache.data;
+  }
+
   if (supabaseUrl && supabaseKey) {
     try {
-      const { data, error } = await client().from("artists_config").select("items").eq("id", ARTISTS_ID).maybeSingle<{ items: ArtistItem[] }>();
-      if (error) throw error;
-      const items = sanitize(data?.items);
-      return items.length ? items : readFile();
-    } catch { return readFile(); }
+      const queryPromise = Promise.resolve(
+        client()
+          .from("artists_config")
+          .select("items")
+          .eq("id", ARTISTS_ID)
+          .maybeSingle<{ items: ArtistItem[] }>()
+      );
+      const result = await withTimeout<any>(queryPromise, 700);
+      if (result?.error) throw result.error;
+      const items = sanitize(result?.data?.items);
+      if (items.length) {
+        artistsMemoryCache = { data: items, expiresAt: now + 60000 };
+        return items;
+      }
+    } catch {
+      // Fallback to local file
+    }
   }
-  return readFile();
+  const fileItems = await readFile();
+  artistsMemoryCache = { data: fileItems, expiresAt: now + 60000 };
+  return fileItems;
 }
 
 export async function setArtists(items: ArtistItem[]) {
+  artistsMemoryCache = null;
   const next = sanitize(items);
   if (supabaseUrl && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const { error } = await createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } }).from("artists_config").upsert({ id: ARTISTS_ID, items: next, updated_at: new Date().toISOString() }, { onConflict: "id" });

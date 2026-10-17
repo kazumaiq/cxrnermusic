@@ -77,13 +77,27 @@ async function readFromSupabase(): Promise<ReleaseItem[]> {
   return sanitize((data as ReleasesRow | null)?.items ?? null);
 }
 
+let releasesMemoryCache: { data: ReleaseItem[]; expiresAt: number } | null = null;
+
+async function withTimeout<T>(promise: Promise<T>, ms = 700): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("TIMEOUT")), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 export async function getReleases(): Promise<ReleaseItem[]> {
-  const fileItems = await readFromFile();
+  const now = Date.now();
+  if (releasesMemoryCache && now < releasesMemoryCache.expiresAt) {
+    return releasesMemoryCache.data;
+  }
 
   if (supabaseEnabled) {
     try {
-      const supaItems = await readFromSupabase();
+      const supaItems = await withTimeout(readFromSupabase(), 700);
       if (supaItems && supaItems.length > 0) {
+        releasesMemoryCache = { data: supaItems, expiresAt: now + 60000 };
         return supaItems;
       }
     } catch {
@@ -91,10 +105,13 @@ export async function getReleases(): Promise<ReleaseItem[]> {
     }
   }
 
+  const fileItems = await readFromFile();
+  releasesMemoryCache = { data: fileItems, expiresAt: now + 60000 };
   return fileItems;
 }
 
 export async function setReleases(items: ReleaseItem[]): Promise<ReleaseItem[]> {
+  releasesMemoryCache = null;
   const sanitized = sanitize(items);
   if (supabaseEnabled && supabaseServiceKey) {
     const client = getClient(supabaseServiceKey);

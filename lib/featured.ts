@@ -66,21 +66,41 @@ async function readFromSupabase(): Promise<FeaturedRelease> {
   return sanitize(data ?? null);
 }
 
+let memoryCache: { data: FeaturedRelease; expiresAt: number } | null = null;
+
+async function withTimeout<T>(promise: Promise<T>, ms = 700): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("TIMEOUT")), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 export async function getFeaturedRelease(): Promise<FeaturedRelease> {
+  const now = Date.now();
+  if (memoryCache && now < memoryCache.expiresAt) {
+    return memoryCache.data;
+  }
+
   if (supabaseEnabled) {
     try {
-      const data = await readFromSupabase();
+      const data = await withTimeout(readFromSupabase(), 700);
       if (data && data.title && data.artist) {
+        memoryCache = { data, expiresAt: now + 60000 };
         return data;
       }
     } catch {
-      // Fallback to file
+      // Fallback to local file instantly
     }
   }
-  return readFromFile();
+
+  const fileData = await readFromFile();
+  memoryCache = { data: fileData, expiresAt: now + 60000 };
+  return fileData;
 }
 
 export async function setFeaturedRelease(data: FeaturedRelease): Promise<FeaturedRelease> {
+  memoryCache = null;
   const next = sanitize(data);
   if (supabaseEnabled && supabaseServiceKey) {
     const client = getClient(supabaseServiceKey);

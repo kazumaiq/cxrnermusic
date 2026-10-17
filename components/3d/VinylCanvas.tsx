@@ -457,9 +457,26 @@ export default function VinylCanvas({
     // 7. RENDER LOOP
     // ==============================================================
     let rotationAngle = 0;
+    let isVisible = true;
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible && !animationFrameId) {
+          lastTime = performance.now();
+          animationFrameId = requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0.05 }
+    );
+    visibilityObserver.observe(container);
+
     let lastTime = performance.now();
 
     const animate = (currentTime: number) => {
+      if (!isVisible) {
+        animationFrameId = 0;
+        return;
+      }
       animationFrameId = requestAnimationFrame(animate);
 
       const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
@@ -493,6 +510,7 @@ export default function VinylCanvas({
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      visibilityObserver.disconnect();
       resizeObserver.disconnect();
       container.removeEventListener("mousedown", onPointerDown);
       container.removeEventListener("mousemove", onPointerMove);

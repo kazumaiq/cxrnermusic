@@ -108,30 +108,34 @@ export default function InteractiveAudioPreview({ track }: AudioPreviewProps) {
     }
   };
 
-  // Real-time animation loop for waveform
+  // Real-time animation loop for waveform - ONLY active while playing
   useEffect(() => {
-    const updateSpectrum = () => {
-      if (analyserRef.current && dataArrayRef.current && isPlaying) {
-        analyserRef.current.getByteFrequencyData(dataArrayRef.current as any);
-        const data = dataArrayRef.current;
-        const barsCount = 36;
-        const step = Math.floor(data.length / barsCount) || 1;
-        const newBars: number[] = [];
+    if (!isPlaying) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      return;
+    }
 
-        for (let i = 0; i < barsCount; i++) {
-          const val = data[i * step] || 0;
-          const normalized = Math.max(0.12, Math.min(1.0, val / 255));
-          newBars.push(normalized);
+    let lastUpdate = 0;
+    const updateSpectrum = (time: number) => {
+      if (time - lastUpdate > 33) {
+        lastUpdate = time;
+        if (analyserRef.current && dataArrayRef.current) {
+          analyserRef.current.getByteFrequencyData(dataArrayRef.current as any);
+          const data = dataArrayRef.current;
+          const barsCount = 36;
+          const step = Math.floor(data.length / barsCount) || 1;
+          const newBars: number[] = [];
+
+          for (let i = 0; i < barsCount; i++) {
+            const val = data[i * step] || 0;
+            const normalized = Math.max(0.12, Math.min(1.0, val / 255));
+            newBars.push(normalized);
+          }
+          setFrequencyData(newBars);
         }
-        setFrequencyData(newBars);
-      } else if (!isPlaying) {
-        // Fallback subtle idle wave
-        setFrequencyData((prev) =>
-          prev.map((val, i) => {
-            const idle = Math.sin(Date.now() * 0.002 + i * 0.35) * 0.12 + 0.22;
-            return Math.max(0.1, idle);
-          })
-        );
       }
       animationFrameRef.current = requestAnimationFrame(updateSpectrum);
     };
@@ -205,7 +209,7 @@ export default function InteractiveAudioPreview({ track }: AudioPreviewProps) {
       <audio
         ref={audioRef}
         src={audioSrc}
-        preload="metadata"
+        preload="none"
         playsInline
       />
 

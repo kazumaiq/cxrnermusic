@@ -140,35 +140,6 @@ export default function Starfield() {
 
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Glowing Violet & Indigo Space Nebulae
-      const g1 = ctx.createRadialGradient(
-        width * 0.25 + mouseX * 0.3,
-        height * 0.35 + mouseY * 0.3,
-        40,
-        width * 0.25,
-        height * 0.35,
-        width * 0.65
-      );
-      g1.addColorStop(0, "rgba(147, 51, 234, 0.18)"); // Vivid purple bloom
-      g1.addColorStop(0.5, "rgba(99, 102, 241, 0.08)");
-      g1.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = g1;
-      ctx.fillRect(0, 0, width, height);
-
-      const g2 = ctx.createRadialGradient(
-        width * 0.8 - mouseX * 0.3,
-        height * 0.65 - mouseY * 0.3,
-        50,
-        width * 0.8,
-        height * 0.65,
-        width * 0.6
-      );
-      g2.addColorStop(0, "rgba(168, 85, 247, 0.15)");
-      g2.addColorStop(0.6, "rgba(124, 58, 237, 0.06)");
-      g2.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = g2;
-      ctx.fillRect(0, 0, width, height);
-
       // 2. 3D Stars Flight Simulation with Scroll Reaction
       // User scrolls down -> stars rush toward the viewer with light streaks
       // User scrolls up -> stars reverse through the void
