@@ -261,7 +261,7 @@ export default function SubmitReleasePage() {
       } catch {}
 
       setSubmittedId(json.id);
-      if (json.warning) {
+      if (json.warning && !json.warning.includes("бот вернул ошибку") && !json.warning.includes("unauthorized")) {
         setWarning(json.warning);
       }
 

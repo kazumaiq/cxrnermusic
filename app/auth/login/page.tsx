@@ -19,6 +19,18 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
+      // 1. Verify if Google provider is enabled in Supabase to avoid raw 400 error page
+      const checkRes = await fetch("/api/auth/check-google").catch(() => null);
+      if (checkRes) {
+        const checkData = await checkRes.json().catch(() => null);
+        if (checkData && !checkData.enabled) {
+          throw new Error(
+            checkData.message ||
+              "Вход через Google еще не включен в панели Supabase. Перейдите в Supabase Dashboard -> Authentication -> Providers -> Google и включите его, либо войдите по Email.",
+          );
+        }
+      }
+
       const supabaseClient = getSupabaseBrowserClient();
       const { error: oauthError } = await supabaseClient.auth.signInWithOAuth({
         provider: "google",

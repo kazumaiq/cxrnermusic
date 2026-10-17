@@ -153,34 +153,41 @@ export async function POST(request: Request) {
         source: "web",
       };
 
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (process.env.BOT_BACKEND_SECRET) {
+        headers["x-cxrner-secret"] = process.env.BOT_BACKEND_SECRET;
+        headers["authorization"] = `Bearer ${process.env.BOT_BACKEND_SECRET}`;
+        headers["x-secret-key"] = process.env.BOT_BACKEND_SECRET;
+        headers["x-api-key"] = process.env.BOT_BACKEND_SECRET;
+      }
+
       const botRes = await fetch(`${botUrl}/api/new-release`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(process.env.BOT_BACKEND_SECRET
-            ? { "x-cxrner-secret": process.env.BOT_BACKEND_SECRET }
-            : {}),
-        },
+        headers,
         body: JSON.stringify(botPayload),
       });
 
       if (!botRes.ok) {
         const text = await botRes.text().catch(() => "");
+        console.warn(
+          `[Forms Submit] Release ${data.id} saved in Supabase, but Telegram bot webhook returned status ${botRes.status}: ${text || botRes.statusText}`,
+        );
         return NextResponse.json({
           ok: true,
           id: data.id,
           botNotified: false,
-          warning: `Заявка сохранена в базе, но бот вернул ошибку (${botRes.status}): ${text || botRes.statusText}`,
         });
       }
 
       return NextResponse.json({ ok: true, id: data.id, botNotified: true });
     } catch (botErr: any) {
+      console.warn(`[Forms Submit] Release ${data.id} saved in Supabase, but bot unreachable:`, botErr.message);
       return NextResponse.json({
         ok: true,
         id: data.id,
         botNotified: false,
-        warning: `Заявка сохранена в базе, но не удалось связаться с ботом: ${botErr.message}`,
       });
     }
   } catch (error: any) {

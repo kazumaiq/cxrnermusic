@@ -17,12 +17,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "BOT_BACKEND_URL не настроен" }, { status: 500 });
     }
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (process.env.BOT_BACKEND_SECRET) {
+      headers["x-cxrner-secret"] = process.env.BOT_BACKEND_SECRET;
+      headers["authorization"] = `Bearer ${process.env.BOT_BACKEND_SECRET}`;
+      headers["x-secret-key"] = process.env.BOT_BACKEND_SECRET;
+      headers["x-api-key"] = process.env.BOT_BACKEND_SECRET;
+    }
+
     const res = await fetch(`${botUrl}/api/new-release`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(process.env.BOT_BACKEND_SECRET ? { "x-cxrner-secret": process.env.BOT_BACKEND_SECRET } : {}),
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
