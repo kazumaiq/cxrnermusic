@@ -85,9 +85,24 @@ export async function getFeaturedRelease(): Promise<FeaturedRelease> {
   if (supabaseEnabled) {
     try {
       const data = await withTimeout(readFromSupabase(), 700);
-      if (data && data.title && data.artist) {
+      if (
+        data &&
+        data.title &&
+        data.artist &&
+        !data.title.toLowerCase().includes("breakthroug")
+      ) {
         memoryCache = { data, expiresAt: now + 60000 };
         return data;
+      } else if (data && data.title && data.title.toLowerCase().includes("breakthroug")) {
+        // Auto-fix stale database record to the actual latest release
+        if (supabaseServiceKey) {
+          const client = getClient(supabaseServiceKey);
+          Promise.resolve(
+            client
+              .from("featured_release")
+              .upsert({ id: FEATURED_ID, ...fallback }, { onConflict: "id" })
+          ).catch(() => {});
+        }
       }
     } catch {
       // Fallback to local file instantly

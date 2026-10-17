@@ -136,9 +136,21 @@ export default async function HomePage() {
               {/* Single Solid 3D Vinyl Record */}
               <div className="w-full relative aspect-square max-w-[500px] lg:max-w-[560px]">
                 <VinylCanvas
-                  featuredTitle={featured.title}
-                  featuredArtist={featured.artist}
-                  featuredCover={featured.cover}
+                  featuredTitle={
+                    !featured.title?.toLowerCase().includes("breakthroug")
+                      ? featured.title
+                      : "The Sadness of Reality"
+                  }
+                  featuredArtist={
+                    !featured.title?.toLowerCase().includes("breakthroug")
+                      ? featured.artist
+                      : "Neimeks"
+                  }
+                  featuredCover={
+                    !featured.title?.toLowerCase().includes("breakthroug") && featured.cover
+                      ? featured.cover
+                      : "/covers/the-sadness-of-reality.jpg"
+                  }
                 />
               </div>
 
@@ -146,9 +158,9 @@ export default async function HomePage() {
               <div className="w-full mt-6 max-w-[500px]">
                 <InteractiveAudioPreview
                   track={{
-                    title: featured.title || "The Sadness of Reality",
-                    artist: featured.artist || "Neimeks",
-                    cover: featured.cover || "/covers/the-sadness-of-reality.jpg",
+                    title: "The Sadness of Reality",
+                    artist: "Neimeks",
+                    cover: "/covers/the-sadness-of-reality.jpg",
                     audioSrc: "/audio/the-sadness-of-reality.mp3",
                     yandexUrl: "https://music.yandex.ru/album/44422385?utm_source=web&utm_medium=copy_link",
                     artistUrl: "https://music.yandex.ru/artist/25572730",
