@@ -55,10 +55,15 @@ export default function VinylCanvas({
     // Perspective Camera with dynamic responsive distance calculation
     const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
 
+    const isMobile =
+      typeof window !== "undefined" &&
+      (window.innerWidth < 768 ||
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+
     const initialWidth = container.clientWidth || 500;
     const initialHeight = container.clientHeight || 500;
     renderer.setSize(initialWidth, initialHeight);
-    renderer.setPixelRatio(Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 2));
+    renderer.setPixelRatio(isMobile ? 1.2 : Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.3;
 
@@ -75,9 +80,9 @@ export default function VinylCanvas({
     scene.add(vinylGroup);
 
     // ==============================================================
-    // 1. PROCEDURAL ULTRA-REALISTIC VINYL GROOVE TEXTURE (1024x1024)
+    // 1. PROCEDURAL ULTRA-REALISTIC VINYL GROOVE TEXTURE (1024x1024 or 512x512 on mobile)
     // ==============================================================
-    const texSize = 1024;
+    const texSize = isMobile ? 512 : 1024;
     const canvas = document.createElement("canvas");
     canvas.width = texSize;
     canvas.height = texSize;
@@ -170,11 +175,12 @@ export default function VinylCanvas({
     const discRadius = 1.5;
     const discThickness = 0.075;
 
+    const discSegments = isMobile ? 64 : 128;
     const discGeometry = new THREE.CylinderGeometry(
       discRadius,
       discRadius,
       discThickness,
-      128,
+      discSegments,
       2,
       false
     );

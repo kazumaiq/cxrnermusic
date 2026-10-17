@@ -23,12 +23,12 @@ const config: Config = {
         accentWine: "#3D0A14",
       },
       fontFamily: {
-        heavy: ["'Oswald'", "'Bebas Neue'", "Impact", "sans-serif"],
-        gothic: ["'Oswald'", "'Bebas Neue'", "'Unbounded'", "Impact", "sans-serif"],
-        display: ["'Oswald'", "'Unbounded'", "'Bebas Neue'", "sans-serif"],
-        unbounded: ["'Unbounded'", "sans-serif"],
-        mono: ["'Space Mono'", "monospace"],
-        body: ["Inter", "sans-serif"],
+        heavy: ["var(--font-oswald)", "var(--font-bebas)", "Impact", "sans-serif"],
+        gothic: ["var(--font-oswald)", "var(--font-bebas)", "var(--font-unbounded)", "Impact", "sans-serif"],
+        display: ["var(--font-oswald)", "var(--font-unbounded)", "var(--font-bebas)", "sans-serif"],
+        unbounded: ["var(--font-unbounded)", "sans-serif"],
+        mono: ["var(--font-mono)", "monospace"],
+        body: ["var(--font-inter)", "sans-serif"],
       },
       boxShadow: {
         card: "0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 30px rgba(0, 0, 0, 0.8)",

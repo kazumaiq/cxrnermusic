@@ -79,7 +79,7 @@ async function readFromSupabase(): Promise<ReleaseItem[]> {
 
 let releasesMemoryCache: { data: ReleaseItem[]; expiresAt: number } | null = null;
 
-async function withTimeout<T>(promise: Promise<T>, ms = 700): Promise<T> {
+async function withTimeout<T>(promise: Promise<T>, ms = 250): Promise<T> {
   let timer: any;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error("TIMEOUT")), ms);

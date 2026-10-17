@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
+import { Inter, Oswald, Bebas_Neue, Space_Mono, Unbounded } from "next/font/google";
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -9,8 +10,40 @@ import BackgroundFX from "../components/BackgroundFX";
 
 const SITE_URL = "https://cxrnermusic.vercel.app";
 
+const inter = Inter({
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+const oswald = Oswald({
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+  variable: "--font-oswald",
+});
+
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-bebas",
+});
+
+const spaceMono = Space_Mono({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+});
+
+const unbounded = Unbounded({
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+  variable: "--font-unbounded",
+});
+
 export const viewport: Viewport = {
-  themeColor: "#050505",
+  themeColor: "#020204",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -81,23 +114,21 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru" className="dark scroll-smooth bg-[#020204]">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Oswald:wght@600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@700;800;900&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html
+      lang="ru"
+      className={`dark scroll-smooth bg-[#020204] ${inter.variable} ${oswald.variable} ${bebasNeue.variable} ${spaceMono.variable} ${unbounded.variable}`}
+    >
       <body className="min-h-screen bg-transparent text-[#EAEAEA] antialiased selection:bg-white selection:text-black">
+        {/* Fullscreen 3D Starfield at Document Root */}
+        <BackgroundFX />
+
         <Script
           id="json-ld-org"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+
         <div className="relative min-h-screen flex flex-col justify-between overflow-x-hidden">
-          <BackgroundFX />
           <Header />
           <Providers>
             <main className="flex-1">{children}</main>

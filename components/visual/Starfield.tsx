@@ -6,23 +6,18 @@ import * as THREE from "three";
 /**
  * Interactive Fullscreen 3D Starfield in Cyber-Dark / Sci-Fi aesthetic (dynexmusic.com style).
  * 
- * Features:
- * 1. Fixed fullscreen canvas (position: fixed, inset: 0, pointer-events: none, z-index: -1).
- * 2. Scene clear color: deep cosmic void black #020204.
- * 3. PerspectiveCamera: FOV 45 (desktop) / 58 (mobile), near: 0.5, far: 8000.
- * 4. Adaptive DPR: Math.min(devicePixelRatio, 1.5) desktop, 1.1 mobile.
- * 5. Page Visibility API: halts animation loop when tab is hidden.
- * 6. 4-Layer Starfield Depth:
- *    - Layer 1: Deep Stars (1100 desktop / 180 mobile, box 4500x3000x8000, 1.2px, opacity 0.5, monochrome)
- *    - Layer 2: Mid Stars (600 desktop / 100 mobile, box 3000x2000x7500, 1.8px, opacity 0.7, 3% Red, 3.5% Purple)
- *    - Layer 3: Near Stars (200 desktop / 40 mobile, box 1600x1200x7000, 2.5px, opacity 0.85, 4% Red, 4% Purple)
- *    - Layer 4: Foreground Micro-Sparks (50 desktop / 15 mobile, box 750x600x6000, 3.5px, opacity 0.95, 6% Red, 6% Purple)
- * 7. BufferGeometry with Float32Array positions and colors.
- * 8. Mouse parallax with smooth lerp & subtle camera tilt (desktop only).
- * 9. Scroll Z-travel moving camera through tunnel (Z = 0 down to Z = -5500) via Cosine S-curve.
- * 10. Atmospheric lighting: ambientLight (#D8D8D5, 0.45), directionalLight (#F2F2EE, 0.85),
- *     and two moving point lights (Red #E61924, Purple #8B5CF6) following camera.
- * 11. Complete disposal of geometries, materials, textures, and renderer on unmount.
+ * 1. Scene & Canvas: fixed fullscreen, Void Black #020204 clear color, PerspectiveCamera,
+ *    adaptive DPR (1.5 desktop / 1.1 mobile), Page Visibility API pause/resume.
+ * 2. 4-Layer Starfield:
+ *    - Layer 1: Deep Stars (1100 desktop / 180 mobile, box 4500x3000x8000, 1.8px, opacity 0.65, monochrome)
+ *    - Layer 2: Mid Stars (600 desktop / 100 mobile, box 3000x2000x7500, 2.8px, opacity 0.78, 3% Red, 3.5% Purple)
+ *    - Layer 3: Near Stars (200 desktop / 40 mobile, box 1600x1200x7000, 4.2px, opacity 0.88, 4% Red, 4% Purple)
+ *    - Layer 4: Foreground Micro-Sparks (50 desktop / 15 mobile, box 750x600x6000, 6.0px, opacity 0.98, 6% Red, 6% Purple)
+ * 3. Particle System: BufferGeometry with Float32Array positions and colors.
+ * 4. Camera Rig: Mouse parallax (lerp delta * 3 & subtle tilt, desktop only) + Scroll Z-travel via Cosine S-curve.
+ * 5. Atmospheric Lighting: ambientLight (#D8D8D5, 0.45), directionalLight (#F2F2EE, 0.85),
+ *    and two moving point lights (Red #E61924, Purple #8B5CF6) following camera.
+ * 6. Memory Cleanup: full dispose() on all geometries, materials, textures, and renderer on unmount.
  */
 export default function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -37,8 +32,8 @@ export default function Starfield() {
       (window.innerWidth < 768 ||
         /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
 
     // 1. SCENE SETUP
     const scene = new THREE.Scene();
@@ -49,7 +44,7 @@ export default function Starfield() {
       fov,
       width / Math.max(height, 1),
       0.5,
-      8000
+      12000
     );
     camera.position.set(0, 0, 0);
 
@@ -58,7 +53,7 @@ export default function Starfield() {
     try {
       renderer = new THREE.WebGLRenderer({
         canvas,
-        alpha: false,
+        alpha: true,
         antialias: false,
         powerPreference: "high-performance",
       });
@@ -85,22 +80,22 @@ export default function Starfield() {
     scene.add(redLight);
     scene.add(purpleLight);
 
-    // Helper: generate soft circular glow particle texture in memory
+    // Generate crisp glowing circular star texture in memory
     const createCircleTexture = () => {
       const texCanvas = document.createElement("canvas");
-      texCanvas.width = 64;
-      texCanvas.height = 64;
+      texCanvas.width = 32;
+      texCanvas.height = 32;
       const ctx = texCanvas.getContext("2d");
       if (!ctx) return null;
 
-      const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
       grad.addColorStop(0, "rgba(255, 255, 255, 1)");
-      grad.addColorStop(0.2, "rgba(255, 255, 255, 0.85)");
-      grad.addColorStop(0.55, "rgba(255, 255, 255, 0.35)");
+      grad.addColorStop(0.35, "rgba(255, 255, 255, 1)");
+      grad.addColorStop(0.7, "rgba(255, 255, 255, 0.65)");
       grad.addColorStop(1, "rgba(255, 255, 255, 0)");
 
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 64, 64);
+      ctx.fillRect(0, 0, 32, 32);
 
       const texture = new THREE.CanvasTexture(texCanvas);
       texture.needsUpdate = true;
@@ -126,7 +121,7 @@ export default function Starfield() {
     const nearRed = new THREE.Color("#F21F2E");
     const nearPurple = new THREE.Color("#B36CFF");
     const neonRed = new THREE.Color("#FF1E27");
-    const brightPurple = new THREE.Color("#BF55EC");
+    const brightPurple = new THREE.Color("#C084FC");
     const pureWhite = new THREE.Color(1, 1, 1);
 
     const layerConfigs: LayerConfig[] = [
@@ -135,12 +130,12 @@ export default function Starfield() {
         count: isMobile ? 180 : 1100,
         boxX: 4500,
         boxY: 3000,
-        boxZ: 8000,
-        size: 1.2,
-        opacity: 0.5,
+        boxZ: 8500,
+        size: 1.8,
+        opacity: 0.65,
         colorGenerator: () => {
-          // Monochrome brightness from 0.25 to 0.60
-          const b = 0.25 + Math.random() * 0.35;
+          // Luminous monochrome brightness (0.35 to 0.75)
+          const b = 0.35 + Math.random() * 0.4;
           return [b, b, b];
         },
         rotSpeed: 0.002,
@@ -150,9 +145,9 @@ export default function Starfield() {
         count: isMobile ? 100 : 600,
         boxX: 3000,
         boxY: 2000,
-        boxZ: 7500,
-        size: 1.8,
-        opacity: 0.7,
+        boxZ: 8000,
+        size: 2.8,
+        opacity: 0.78,
         colorGenerator: () => {
           const rand = Math.random();
           if (rand < 0.03) {
@@ -161,19 +156,19 @@ export default function Starfield() {
             return [cyberPurple.r, cyberPurple.g, cyberPurple.b];
           }
           // Neutral silver-white
-          const w = 0.82 + Math.random() * 0.18;
-          return [w, w, Math.min(1, w + 0.05)];
+          const w = 0.88 + Math.random() * 0.12;
+          return [w, w, 1.0];
         },
         rotSpeed: 0.005,
       },
-      // Layer 3: Near Stars (closer presence)
+      // Layer 3: Near Stars (closer volume and presence)
       {
         count: isMobile ? 40 : 200,
         boxX: 1600,
         boxY: 1200,
-        boxZ: 7000,
-        size: 2.5,
-        opacity: 0.85,
+        boxZ: 7500,
+        size: 4.2,
+        opacity: 0.88,
         colorGenerator: () => {
           const rand = Math.random();
           if (rand < 0.04) {
@@ -190,9 +185,9 @@ export default function Starfield() {
         count: isMobile ? 15 : 50,
         boxX: 750,
         boxY: 600,
-        boxZ: 6000,
-        size: 3.5,
-        opacity: 0.95,
+        boxZ: 6500,
+        size: 6.0,
+        opacity: 0.98,
         colorGenerator: () => {
           const rand = Math.random();
           if (rand < 0.06) {
@@ -218,11 +213,11 @@ export default function Starfield() {
       const colors = new Float32Array(cfg.count * 3);
 
       for (let i = 0; i < cfg.count; i++) {
-        // Distribute within box bounds along the camera travel tunnel
-        // Camera travels from Z = 0 to Z = -5500
+        // Distribute within box bounds directly in front of camera
+        // Camera travels along Z from Z = 0 to Z = -5200
         positions[i * 3] = (Math.random() - 0.5) * cfg.boxX;
         positions[i * 3 + 1] = (Math.random() - 0.5) * cfg.boxY;
-        positions[i * 3 + 2] = (Math.random() - 0.5) * cfg.boxZ - 2500;
+        positions[i * 3 + 2] = -Math.random() * cfg.boxZ + 150;
 
         const [r, g, b] = cfg.colorGenerator(i, cfg.count);
         colors[i * 3] = r;
@@ -234,10 +229,11 @@ export default function Starfield() {
       geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
       geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
+      // Crisp screen-space pixel sizing with Additive Blending for unmistakable visibility
       const material = new THREE.PointsMaterial({
         size: cfg.size,
         vertexColors: true,
-        sizeAttenuation: true,
+        sizeAttenuation: false,
         transparent: true,
         opacity: cfg.opacity,
         depthWrite: false,
@@ -266,15 +262,12 @@ export default function Starfield() {
     let targetTiltY = 0;
 
     const onPointerMove = (e: MouseEvent) => {
-      // Normalized pointer coordinates [-1, 1]
       pointerX = (e.clientX / window.innerWidth) * 2 - 1;
       pointerY = (e.clientY / window.innerHeight) * 2 - 1;
 
-      // Parallax target positions
       targetCameraX = pointerX * 80;
       targetCameraY = -pointerY * 60;
 
-      // Subtle tilt in the direction of cursor
       targetTiltY = -pointerX * 0.025;
       targetTiltX = pointerY * 0.018;
     };
@@ -283,7 +276,6 @@ export default function Starfield() {
       window.addEventListener("mousemove", onPointerMove, { passive: true });
     }
 
-    // Scroll tracking
     const updateScrollProgress = () => {
       const scrollY = window.scrollY || window.pageYOffset || 0;
       const maxScroll = Math.max(
@@ -292,7 +284,7 @@ export default function Starfield() {
       );
       const progress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
 
-      // Smooth Cosine S-curve from Z = 0 into Z = -5200
+      // Smooth Cosine S-curve from Z = 0 down into Z = -5200
       const sCurve = (1 - Math.cos(progress * Math.PI)) / 2;
       targetCameraZ = -sCurve * 5200;
     };
@@ -303,15 +295,15 @@ export default function Starfield() {
     // Handle Window Resize
     const onResize = () => {
       if (!canvas || !renderer) return;
-      const newW = window.innerWidth;
-      const newH = window.innerHeight;
-      camera.aspect = newW / Math.max(newH, 1);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      camera.aspect = width / Math.max(height, 1);
       camera.fov = isMobile ? 58 : 45;
       camera.updateProjectionMatrix();
 
       const newDpr = isMobile ? 1.1 : Math.min(window.devicePixelRatio || 1, 1.5);
       renderer.setPixelRatio(newDpr);
-      renderer.setSize(newW, newH);
+      renderer.setSize(width, height);
       updateScrollProgress();
     };
 
@@ -430,13 +422,7 @@ export default function Starfield() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none select-none w-full h-full"
-      style={{
-        position: "fixed",
-        inset: 0,
-        pointerEvents: "none",
-        zIndex: -1,
-      }}
+      className="absolute inset-0 pointer-events-none select-none w-full h-full block"
       aria-hidden="true"
     />
   );
