@@ -2,6 +2,7 @@ import Image from "next/image";
 import Container from "../../components/Container";
 import GlowButton from "../../components/GlowButton";
 import DashboardReleasesTable from "../../components/DashboardReleasesTable";
+import TelegramSyncCard from "../../components/TelegramSyncCard";
 import { getSupabaseServerClient } from "../../lib/supabaseServer";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -21,6 +22,9 @@ type CabinetProfileRow = {
   user_id: string;
   profile: {
     artist_name?: string;
+    telegram_id?: string | number;
+    telegram_username?: string;
+    telegram_linked_at?: string;
   } | null;
 };
 
@@ -61,12 +65,22 @@ export default async function DashboardPage() {
       .maybeSingle<CabinetProfileRow>();
     profileRow = pRow;
 
-    const { data: fRows } = await supabase
+    const linkedTgId = profileRow?.profile?.telegram_id
+      ? String(profileRow.profile.telegram_id)
+      : null;
+
+    let query = supabase
       .from("cxrner_forms")
       .select("id, artist_name, track_name, genre, status, upc, created_at, source")
-      .eq("telegram_id", user.id)
-      .order("created_at", { ascending: false })
-      .returns<FormRow[]>();
+      .order("created_at", { ascending: false });
+
+    if (linkedTgId) {
+      query = query.or(`telegram_id.eq.${user.id},telegram_id.eq.${linkedTgId}`);
+    } else {
+      query = query.eq("telegram_id", user.id);
+    }
+
+    const { data: fRows } = await query.returns<FormRow[]>();
 
     forms = fRows ?? [];
   } catch (err: any) {
@@ -189,12 +203,30 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+        {/* Telegram Sync integration banner */}
+        <div className="mb-10">
+          <TelegramSyncCard
+            initialLinked={Boolean(profileRow?.profile?.telegram_id)}
+            initialTelegramId={
+              profileRow?.profile?.telegram_id
+                ? String(profileRow.profile.telegram_id)
+                : null
+            }
+            initialTelegramUsername={profileRow?.profile?.telegram_username ?? null}
+          />
+        </div>
+
         {/* Releases Table & Realtime Section */}
         {user ? (
           <DashboardReleasesTable
             initialForms={forms}
             profileArtistName={profileRow?.profile?.artist_name ?? null}
             userId={user.id}
+            linkedTelegramId={
+              profileRow?.profile?.telegram_id
+                ? String(profileRow.profile.telegram_id)
+                : null
+            }
           />
         ) : (
           <div className="glass-panel rounded-3xl p-10 text-center border border-white/10">

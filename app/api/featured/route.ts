@@ -9,7 +9,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const body = await request.json() as { title?: string; artist?: string; cover?: string };
     const data = await setFeaturedRelease({ title: body.title ?? "", artist: body.artist ?? "", cover: body.cover ?? "" });
     revalidatePath("/", "page");

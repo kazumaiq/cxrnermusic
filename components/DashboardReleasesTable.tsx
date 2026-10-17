@@ -88,22 +88,47 @@ type DashboardReleasesTableProps = {
   initialForms: FormRow[];
   profileArtistName?: string | null;
   userId: string;
+  linkedTelegramId?: string | null;
 };
 
 export default function DashboardReleasesTable({
   initialForms,
   profileArtistName,
   userId,
+  linkedTelegramId,
 }: DashboardReleasesTableProps) {
   const [forms, setForms] = useState<FormRow[]>(initialForms);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
+    setForms(initialForms);
+  }, [initialForms]);
+
+  useEffect(() => {
     try {
       const supabase = getSupabaseBrowserClient();
 
-      const channel = supabase
+      const handlePayload = (payload: RealtimePostgresChangesPayload<FormRow>) => {
+        setForms((current) => {
+          if (payload.eventType === "INSERT") {
+            const newRow = payload.new as FormRow;
+            if (current.some((r) => r.id === newRow.id)) return current;
+            return [newRow, ...current];
+          }
+          if (payload.eventType === "UPDATE") {
+            const updated = payload.new as FormRow;
+            return current.map((row) => (row.id === updated.id ? { ...row, ...updated } : row));
+          }
+          if (payload.eventType === "DELETE") {
+            const oldRow = payload.old as FormRow;
+            return current.filter((row) => row.id !== oldRow.id);
+          }
+          return current;
+        });
+      };
+
+      const channelUser = supabase
         .channel(`cxrner_forms_user_${userId}`)
         .on(
           "postgres_changes",
@@ -113,33 +138,35 @@ export default function DashboardReleasesTable({
             table: "cxrner_forms",
             filter: `telegram_id=eq.${userId}`,
           },
-          (payload: RealtimePostgresChangesPayload<FormRow>) => {
-            setForms((current) => {
-              if (payload.eventType === "INSERT") {
-                const newRow = payload.new as FormRow;
-                return [newRow, ...current];
-              }
-              if (payload.eventType === "UPDATE") {
-                const updated = payload.new as FormRow;
-                return current.map((row) => (row.id === updated.id ? { ...row, ...updated } : row));
-              }
-              if (payload.eventType === "DELETE") {
-                const oldRow = payload.old as FormRow;
-                return current.filter((row) => row.id !== oldRow.id);
-              }
-              return current;
-            });
-          },
+          handlePayload
         )
         .subscribe();
 
+      let channelTg: any = null;
+      if (linkedTelegramId) {
+        channelTg = supabase
+          .channel(`cxrner_forms_tg_${linkedTelegramId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "cxrner_forms",
+              filter: `telegram_id=eq.${linkedTelegramId}`,
+            },
+            handlePayload
+          )
+          .subscribe();
+      }
+
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(channelUser);
+        if (channelTg) supabase.removeChannel(channelTg);
       };
     } catch {
       // Supabase credentials not set or browser offline; continue with initialForms safely
     }
-  }, [userId]);
+  }, [userId, linkedTelegramId]);
 
   const filteredForms = useMemo(() => {
     return forms.filter((item) => {

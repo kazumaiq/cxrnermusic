@@ -9,7 +9,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const body = await request.json() as { items?: ArtistItem[] };
     const saved = await setArtists(Array.isArray(body.items) ? body.items : []);
     revalidatePath("/", "page");

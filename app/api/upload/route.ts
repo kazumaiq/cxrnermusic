@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { getAdminUser } from "../../../lib/admin";
+import { verifyAdminRequest } from "../../../lib/admin";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -17,7 +17,7 @@ function buildFilePath(folder: string, fileName: string) {
 }
 
 export async function POST(request: Request) {
-  if (!await getAdminUser()) {
+  if (!(await verifyAdminRequest(request))) {
     return Response.json({ ok: false, error: "Доступ разрешён только администратору" }, { status: 403 });
   }
   if (!supabaseUrl || !supabaseServiceKey) {
