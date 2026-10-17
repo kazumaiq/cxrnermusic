@@ -52,7 +52,7 @@ export default function WorkflowSection() {
           return (
             <div
               key={item.step}
-              className="group rounded-2xl p-6 border border-purple-500/20 hover:border-purple-500/45 transition-all duration-300 flex flex-col justify-between bg-[#0c0c16]/90 backdrop-blur-md hover:shadow-[0_0_25px_rgba(168,85,247,0.15)] hover:-translate-y-1"
+              className="group rounded-2xl p-6 border border-purple-500/20 hover:border-purple-500/45 transition-all duration-300 flex flex-col justify-between bg-[#0c0c18]/70 backdrop-blur-md hover:shadow-[0_0_25px_rgba(168,85,247,0.15)] hover:-translate-y-1"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">

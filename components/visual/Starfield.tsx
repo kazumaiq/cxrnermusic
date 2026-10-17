@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 interface Star3D {
   x: number;
   y: number;
-  z: number; // Depth distance [100 .. 1500]
+  z: number;
   prevZ: number;
   size: number;
   color: string;
@@ -32,7 +32,7 @@ export default function Starfield() {
       (window.innerWidth < 768 ||
         /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
 
-    const starCount = isMobile ? 140 : 380;
+    const starCount = isMobile ? 300 : 550;
     const stars: Star3D[] = [];
 
     let width = 0;
@@ -42,9 +42,8 @@ export default function Starfield() {
     let animationFrameId: number;
 
     let scrollY = window.scrollY;
-    let targetScrollY = window.scrollY;
     let scrollVelocity = 0;
-    let lastScrollY = window.scrollY;
+    let scrollImpulse = 0;
 
     let mouseX = 0;
     let mouseY = 0;
@@ -52,17 +51,21 @@ export default function Starfield() {
     let targetMouseY = 0;
     let lastTime = performance.now();
 
-    const maxDepth = 1200;
-    const baseSpeed = prefersReducedMotion ? 0 : 0.85;
+    const maxDepth = 1000;
+    const baseSpeed = prefersReducedMotion ? 0 : 0.9;
 
-    // Palette: crisp white, bright silver, soft violet, neon purple
+    // High-visibility luminous palette: bright white, electric violet, neon purple, bright silver, cyan-white
     const starColors = [
       "#ffffff",
-      "#f3e8ff", // soft purple-white
-      "#e9d5ff", // light purple
-      "#d8b4fe", // violet
-      "#c084fc", // neon purple
-      "#e2e8f0", // silver
+      "#ffffff",
+      "#fdf4ff",
+      "#f3e8ff",
+      "#e9d5ff",
+      "#d8b4fe",
+      "#c084fc",
+      "#a855f7",
+      "#a5b4fc",
+      "#e0e7ff",
     ];
 
     const initStars = () => {
@@ -70,14 +73,14 @@ export default function Starfield() {
       for (let i = 0; i < starCount; i++) {
         const z = Math.random() * maxDepth + 1;
         stars.push({
-          x: (Math.random() - 0.5) * width * 2.2,
-          y: (Math.random() - 0.5) * height * 2.2,
+          x: (Math.random() - 0.5) * width * 3.0,
+          y: (Math.random() - 0.5) * height * 3.0,
           z,
           prevZ: z,
-          size: Math.random() * 1.5 + 0.8,
+          size: Math.random() * 2.2 + 1.2, // Crisp, easily visible star size
           color: starColors[Math.floor(Math.random() * starColors.length)],
           twinkle: Math.random() * Math.PI * 2,
-          twinkleSpeed: Math.random() * 0.03 + 0.01,
+          twinkleSpeed: Math.random() * 0.05 + 0.02,
         });
       }
     };
@@ -98,8 +101,18 @@ export default function Starfield() {
     handleResize();
     window.addEventListener("resize", handleResize, { passive: true });
 
+    let lastScrollTimestamp = performance.now();
     const handleScroll = () => {
-      targetScrollY = window.scrollY;
+      const currentScrollY = window.scrollY;
+      const now = performance.now();
+      const dt = Math.max((now - lastScrollTimestamp) / 1000, 0.016);
+      lastScrollTimestamp = now;
+
+      const deltaY = currentScrollY - scrollY;
+      scrollY = currentScrollY;
+
+      // Add immediate scroll impulse
+      scrollImpulse = deltaY / dt * 0.003;
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
 
@@ -111,71 +124,76 @@ export default function Starfield() {
       window.addEventListener("mousemove", handleMouseMove, { passive: true });
     }
 
-    // Render loop
+    // 60FPS Render Loop
     const render = (now: number) => {
       animationFrameId = requestAnimationFrame(render);
 
       const delta = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
-      // Scroll speed calculation for interactive boost
-      const scrollDiff = targetScrollY - scrollY;
-      scrollY += scrollDiff * 0.1;
-      scrollVelocity = (scrollY - lastScrollY) * 0.4;
-      lastScrollY = scrollY;
+      // Smooth decay of scroll velocity and impulse
+      scrollVelocity += (scrollImpulse - scrollVelocity) * 0.2;
+      scrollImpulse *= 0.88;
 
-      mouseX += (targetMouseX - mouseX) * 0.05;
-      mouseY += (targetMouseY - mouseY) * 0.05;
+      mouseX += (targetMouseX - mouseX) * 0.06;
+      mouseY += (targetMouseY - mouseY) * 0.06;
 
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Ambient Glowing Purple & Violet Nebulae
-      // Top-left violet cosmic light
+      // 1. Glowing Violet & Indigo Space Nebulae
       const g1 = ctx.createRadialGradient(
-        width * 0.2 + mouseX * 0.5,
-        height * 0.25 + mouseY * 0.5,
-        20,
-        width * 0.2,
-        height * 0.25,
+        width * 0.25 + mouseX * 0.3,
+        height * 0.35 + mouseY * 0.3,
+        40,
+        width * 0.25,
+        height * 0.35,
         width * 0.65
       );
-      g1.addColorStop(0, "rgba(147, 51, 234, 0.09)"); // Purple glow
-      g1.addColorStop(0.5, "rgba(99, 102, 241, 0.04)"); // Indigo
+      g1.addColorStop(0, "rgba(147, 51, 234, 0.18)"); // Vivid purple bloom
+      g1.addColorStop(0.5, "rgba(99, 102, 241, 0.08)");
       g1.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = g1;
       ctx.fillRect(0, 0, width, height);
 
-      // Bottom-right deep amethyst nebula
       const g2 = ctx.createRadialGradient(
-        width * 0.8 - mouseX * 0.4,
-        height * 0.7 - mouseY * 0.4,
-        30,
+        width * 0.8 - mouseX * 0.3,
+        height * 0.65 - mouseY * 0.3,
+        50,
         width * 0.8,
-        height * 0.7,
-        width * 0.55
+        height * 0.65,
+        width * 0.6
       );
-      g2.addColorStop(0, "rgba(168, 85, 247, 0.07)");
-      g2.addColorStop(0.6, "rgba(79, 70, 229, 0.03)");
+      g2.addColorStop(0, "rgba(168, 85, 247, 0.15)");
+      g2.addColorStop(0.6, "rgba(124, 58, 237, 0.06)");
       g2.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = g2;
       ctx.fillRect(0, 0, width, height);
 
       // 2. 3D Stars Flight Simulation with Scroll Reaction
-      const effectiveSpeed = (baseSpeed + Math.abs(scrollVelocity) * 0.06) * 60 * delta;
+      // User scrolls down -> stars rush toward the viewer with light streaks
+      // User scrolls up -> stars reverse through the void
+      const absVelocity = Math.abs(scrollVelocity);
+      const warpSpeed = Math.min(absVelocity * 3.5, 25);
+      const speed = (baseSpeed + warpSpeed) * 60 * delta;
       const fov = 340;
+      const isWarping = warpSpeed > 0.15;
 
       for (let i = 0; i < stars.length; i++) {
         const star = stars[i];
 
         star.prevZ = star.z;
-        star.z -= effectiveSpeed * 3.5;
+        // Direction follows scroll: forward flight with acceleration
+        star.z -= speed * 4.0;
 
-        // Reset if passed camera
-        if (star.z <= 1) {
+        // Reset star if it passes the camera or goes beyond bounds
+        if (star.z <= 2) {
           star.z = maxDepth;
           star.prevZ = maxDepth;
-          star.x = (Math.random() - 0.5) * width * 2.2;
-          star.y = (Math.random() - 0.5) * height * 2.2;
+          star.x = (Math.random() - 0.5) * width * 3.0;
+          star.y = (Math.random() - 0.5) * height * 3.0;
+        } else if (star.z > maxDepth) {
+          star.z = 2;
+          star.prevZ = 2;
         }
 
         // 3D perspective projection
@@ -183,45 +201,46 @@ export default function Starfield() {
         const px = star.x * k + cx - mouseX * (1 - star.z / maxDepth);
         const py = star.y * k + cy - mouseY * (1 - star.z / maxDepth);
 
-        // Previous position for smooth speed streaks during fast scroll
+        // Previous point for light streak effect
         const prevK = fov / star.prevZ;
         const prevPx = star.x * prevK + cx - mouseX * (1 - star.prevZ / maxDepth);
         const prevPy = star.y * prevK + cy - mouseY * (1 - star.prevZ / maxDepth);
 
-        // Offscreen check
-        if (px < -20 || px > width + 20 || py < -20 || py > height + 20) {
+        if (px < -50 || px > width + 50 || py < -50 || py > height + 50) {
           continue;
         }
 
-        // Alpha based on depth: closer is brighter
-        const depthAlpha = Math.max(0.1, 1 - star.z / maxDepth);
+        // Visibility & Brightness calculation
+        const depthRatio = 1 - star.z / maxDepth;
+        const depthAlpha = Math.max(0.25, depthRatio);
         star.twinkle += star.twinkleSpeed;
         const twinkleAlpha = Math.sin(star.twinkle) * 0.2 + 0.8;
         const alpha = Math.min(1, depthAlpha * twinkleAlpha);
 
-        const currentSize = Math.max(0.6, (1 - star.z / maxDepth) * star.size * 2.2);
+        const currentSize = Math.max(1.2, depthRatio * star.size * 2.2);
 
         ctx.strokeStyle = star.color;
         ctx.fillStyle = star.color;
         ctx.globalAlpha = alpha;
 
-        // If scrolling fast, draw light streak line for 3D warp feel
-        if (Math.abs(scrollVelocity) > 2) {
-          ctx.lineWidth = currentSize;
+        // When scrolling/warping, draw distinct 3D motion streaks
+        if (isWarping && Math.hypot(px - prevPx, py - prevPy) > 1.2) {
+          ctx.lineWidth = Math.max(1.4, currentSize * 1.1);
           ctx.beginPath();
           ctx.moveTo(prevPx, prevPy);
           ctx.lineTo(px, py);
           ctx.stroke();
         } else {
+          // Idle floating star with crisp core
           ctx.beginPath();
           ctx.arc(px, py, currentSize, 0, Math.PI * 2);
           ctx.fill();
 
-          // Delicate purple glow around bright near stars
-          if (star.z < 280 && !isMobile) {
+          // Luminous aura for closer stars
+          if (star.z < 450) {
             ctx.beginPath();
             ctx.arc(px, py, currentSize * 2.8, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(192, 132, 252, 0.2)";
+            ctx.fillStyle = "rgba(192, 132, 252, 0.28)";
             ctx.fill();
           }
         }
@@ -245,8 +264,8 @@ export default function Starfield() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none -z-10 w-full h-full select-none"
-      style={{ opacity: 0.95 }}
+      className="fixed inset-0 pointer-events-none w-full h-full select-none"
+      style={{ zIndex: 0 }}
       aria-hidden="true"
     />
   );

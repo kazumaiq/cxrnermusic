@@ -5,23 +5,24 @@ import Starfield from "./visual/Starfield";
 export default function BackgroundFX() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden select-none">
-      {/* Deep Obsidian Black Base */}
-      <div className="absolute inset-0 bg-[#060609]" />
+      {/* Deep Obsidian Cosmic Base */}
+      <div className="absolute inset-0 bg-[#050508]" />
 
       {/* 3D Animated Flying Stars & Glowing Nebulae */}
       <Starfield />
 
       {/* Top Ambient Purple Glow */}
-      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[550px] bg-gradient-to-b from-purple-600/15 via-indigo-600/05 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-purple-600/20 via-indigo-600/10 to-transparent blur-3xl pointer-events-none" />
+
+      {/* Center Subtle Violet Bloom */}
+      <div className="absolute top-1/2 -left-48 w-[600px] h-[600px] bg-purple-900/15 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Subtle Micro-Grid with radial mask */}
-      <div className="gothic-grid absolute inset-0 opacity-20 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_40%,#000_50%,transparent_100%)]" />
+      <div className="gothic-grid absolute inset-0 opacity-15 [mask-image:radial-gradient(ellipse_80%_70%_at_50%_50%,#000_40%,transparent_100%)]" />
 
       {/* Film Grain */}
-      <div className="film-grain absolute inset-0 opacity-30 mix-blend-screen" />
-
-      {/* Bottom Darkness Falloff */}
-      <div className="absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-[#060609] via-[#060609]/80 to-transparent pointer-events-none" />
+      <div className="film-grain absolute inset-0 opacity-20 mix-blend-screen" />
     </div>
   );
 }
+

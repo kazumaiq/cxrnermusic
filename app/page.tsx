@@ -150,14 +150,15 @@ export default async function HomePage() {
       <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent my-6" />
 
       {/* ===================== STATS BAR ===================== */}
-      <section className="relative py-16 sm:py-20 border-y border-purple-500/15 bg-gradient-to-b from-[#090912]/80 via-[#07070d]/90 to-[#090912]/80 backdrop-blur-xl">
+      <section className="relative py-16 sm:py-20 border-y border-purple-500/20 bg-[#090912]/20 backdrop-blur-sm">
         <Container>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {stats.map((stat, idx) => (
               <ScrollReveal key={stat.label} delay={idx * 100}>
-                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-purple-500/30 transition duration-300">
+                <div className="p-4 rounded-2xl bg-[#0e0e1a]/50 border border-white/5 hover:border-purple-500/30 transition duration-300">
                   <p className="font-heavy text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight">
                     {stat.display ?? <Counter to={stat.value} suffix={stat.suffix} />}
+
                   </p>
                   <p className="mt-2 font-mono text-xs uppercase tracking-wider text-purple-300 font-medium">
                     {stat.label}
@@ -220,7 +221,7 @@ export default async function HomePage() {
       <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent my-8" />
 
       {/* ===================== WORKFLOW / PROCESS ===================== */}
-      <section className="py-20 sm:py-28 relative bg-[#08080f]/90 border-y border-purple-500/15">
+      <section className="py-20 sm:py-28 relative bg-transparent border-y border-purple-500/15">
         <Container>
           <ScrollReveal>
             <div className="text-center max-w-2xl mx-auto mb-14">
@@ -256,7 +257,7 @@ export default async function HomePage() {
       <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/25 to-transparent my-8" />
 
       {/* ===================== ARTISTS ROSTER ===================== */}
-      <section id="artists" className="py-20 sm:py-28 relative">
+      <section id="artists" className="py-20 sm:py-28 relative bg-transparent">
         <Container>
           <ScrollReveal>
             <div className="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -287,7 +288,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {artists.map((artist, idx) => (
               <ScrollReveal key={artist.id} delay={idx * 70}>
-                <div className="group rounded-2xl p-5 border border-purple-500/15 hover:border-purple-500/40 transition-all duration-300 flex flex-col justify-between bg-[#0b0b14]/90 backdrop-blur-md hover:shadow-[0_0_25px_rgba(168,85,247,0.15)]">
+                <div className="group rounded-2xl p-5 border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 flex flex-col justify-between bg-[#0b0b18]/70 backdrop-blur-md hover:shadow-[0_0_25px_rgba(168,85,247,0.2)]">
                   <div>
                     <div className="flex items-center gap-4">
                       <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-purple-500/30 group-hover:border-purple-400 transition duration-300">
@@ -349,7 +350,7 @@ export default async function HomePage() {
       <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent my-8" />
 
       {/* ===================== SERVICES / ADVANTAGES ===================== */}
-      <section id="services" className="py-20 sm:py-28 relative bg-[#08080f]/90 border-y border-purple-500/15">
+      <section id="services" className="py-20 sm:py-28 relative bg-transparent border-y border-purple-500/15">
         <Container>
           <ScrollReveal>
             <div className="text-center max-w-2xl mx-auto mb-14">
@@ -368,7 +369,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((service, idx) => (
               <ScrollReveal key={service.title} delay={idx * 80}>
-                <div className="group rounded-2xl p-7 border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 bg-[#0d0d16]/90 backdrop-blur-md relative overflow-hidden hover:shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+                <div className="group rounded-2xl p-7 border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 bg-[#0d0d1a]/70 backdrop-blur-md relative overflow-hidden hover:shadow-[0_0_30px_rgba(168,85,247,0.2)]">
                   <div className="w-12 h-12 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300 group-hover:text-white group-hover:bg-purple-600/30 transition duration-300 mb-5 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
                     <Sparkles className="w-6 h-6 text-purple-400 group-hover:text-purple-300" />
                   </div>
@@ -387,7 +388,7 @@ export default async function HomePage() {
       <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/25 to-transparent my-8" />
 
       {/* ===================== TESTIMONIALS ===================== */}
-      <section className="py-20 sm:py-28 relative">
+      <section className="py-20 sm:py-28 relative bg-transparent">
         <Container>
           <ScrollReveal>
             <div className="text-center max-w-2xl mx-auto mb-14">
@@ -406,7 +407,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {testimonials.map((item, idx) => (
               <ScrollReveal key={item.name} delay={idx * 100}>
-                <div className="h-full rounded-2xl p-7 sm:p-8 border border-purple-500/20 hover:border-purple-500/45 transition-all duration-300 bg-[#0c0c14]/90 backdrop-blur-md flex flex-col justify-between group hover:shadow-[0_0_25px_rgba(168,85,247,0.15)]">
+                <div className="h-full rounded-2xl p-7 sm:p-8 border border-purple-500/20 hover:border-purple-500/45 transition-all duration-300 bg-[#0c0c18]/70 backdrop-blur-md flex flex-col justify-between group hover:shadow-[0_0_25px_rgba(168,85,247,0.15)]">
                   <div>
                     <Quote className="w-8 h-8 text-purple-500/40 mb-3 group-hover:text-purple-400 transition duration-300" />
                     <p className="text-sm sm:text-base leading-relaxed text-neutral-200 font-sans italic">
@@ -444,7 +445,7 @@ export default async function HomePage() {
       <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent my-8" />
 
       {/* ===================== FAQ ===================== */}
-      <section id="faq" className="py-20 sm:py-28 relative bg-[#08080f]/90 border-t border-purple-500/15">
+      <section id="faq" className="py-20 sm:py-28 relative bg-[#08080f]/30 backdrop-blur-sm border-t border-purple-500/15">
         <Container>
           <ScrollReveal>
             <div className="text-center max-w-2xl mx-auto mb-14">
@@ -470,7 +471,7 @@ export default async function HomePage() {
       <section className="py-20 sm:py-28 relative">
         <Container>
           <ScrollReveal scale={0.97}>
-            <div className="relative rounded-3xl overflow-hidden p-8 sm:p-14 lg:p-16 border border-purple-500/30 bg-gradient-to-b from-[#140e26] via-[#0d091a] to-[#07050d] backdrop-blur-2xl shadow-[0_0_50px_rgba(168,85,247,0.2)] text-center">
+            <div className="relative rounded-3xl overflow-hidden p-8 sm:p-14 lg:p-16 border border-purple-500/35 bg-gradient-to-b from-[#181030]/80 via-[#100a22]/70 to-[#07050e]/80 backdrop-blur-xl shadow-[0_0_50px_rgba(168,85,247,0.25)] text-center">
               {/* Backlight Glow */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-purple-500/25 blur-3xl pointer-events-none" />
 
