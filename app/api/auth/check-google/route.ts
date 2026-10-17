@@ -1,20 +1,21 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) {
-    return NextResponse.json({
-      enabled: false,
-      message: "База данных Supabase не настроена на сайте.",
-    });
-  }
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    "https://feeudmwytkeuwemnmbwd.supabase.co";
 
   try {
-    // Probe Supabase authorize endpoint to check if Google OAuth is configured
     const res = await fetch(`${supabaseUrl}/auth/v1/authorize?provider=google`, {
       method: "GET",
       redirect: "manual",
     });
+
+    // 302 or 200 means Google OAuth endpoint is ready and redirecting to Google
+    if (res.status === 302 || res.status === 200 || res.status === 0) {
+      return NextResponse.json({ enabled: true });
+    }
 
     if (res.status === 400) {
       const data = await res.json().catch(() => null);
@@ -26,16 +27,14 @@ export async function GET() {
           enabled: false,
           notConfiguredInSupabase: true,
           message:
-            "Вход через Google еще не включен в панели Supabase. Включите провайдер Google в Supabase (Authentication -> Providers -> Google) или используйте вход по Email.",
+            "Вход через Google еще не сохранен в Supabase. Убедитесь, что нажали кнопку 'Сохранить' в модальном окне Google в панели Supabase.",
         });
       }
     }
 
     return NextResponse.json({ enabled: true });
-  } catch (err: any) {
-    return NextResponse.json({
-      enabled: false,
-      message: err.message || "Ошибка проверки провайдера Google",
-    });
+  } catch {
+    // If probing fails for network reasons, do not block the user
+    return NextResponse.json({ enabled: true });
   }
 }
