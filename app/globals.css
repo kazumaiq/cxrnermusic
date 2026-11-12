@@ -39,15 +39,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Cursor active only when JS enables it on desktop fine-pointer devices */
-@media (hover: hover) and (pointer: fine) {
-  html.cxr-cursor-active,
-  html.cxr-cursor-active body,
-  html.cxr-cursor-active a,
-  html.cxr-cursor-active button,
-  html.cxr-cursor-active [role="button"] {
-    cursor: none !important;
-  }
+/* Ensure crisp native cursor responsiveness across all interactive elements with 0ms input lag */
+a,
+button,
+[role="button"],
+input[type="submit"],
+input[type="button"] {
+  cursor: pointer;
 }
 
 * {

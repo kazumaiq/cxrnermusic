@@ -30,9 +30,14 @@ export default function MagneticButton({
   ariaLabel,
 }: MagneticButtonProps) {
   const ref = useRef<HTMLElement | null>(null);
+  const rectRef = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
 
   const handleMouseEnter = () => {
     playHoverSound();
+    if (ref.current) {
+      const b = ref.current.getBoundingClientRect();
+      rectRef.current = { left: b.left, top: b.top, width: b.width, height: b.height };
+    }
   };
 
   const handleClick = () => {
@@ -45,13 +50,14 @@ export default function MagneticButton({
     if (!el) return;
     if (window.matchMedia("(pointer: coarse)").matches) return;
 
-    const rect = el.getBoundingClientRect();
+    const rect = rectRef.current || el.getBoundingClientRect();
     const relX = e.clientX - (rect.left + rect.width / 2);
     const relY = e.clientY - (rect.top + rect.height / 2);
     el.style.transform = `translate3d(${relX * strength}px, ${relY * strength}px, 0)`;
   };
 
   const handleMouseLeave = () => {
+    rectRef.current = null;
     const el = ref.current;
     if (!el) return;
     el.style.transform = "translate3d(0px, 0px, 0)";

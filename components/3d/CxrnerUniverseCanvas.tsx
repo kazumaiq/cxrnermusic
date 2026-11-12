@@ -441,9 +441,7 @@ export default function CxrnerUniverseCanvas() {
       return;
     }
 
-    const baseDpr = isMobile
-      ? Math.min(window.devicePixelRatio || 1, 1.75)
-      : Math.min(window.devicePixelRatio || 1, 2.0);
+    const baseDpr = Math.min(window.devicePixelRatio || 1, 1.5);
     renderer.setPixelRatio(baseDpr);
     renderer.setSize(width, height, false);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -934,9 +932,7 @@ export default function CxrnerUniverseCanvas() {
       camera.fov = nowMobile ? 54 : 44;
       camera.updateProjectionMatrix();
 
-      const nextDpr = nowMobile
-        ? Math.min(window.devicePixelRatio || 1, 1.75)
-        : Math.min(window.devicePixelRatio || 1, 2.0);
+      const nextDpr = Math.min(window.devicePixelRatio || 1, 1.5);
       renderer.setPixelRatio(nextDpr);
       particleUniforms.uPixelRatio.value = nextDpr;
       renderer.setSize(width, height, false);

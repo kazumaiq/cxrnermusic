@@ -63,7 +63,7 @@ export default function VinylCanvas({
     const initialWidth = container.clientWidth || 500;
     const initialHeight = container.clientHeight || 500;
     renderer.setSize(initialWidth, initialHeight);
-    renderer.setPixelRatio(isMobile ? 1.2 : Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 2));
+    renderer.setPixelRatio(isMobile ? 1.1 : Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 1.5));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.3;
 
@@ -415,8 +415,15 @@ export default function VinylCanvas({
     let lastPointerX = 0;
     let lastPointerY = 0;
 
+    let containerRect: DOMRect | null = null;
+    const getRect = () => {
+      if (!containerRect) containerRect = container.getBoundingClientRect();
+      return containerRect;
+    };
+
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
       isDragging = true;
+      containerRect = container.getBoundingClientRect();
       const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
       const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
       lastPointerX = clientX;
@@ -426,7 +433,8 @@ export default function VinylCanvas({
     const onPointerMove = (e: MouseEvent | TouchEvent) => {
       const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
       const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-      const rect = container.getBoundingClientRect();
+      const rect = getRect();
+      if (!rect.width || !rect.height) return;
 
       const mx = ((clientX - rect.left) / rect.width) * 2 - 1;
       const my = -(((clientY - rect.top) / rect.height) * 2 - 1);
@@ -447,10 +455,16 @@ export default function VinylCanvas({
       }
     };
 
-    const onPointerUp = () => {
-      isDragging = false;
+    const onPointerEnter = () => {
+      containerRect = container.getBoundingClientRect();
     };
 
+    const onPointerUp = () => {
+      isDragging = false;
+      containerRect = null;
+    };
+
+    container.addEventListener("mouseenter", onPointerEnter);
     container.addEventListener("mousedown", onPointerDown);
     container.addEventListener("mousemove", onPointerMove);
     window.addEventListener("mouseup", onPointerUp);
@@ -518,6 +532,7 @@ export default function VinylCanvas({
       cancelAnimationFrame(animationFrameId);
       visibilityObserver.disconnect();
       resizeObserver.disconnect();
+      container.removeEventListener("mouseenter", onPointerEnter);
       container.removeEventListener("mousedown", onPointerDown);
       container.removeEventListener("mousemove", onPointerMove);
       window.removeEventListener("mouseup", onPointerUp);
