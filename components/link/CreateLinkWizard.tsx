@@ -17,7 +17,7 @@ import {
   ExternalLink,
   Radio,
 } from "lucide-react";
-import { generateSlug, validateCustomSlug } from "../../lib/slug";
+import { generateSlug, validateCustomSlug, getSmartLinkDisplayPrefix } from "@/lib/slug";
 import { validateUpcChecksum } from "../../lib/linkLookup";
 
 interface PlatformEntry {
@@ -529,7 +529,7 @@ export default function CreateLinkWizard() {
                   Уникальная ссылка (Slug):
                 </label>
                 <div className="flex items-center rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono">
-                  <span className="text-[#D9D9E2]/50 whitespace-nowrap">link.cxrnermusic.com/</span>
+                  <span className="text-[#D9D9E2]/50 whitespace-nowrap">{getSmartLinkDisplayPrefix()}</span>
                   <input
                     type="text"
                     required
@@ -711,7 +711,7 @@ export default function CreateLinkWizard() {
             <div className="min-w-0 flex-1">
               <p className="font-heavy text-sm uppercase text-white truncate">{title}</p>
               <p className="font-mono text-xs text-[#B46BFF] truncate">
-                link.cxrnermusic.com/{customSlug}
+                {getSmartLinkDisplayPrefix()}{customSlug}
               </p>
             </div>
             <span className="font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/10 text-white">

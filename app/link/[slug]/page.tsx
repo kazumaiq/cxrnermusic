@@ -32,7 +32,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const pageDesc =
     link.description ||
     `Слушайте официальный релиз «${link.title}» от ${link.artist} на всех музыкальных площадках через CXRNER LINK.`;
-  const canonicalUrl = `https://link.cxrnermusic.com/${cleanSlug}`;
+  const siteBase =
+    process.env.NEXT_PUBLIC_LINK_DOMAIN ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://cxrnermusic.vercel.app";
+  const canonicalUrl = siteBase.includes("link.")
+    ? `${siteBase.replace(/\/$/, "")}/${cleanSlug}`
+    : `${siteBase.replace(/\/$/, "")}/link/${cleanSlug}`;
 
   return {
     title: pageTitle,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { getSmartLinkDisplayPrefix } from "@/lib/slug";
 import {
   ArrowLeft,
   Calendar,
@@ -76,7 +77,7 @@ export default function LinkAnalyticsClient({
               Аналитика: {linkTitle}
             </h1>
             <div className="flex items-center gap-2 font-mono text-xs text-[#B46BFF] mt-0.5">
-              <span>link.cxrnermusic.com/{linkSlug}</span>
+              <span>{getSmartLinkDisplayPrefix()}{linkSlug}</span>
               <a
                 href={`/link/${linkSlug}`}
                 target="_blank"

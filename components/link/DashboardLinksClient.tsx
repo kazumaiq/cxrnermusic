@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { getSmartLinkUrl, getSmartLinkDisplayPrefix } from "@/lib/slug";
 import {
   Plus,
   ExternalLink,
@@ -53,7 +54,7 @@ export default function DashboardLinksClient({ initialLinks }: DashboardLinksCli
   const totalPresaves = links.reduce((sum, l) => sum + (l.presaves_count || 0), 0);
 
   const handleCopy = (slug: string) => {
-    const url = `https://link.cxrnermusic.com/${slug}`;
+    const url = getSmartLinkUrl(slug);
     navigator.clipboard.writeText(url).then(() => {
       setCopiedSlug(slug);
       setTimeout(() => setCopiedSlug(null), 2000);
@@ -254,7 +255,7 @@ export default function DashboardLinksClient({ initialLinks }: DashboardLinksCli
                     </p>
 
                     <div className="flex items-center gap-2 mt-1.5 font-mono text-[10px] text-[#B46BFF]">
-                      <span className="truncate">link.cxrnermusic.com/{link.slug}</span>
+                      <span className="truncate">{getSmartLinkDisplayPrefix()}{link.slug}</span>
                       <button
                         onClick={() => handleCopy(link.slug)}
                         title="Скопировать"

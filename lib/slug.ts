@@ -90,3 +90,37 @@ export function validateCustomSlug(slug: string): { isValid: boolean; error?: st
 
   return { isValid: true };
 }
+
+/**
+ * Returns the fully qualified public URL for a smart link, dynamically adapting to
+ * whether the site is running on Vercel preview (cxrnermusic.vercel.app),
+ * local development (localhost), or custom domain (link.cxrnermusic.com).
+ */
+export function getSmartLinkUrl(slug: string): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.host;
+    // If running on custom production domain with link. subdomain enabled
+    if (host.includes("cxrnermusic.com") && process.env.NEXT_PUBLIC_LINK_DOMAIN) {
+      return `${process.env.NEXT_PUBLIC_LINK_DOMAIN.replace(/\/$/, "")}/${slug}`;
+    }
+    // Default fallback to current host /link/[slug] (e.g. https://cxrnermusic.vercel.app/link/[slug])
+    return `${window.location.origin}/link/${slug}`;
+  }
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://cxrnermusic.vercel.app";
+  return `${base.replace(/\/$/, "")}/link/${slug}`;
+}
+
+/**
+ * Returns a human-friendly prefix for display in the UI (e.g. 'cxrnermusic.vercel.app/link/'
+ * or 'link.cxrnermusic.com/').
+ */
+export function getSmartLinkDisplayPrefix(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.host;
+    if (host.includes("cxrnermusic.com")) {
+      return "link.cxrnermusic.com/";
+    }
+    return `${host}/link/`;
+  }
+  return "cxrnermusic.vercel.app/link/";
+}

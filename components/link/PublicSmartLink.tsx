@@ -281,8 +281,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
       {/* 2. Top Navigation Bar */}
       <header className="relative z-10 w-full max-w-md flex items-center justify-between pb-6">
         <Link
-          href="https://cxrnermusic.com"
-          target="_blank"
+          href="/"
           className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.22em] text-[#D9D9E2]/70 hover:text-white transition"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-[#8737FF] group-hover:scale-125 transition shadow-[0_0_8px_#8737FF]" />
@@ -484,8 +483,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
       {/* 4. Footer Branding */}
       <footer className="relative z-10 w-full max-w-md pt-6 text-center space-y-1">
         <Link
-          href="https://cxrnermusic.com"
-          target="_blank"
+          href="/"
           className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.24em] text-[#D9D9E2]/50 hover:text-white transition"
         >
           <span>POWERED BY</span>
