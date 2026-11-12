@@ -225,14 +225,12 @@ const NEBULA_FRAGMENT_SHADER = /* glsl */ `
   uniform float uShockwave;
   varying vec2 vUv;
 
-  // Compact pseudo-random hash
+  // Ultra-fast hash
   float hash21(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
   }
 
-  // Smooth bilinear noise
+  // Fast 2D value noise
   float noise2(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
@@ -244,122 +242,53 @@ const NEBULA_FRAGMENT_SHADER = /* glsl */ `
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
   }
 
-  // 5-octave rotated Fractional Brownian Motion
-  float fbm(vec2 p) {
-    float v = 0.0;
-    float a = 0.52;
-    mat2 rot = mat2(0.8, 0.6, -0.6, 0.8);
-    for (int i = 0; i < 5; i++) {
-      v += a * noise2(p);
-      p = rot * p * 2.05 + vec2(1.4, 3.1);
-      a *= 0.49;
-    }
-    return v;
-  }
-
-  // Crisp procedural star generation in fragment shader (pinpoint sharpness, zero vertex cost)
-  float starLayer(vec2 p, float scale, float density, float twinkleRate, float t) {
-    vec2 gridId = floor(p * scale);
-    vec2 gridUv = fract(p * scale) - 0.5;
-
-    float h = hash21(gridId);
-    if (h < density) return 0.0;
-
-    // Small random offset within cell
-    vec2 offset = vec2(hash21(gridId + 3.1), hash21(gridId + 17.7)) * 0.7 - 0.35;
-    float d = length(gridUv - offset);
-
-    // Natural twinkling
-    float twinkle = 0.65 + 0.35 * sin(t * twinkleRate + h * 62.83);
-
-    // Razor-sharp pinpoint star core
-    float core = smoothstep(0.065, 0.0, d);
-    float halo = exp(-d * 14.0) * 0.38;
-
-    // Subtle 4-point optical diffraction spike for top 1.8% brightest stars (Hubble / James Webb style)
-    float spike = 0.0;
-    if (h > 0.982) {
-      vec2 delta = abs(gridUv - offset);
-      spike = (exp(-delta.x * 24.0) * exp(-delta.y * 2.8) +
-               exp(-delta.y * 24.0) * exp(-delta.x * 2.8)) * 0.42;
-    }
-
-    return (core * 1.25 + halo + spike) * twinkle;
+  // Lightweight 2-octave procedural nebula field (0% GPU stall)
+  float fbmFast(vec2 p) {
+    return noise2(p) * 0.65 + noise2(p * 2.1 + vec2(1.4, 3.1)) * 0.35;
   }
 
   void main() {
-    // Aspect ratio correction so cosmic structures don't stretch on mobile or ultrawide
     vec2 p = vUv - 0.5;
     p.x *= uResolution.x / max(uResolution.y, 1.0);
 
-    // Natural cosmic inclination angle (~20 deg)
-    float rotAngle = 0.35;
-    mat2 cosmicRot = mat2(cos(rotAngle), sin(rotAngle), -sin(rotAngle), cos(rotAngle));
-    vec2 cPos = cosmicRot * (p + vec2(uPointer.x * 0.02, -uScroll * 0.28 + uPointer.y * 0.015));
+    // Dynamic cosmic tilt & parallax
+    vec2 cPos = p + vec2(uPointer.x * 0.015, -uScroll * 0.22 + uPointer.y * 0.01);
 
-    // Dynamic beat shockwave ring distortion
+    // Shockwave distortion
     float distOrigin = length(cPos);
-    float waveDist = uShockwave * 2.4;
+    float waveDist = uShockwave * 2.2;
     float shock = exp(-pow((distOrigin - waveDist) * 7.5, 2.0)) * max(0.0, 1.0 - uShockwave);
-    cPos += (distOrigin > 0.001 ? normalize(cPos) : vec2(0.0)) * shock * 0.085;
+    cPos += (distOrigin > 0.001 ? normalize(cPos) : vec2(0.0)) * shock * 0.06;
 
-    // --- 1. DEEP SPACE NEBULA (Domain-warped fluid gas filaments) ---
-    float t = uTime * 0.012;
-    vec2 q = vec2(
-      fbm(cPos * 1.5 + vec2(t * 0.3, -t * 0.15)),
-      fbm(cPos * 1.5 + vec2(4.2 + t * 0.2, 2.8 - t * 0.18))
-    );
+    // Fluid organic cloud field
+    float t = uTime * 0.02;
+    float gas1 = fbmFast(cPos * 1.3 + vec2(t * 0.15, -t * 0.1));
+    float gas2 = fbmFast(cPos * 2.4 - vec2(t * 0.12, gas1 * 1.4));
 
-    vec2 r = vec2(
-      fbm(cPos * 2.2 + 2.8 * q + vec2(1.7, 9.2) - t * 0.4),
-      fbm(cPos * 2.2 + 2.8 * q + vec2(8.3, 2.8) + t * 0.3)
-    );
-
-    float gasField = fbm(cPos * 1.2 + 3.4 * r);
-    float gasWisps = fbm(cPos * 3.4 + q * 1.6);
-    float darkRift = smoothstep(0.32, 0.72, fbm(cPos * 2.4 + r * 1.4));
-
-    // Deep organic cosmic color grading
+    // Deep cosmic palette
     vec3 voidBlack     = vec3(0.012, 0.009, 0.018); // Pure deep cosmic black #030205
-    vec3 midnightAbyss = vec3(0.026, 0.016, 0.048); // Deep interstellar space
-    vec3 nebulaIndigo  = vec3(0.075, 0.035, 0.145); // Diffuse molecular cloud #130925
-    vec3 starlightCyan = vec3(0.240, 0.520, 0.820); // Delicate cool stellar reflection mist #3d85d1
+    vec3 midnightAbyss = vec3(0.024, 0.014, 0.045); // Deep interstellar space
+    vec3 nebulaIndigo  = vec3(0.065, 0.030, 0.130); // Diffuse molecular cloud #100721
+    vec3 starlightCyan = vec3(0.200, 0.450, 0.750); // Delicate cool stellar reflection mist
 
     // Reactive atmosphere tint
     vec3 activeGas = mix(vec3(0.380, 0.140, 0.760), uAtmosphereColor, 0.72);
     vec3 activePeak = mix(vec3(0.680, 0.320, 1.000), normalize(uAtmosphereColor + vec3(0.25, 0.25, 0.35)), 0.65);
 
-    // Layer the atmospheric gas
-    vec3 col = mix(voidBlack, midnightAbyss, smoothstep(0.12, 0.85, gasField));
-    col = mix(col, nebulaIndigo, smoothstep(0.30, 0.90, gasWisps) * 0.65);
+    // Smooth cosmic blending
+    vec3 col = mix(voidBlack, midnightAbyss, smoothstep(0.1, 0.85, gas1));
+    col = mix(col, nebulaIndigo, smoothstep(0.25, 0.85, gas2) * 0.6);
 
-    // Luminous emission gas, carved organically by interstellar dark dust rifts
-    float emission = smoothstep(0.40, 0.86, gasField) * (1.0 - darkRift * 0.58);
-    col += activeGas * emission * (0.36 + uAudioEnergy * 0.22);
-    col += activePeak * pow(emission, 2.2) * 0.32;
-    col += starlightCyan * smoothstep(0.65, 0.95, gasWisps) * 0.16;
-    col += uAtmosphereColor * shock * 0.55; // Shockwave luminous ripple
+    float emission = smoothstep(0.42, 0.86, gas1) * smoothstep(0.22, 0.82, gas2);
+    col += activeGas * emission * (0.35 + uAudioEnergy * 0.22);
+    col += activePeak * pow(emission, 2.0) * 0.30;
+    col += starlightCyan * smoothstep(0.68, 0.95, gas2) * 0.14;
+    col += uAtmosphereColor * shock * 0.5;
 
-    // --- 2. PROCEDURAL DISTANT STELLAR FIELD (Per-Pixel Sharp Stars) ---
-    // Background micro-pinpoints (thousands of tiny distant stars)
-    float starsFar = starLayer(cPos + vec2(0.12, 0.34), 110.0, 0.86, 1.2, uTime);
-    // Midground stars (crisper, twinkling)
-    float starsMid = starLayer(cPos * 1.1 + vec2(0.45, 0.78), 52.0, 0.94, 2.1, uTime);
-    // Bright landmark stars with diffraction spikes
-    float starsNear = starLayer(cPos * 1.2 + vec2(0.89, 0.12), 22.0, 0.985, 2.8, uTime);
-
-    vec3 starColorFar = vec3(0.85, 0.88, 1.0);
-    vec3 starColorMid = mix(vec3(0.9, 0.93, 1.0), vec3(1.0, 0.92, 0.80), hash21(floor(cPos * 52.0)));
-    vec3 starColorNear = mix(vec3(0.95, 0.96, 1.0), uAtmosphereColor * 0.5 + vec3(0.5, 0.5, 0.5), hash21(floor(cPos * 22.0)));
-
-    col += starColorFar * starsFar * 0.65;
-    col += starColorMid * starsMid * 0.95;
-    col += starColorNear * starsNear * 1.25;
-
-    // --- 3. SUBTLE CINEMATIC VIGNETTE & EDGES ---
+    // Cinematic vignette
     float distFromCenter = length(vUv - 0.5);
     float vignette = smoothstep(0.98, 0.28, distFromCenter);
-    col *= mix(0.72, 1.0, vignette);
+    col *= mix(0.75, 1.0, vignette);
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -441,7 +370,7 @@ export default function CxrnerUniverseCanvas() {
       return;
     }
 
-    const baseDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const baseDpr = Math.min(window.devicePixelRatio || 1, 1.15);
     renderer.setPixelRatio(baseDpr);
     renderer.setSize(width, height, false);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -587,7 +516,7 @@ export default function CxrnerUniverseCanvas() {
     coreGroup.add(auraPlane);
 
     // 7b. High-Res Sculptural Liquid-Chrome / Obsidian Core (Analytical Normal Displacement)
-    const plasmaGeo = new THREE.SphereGeometry(1.06, isMobile ? 64 : 96, isMobile ? 64 : 96);
+    const plasmaGeo = new THREE.SphereGeometry(1.06, isMobile ? 32 : 48, isMobile ? 32 : 48);
     const plasmaUniforms = {
       uTime: { value: 0 },
       uAudioBass: { value: 0 },
@@ -603,19 +532,19 @@ export default function CxrnerUniverseCanvas() {
     coreGroup.add(plasmaCore);
 
     // 7c. 3 Precision-Machined Orbital Rings (Smooth High-Segment Geometry, No Wireframe Soup)
-    const gyroRing1Geo = new THREE.TorusGeometry(1.52, 0.036, 28, isMobile ? 128 : 180);
+    const gyroRing1Geo = new THREE.TorusGeometry(1.52, 0.036, 16, isMobile ? 48 : 72);
     const gyroRing1 = new THREE.Mesh(gyroRing1Geo, chromeMaterial);
     gyroRing1.rotation.x = 1.05;
     gyroRing1.rotation.y = 0.25;
     coreGroup.add(gyroRing1);
 
-    const gyroRing2Geo = new THREE.TorusGeometry(1.78, 0.018, 22, isMobile ? 120 : 160);
+    const gyroRing2Geo = new THREE.TorusGeometry(1.78, 0.018, 14, isMobile ? 48 : 72);
     const gyroRing2 = new THREE.Mesh(gyroRing2Geo, darkChromeMaterial);
     gyroRing2.rotation.x = -0.82;
     gyroRing2.rotation.z = 0.42;
     coreGroup.add(gyroRing2);
 
-    const gyroRing3Geo = new THREE.TorusGeometry(1.98, 0.01, 16, isMobile ? 112 : 160);
+    const gyroRing3Geo = new THREE.TorusGeometry(1.98, 0.01, 12, isMobile ? 40 : 64);
     const gyroRing3Mat = new THREE.MeshStandardMaterial({
       color: 0xb46bff,
       emissive: 0x8737ff,
@@ -647,7 +576,7 @@ export default function CxrnerUniverseCanvas() {
     // 8. SWEEPING CHROME MEGARING (Scroll Foreground/Midground Transition)
     // =========================================================================
     const megaRingGroup = new THREE.Group();
-    const megaRingGeo = new THREE.TorusGeometry(4.2, 0.055, 20, isMobile ? 64 : 120);
+    const megaRingGeo = new THREE.TorusGeometry(4.2, 0.055, 14, isMobile ? 32 : 64);
     const megaRing = new THREE.Mesh(megaRingGeo, chromeMaterial);
     megaRingGroup.add(megaRing);
 
@@ -874,6 +803,10 @@ export default function CxrnerUniverseCanvas() {
     let dragDist = 0;
 
     const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.("a, button, input, textarea, select, [role='button'], [data-cursor], nav, form")) {
+        return;
+      }
       if (window.scrollY < window.innerHeight * 0.9) {
         isDraggingCore = true;
         lastPointerPos = { x: e.clientX, y: e.clientY };
@@ -882,10 +815,6 @@ export default function CxrnerUniverseCanvas() {
     };
 
     const onPointerUp = () => {
-      if (isDraggingCore && dragDist < 8 && window.scrollY < window.innerHeight * 0.75) {
-        triggerUniverseDisrupt();
-        playQuantumDisrupt();
-      }
       isDraggingCore = false;
     };
 
@@ -932,7 +861,7 @@ export default function CxrnerUniverseCanvas() {
       camera.fov = nowMobile ? 54 : 44;
       camera.updateProjectionMatrix();
 
-      const nextDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const nextDpr = Math.min(window.devicePixelRatio || 1, 1.15);
       renderer.setPixelRatio(nextDpr);
       particleUniforms.uPixelRatio.value = nextDpr;
       renderer.setSize(width, height, false);
