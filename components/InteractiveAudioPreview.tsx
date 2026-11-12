@@ -10,7 +10,8 @@ import {
   VolumeX,
   Disc3,
 } from "lucide-react";
-import { setUniverseAudio } from "../lib/universeBridge";
+import { setUniverseAudio, triggerUniverseShockwave } from "../lib/universeBridge";
+import { playClickSound } from "../lib/soundFX";
 
 interface Track {
   title: string;
@@ -133,6 +134,11 @@ export default function InteractiveAudioPreview({ track }: AudioPreviewProps) {
 
         setUniverseAudio(true, bass, mid);
 
+        // Send beat shockwave across cosmic universe on kick/bass transient
+        if (bass > 0.68) {
+          triggerUniverseShockwave(bass);
+        }
+
         // Update React bars at ~30fps
         if (time - lastUpdate > 33) {
           lastUpdate = time;
@@ -237,19 +243,47 @@ export default function InteractiveAudioPreview({ track }: AudioPreviewProps) {
             )}
           </button>
 
-          <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-[#050407] border border-white/15 flex-shrink-0">
-            <img
-              src={track.cover || "/covers/the-sadness-of-reality.jpg"}
-              alt={track.title}
-              className={`w-full h-full object-cover transition duration-500 ${
-                isPlaying ? "scale-110 brightness-75" : ""
+          {/* 3D Vinyl Sleeve with sliding grooved record */}
+          <div className="relative group/sleeve flex items-center flex-shrink-0 pr-3">
+            {/* The Vinyl Record */}
+            <div
+              className={`absolute left-0 w-11 h-11 rounded-full bg-[#08060d] border border-white/25 transition-all duration-700 ease-out shadow-[0_4px_16px_rgba(0,0,0,0.85)] flex items-center justify-center ${
+                isPlaying ? "translate-x-5 rotate-180" : "group-hover/sleeve:translate-x-3.5 rotate-45"
               }`}
-            />
-            {isPlaying && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Disc3 className="w-5 h-5 text-[#B46BFF] animate-spin" />
+              style={{
+                backgroundImage: `
+                  radial-gradient(circle at center, transparent 30%, rgba(255,255,255,0.08) 32%, transparent 34%),
+                  radial-gradient(circle at center, transparent 46%, rgba(255,255,255,0.06) 48%, transparent 50%),
+                  radial-gradient(circle at center, transparent 62%, rgba(255,255,255,0.05) 64%, transparent 66%),
+                  radial-gradient(circle at center, transparent 78%, rgba(255,255,255,0.05) 80%, transparent 82%),
+                  conic-gradient(from 0deg, rgba(255,255,255,0.18), transparent 60deg, rgba(255,255,255,0.14) 120deg, transparent 180deg, rgba(255,255,255,0.18) 240deg, transparent 300deg, rgba(255,255,255,0.14))
+                `,
+              }}
+            >
+              {/* Center vinyl label */}
+              <div
+                className={`w-4 h-4 rounded-full overflow-hidden border border-[#B46BFF]/60 bg-[#8737FF] ${
+                  isPlaying ? "animate-spin" : ""
+                }`}
+              >
+                <img
+                  src={track.cover || "/covers/the-sadness-of-reality.jpg"}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
               </div>
-            )}
+            </div>
+
+            {/* Front Cover Sleeve */}
+            <div className="relative z-10 w-11 h-11 rounded-xl overflow-hidden bg-[#050407] border border-white/20 shadow-lg flex-shrink-0">
+              <img
+                src={track.cover || "/covers/the-sadness-of-reality.jpg"}
+                alt={track.title}
+                className={`w-full h-full object-cover transition duration-500 ${
+                  isPlaying ? "scale-105 brightness-90" : ""
+                }`}
+              />
+            </div>
           </div>
 
           <div className="min-w-0 flex-1">

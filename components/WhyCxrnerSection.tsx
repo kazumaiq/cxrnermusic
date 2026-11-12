@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Quote } from "lucide-react";
 import { testimonials } from "../data/site";
+import { playHoverSound, playClickSound } from "../lib/soundFX";
 
 const ADVANTAGE_BANDS = [
   {
@@ -52,8 +53,16 @@ export default function WhyCxrnerSection() {
           return (
             <div
               key={item.code}
-              onMouseEnter={() => setActiveBand(idx)}
-              onClick={() => setActiveBand(idx)}
+              onMouseEnter={() => {
+                if (activeBand !== idx) {
+                  setActiveBand(idx);
+                  playHoverSound();
+                }
+              }}
+              onClick={() => {
+                setActiveBand(idx);
+                playClickSound();
+              }}
               data-cursor="EXPAND"
               className={`group cursor-pointer border-b border-white/15 py-6 sm:py-9 px-2 sm:px-4 transition-all duration-500 ${
                 isOpen ? "bg-[#160B28]/45" : "hover:bg-white/[0.02]"

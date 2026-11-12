@@ -2,12 +2,13 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import Container from "../../components/Container";
 import confetti from "canvas-confetti";
+import { playClickSound, playHoverSound, playReleaseChime } from "../../lib/soundFX";
 import {
   Sparkles,
   ArrowRight,
@@ -23,6 +24,7 @@ import {
   Disc,
   UploadCloud,
   Check,
+  Activity,
 } from "lucide-react";
 
 const genres = [
@@ -78,6 +80,72 @@ export default function SubmitReleasePage() {
   const [warning, setWarning] = useState<string | null>(null);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(false);
+
+  // Pro audio waveform & telemetry state
+  const [audioMeta, setAudioMeta] = useState<{
+    fileName: string;
+    duration: string;
+    sampleRate: number;
+    channels: number;
+  } | null>(null);
+  const waveformCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const handleAudioFileInspect = async (file: File) => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+      const m = Math.floor(audioBuffer.duration / 60);
+      const s = Math.floor(audioBuffer.duration % 60);
+      const durStr = `${m}:${s < 10 ? "0" : ""}${s}`;
+
+      setAudioMeta({
+        fileName: file.name,
+        duration: durStr,
+        sampleRate: audioBuffer.sampleRate,
+        channels: audioBuffer.numberOfChannels,
+      });
+      playReleaseChime();
+
+      setTimeout(() => {
+        const canvas = waveformCanvasRef.current;
+        if (!canvas) return;
+        const cCtx = canvas.getContext("2d");
+        if (!cCtx) return;
+
+        const w = canvas.width;
+        const h = canvas.height;
+        cCtx.clearRect(0, 0, w, h);
+
+        const rawData = audioBuffer.getChannelData(0);
+        const step = Math.ceil(rawData.length / w);
+        const amp = h / 2;
+
+        const gradient = cCtx.createLinearGradient(0, 0, w, 0);
+        gradient.addColorStop(0, "#8737FF");
+        gradient.addColorStop(0.5, "#B46BFF");
+        gradient.addColorStop(1, "#FFFFFF");
+        cCtx.fillStyle = gradient;
+
+        for (let i = 0; i < w; i++) {
+          let min = 1.0;
+          let max = -1.0;
+          for (let j = 0; j < step; j++) {
+            const val = rawData[i * step + j] || 0;
+            if (val < min) min = val;
+            if (val > max) max = val;
+          }
+          const barHeight = Math.max(2, (max - min) * amp * 0.95);
+          cCtx.fillRect(i, amp - barHeight / 2, 1.5, barHeight);
+        }
+      }, 60);
+    } catch (err) {
+      console.warn("Local audio decode error:", err);
+    }
+  };
 
   // Load draft from localStorage on mount
   useEffect(() => {
@@ -194,6 +262,7 @@ export default function SubmitReleasePage() {
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
+      playClickSound();
       setCurrentStep((prev) => Math.min(4, prev + 1) as any);
       window.scrollTo({ top: 120, behavior: "smooth" });
     }
@@ -201,6 +270,7 @@ export default function SubmitReleasePage() {
 
   const prevStep = () => {
     setError(null);
+    playClickSound();
     setCurrentStep((prev) => Math.max(1, prev - 1) as any);
     window.scrollTo({ top: 120, behavior: "smooth" });
   };
@@ -266,7 +336,8 @@ export default function SubmitReleasePage() {
         setWarning(json.warning);
       }
 
-      // Trigger Confetti!
+      // Trigger Confetti & Success Audio Chime!
+      playReleaseChime();
       confetti({
         particleCount: 80,
         spread: 70,
@@ -562,6 +633,54 @@ export default function SubmitReleasePage() {
                       <li>Скриншот открытого проекта в DAW (FL Studio, Ableton, Logic и др.) подтверждает ваше авторство.</li>
                       <li>Загрузите файлы на Яндекс Диск или Google Drive и откройте общий доступ по ссылке.</li>
                     </ul>
+                  </div>
+
+                  {/* Pro Audio Ingestion & Local Waveform Diagnostics */}
+                  <div className="p-4 sm:p-5 rounded-2xl border border-[#B46BFF]/30 bg-[#160B28]/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-[#D9D9E2]">
+                        <Activity className="w-4 h-4 text-[#B46BFF] animate-pulse" />
+                        <span>Экспресс-анализ мастер-файла</span>
+                      </div>
+                      <span className="font-mono text-[10px] text-[#B46BFF] uppercase tracking-widest">
+                        {audioMeta ? "✓ ПРОВЕРЕН" : "ОПЦИОНАЛЬНО"}
+                      </span>
+                    </div>
+
+                    <div className="relative border border-dashed border-white/20 hover:border-[#B46BFF]/60 rounded-xl p-4 text-center transition bg-black/30 group">
+                      <input
+                        type="file"
+                        accept="audio/*,.wav,.flac,.mp3"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleAudioFileInspect(file);
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      {audioMeta ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-left text-xs font-mono">
+                            <span className="text-white font-bold truncate max-w-[200px] sm:max-w-xs">{audioMeta.fileName}</span>
+                            <span className="text-[#B46BFF]">{audioMeta.duration} • {audioMeta.sampleRate / 1000} kHz</span>
+                          </div>
+                          <canvas
+                            ref={waveformCanvasRef}
+                            width={500}
+                            height={48}
+                            className="w-full h-12 rounded-lg bg-black/60 border border-white/10"
+                          />
+                          <p className="font-mono text-[10px] text-emerald-400 text-left">
+                            ✓ Аудиопоток декодирован: {audioMeta.channels === 2 ? "Stereo" : "Mono"} • {audioMeta.sampleRate} Hz
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-2 text-[#D9D9E2]/60 group-hover:text-white transition">
+                          <FileAudio className="w-7 h-7 text-[#B46BFF] mb-1.5" />
+                          <p className="font-mono text-xs text-white">Перетащите WAV / FLAC сюда для проверки параметров</p>
+                          <p className="font-mono text-[10px] text-[#D9D9E2]/50 mt-0.5">Локальная визуализация формы волны и битрейта без отправки на сервер</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div>

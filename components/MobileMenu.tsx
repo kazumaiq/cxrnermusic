@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X, ArrowUpRight, User, Music } from "lucide-react";
+import SfxToggle from "./visual/SfxToggle";
 
 interface MobileMenuProps {
   isLoggedIn: boolean;
@@ -70,14 +71,17 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
             </div>
           </Link>
 
-          <button
-            type="button"
-            onClick={() => setIsOpen(false)}
-            className="flex items-center justify-center w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white active:scale-95 transition"
-            aria-label="Закрыть меню"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <SfxToggle />
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center justify-center w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white active:scale-95 transition"
+              aria-label="Закрыть меню"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         <div className="py-6 flex flex-col gap-1.5 flex-1">

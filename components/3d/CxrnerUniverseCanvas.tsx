@@ -220,6 +220,8 @@ const NEBULA_FRAGMENT_SHADER = /* glsl */ `
   uniform float uAudioEnergy;
   uniform vec2 uPointer;
   uniform vec2 uResolution;
+  uniform vec3 uAtmosphereColor;
+  uniform float uShockwave;
   varying vec2 vUv;
 
   // Compact pseudo-random hash
@@ -294,6 +296,12 @@ const NEBULA_FRAGMENT_SHADER = /* glsl */ `
     mat2 cosmicRot = mat2(cos(rotAngle), sin(rotAngle), -sin(rotAngle), cos(rotAngle));
     vec2 cPos = cosmicRot * (p + vec2(uPointer.x * 0.02, -uScroll * 0.28 + uPointer.y * 0.015));
 
+    // Dynamic beat shockwave ring distortion
+    float distOrigin = length(cPos);
+    float waveDist = uShockwave * 2.4;
+    float shock = exp(-pow((distOrigin - waveDist) * 7.5, 2.0)) * max(0.0, 1.0 - uShockwave);
+    cPos += (distOrigin > 0.001 ? normalize(cPos) : vec2(0.0)) * shock * 0.085;
+
     // --- 1. DEEP SPACE NEBULA (Domain-warped fluid gas filaments) ---
     float t = uTime * 0.012;
     vec2 q = vec2(
@@ -314,9 +322,11 @@ const NEBULA_FRAGMENT_SHADER = /* glsl */ `
     vec3 voidBlack     = vec3(0.012, 0.009, 0.018); // Pure deep cosmic black #030205
     vec3 midnightAbyss = vec3(0.026, 0.016, 0.048); // Deep interstellar space
     vec3 nebulaIndigo  = vec3(0.075, 0.035, 0.145); // Diffuse molecular cloud #130925
-    vec3 ionPurple     = vec3(0.380, 0.140, 0.760); // Ionized hydrogen emission #6124c2
-    vec3 neonViolet    = vec3(0.680, 0.320, 1.000); // Luminous stellar ionization ridge #ad52ff
     vec3 starlightCyan = vec3(0.240, 0.520, 0.820); // Delicate cool stellar reflection mist #3d85d1
+
+    // Reactive atmosphere tint
+    vec3 activeGas = mix(vec3(0.380, 0.140, 0.760), uAtmosphereColor, 0.72);
+    vec3 activePeak = mix(vec3(0.680, 0.320, 1.000), normalize(uAtmosphereColor + vec3(0.25, 0.25, 0.35)), 0.65);
 
     // Layer the atmospheric gas
     vec3 col = mix(voidBlack, midnightAbyss, smoothstep(0.12, 0.85, gasField));
@@ -324,9 +334,10 @@ const NEBULA_FRAGMENT_SHADER = /* glsl */ `
 
     // Luminous emission gas, carved organically by interstellar dark dust rifts
     float emission = smoothstep(0.40, 0.86, gasField) * (1.0 - darkRift * 0.58);
-    col += ionPurple * emission * (0.36 + uAudioEnergy * 0.18);
-    col += neonViolet * pow(emission, 2.2) * 0.32;
+    col += activeGas * emission * (0.36 + uAudioEnergy * 0.22);
+    col += activePeak * pow(emission, 2.2) * 0.32;
     col += starlightCyan * smoothstep(0.65, 0.95, gasWisps) * 0.16;
+    col += uAtmosphereColor * shock * 0.55; // Shockwave luminous ripple
 
     // --- 2. PROCEDURAL DISTANT STELLAR FIELD (Per-Pixel Sharp Stars) ---
     // Background micro-pinpoints (thousands of tiny distant stars)
@@ -338,7 +349,7 @@ const NEBULA_FRAGMENT_SHADER = /* glsl */ `
 
     vec3 starColorFar = vec3(0.85, 0.88, 1.0);
     vec3 starColorMid = mix(vec3(0.9, 0.93, 1.0), vec3(1.0, 0.92, 0.80), hash21(floor(cPos * 52.0)));
-    vec3 starColorNear = mix(vec3(0.95, 0.96, 1.0), vec3(0.82, 0.65, 1.0), hash21(floor(cPos * 22.0)));
+    vec3 starColorNear = mix(vec3(0.95, 0.96, 1.0), uAtmosphereColor * 0.5 + vec3(0.5, 0.5, 0.5), hash21(floor(cPos * 22.0)));
 
     col += starColorFar * starsFar * 0.65;
     col += starColorMid * starsMid * 0.95;
@@ -490,6 +501,8 @@ export default function CxrnerUniverseCanvas() {
       uAudioEnergy: { value: 0 },
       uPointer: { value: new THREE.Vector2(0, 0) },
       uResolution: { value: new THREE.Vector2(width, height) },
+      uAtmosphereColor: { value: new THREE.Vector3(0.529, 0.216, 1.0) },
+      uShockwave: { value: 0 },
     };
     const nebulaMat = new THREE.ShaderMaterial({
       vertexShader: NEBULA_VERTEX_SHADER,
@@ -697,6 +710,17 @@ export default function CxrnerUniverseCanvas() {
     });
     const netLines = new THREE.LineSegments(netLineGeo, netLineMat);
     networkGroup.add(netLines);
+
+    // Interactive targeting beam & glowing data packet for hovered DSP node
+    const packetGeo = new THREE.SphereGeometry(0.11, 12, 12);
+    const packetMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0,
+    });
+    const packetMesh = new THREE.Mesh(packetGeo, packetMat);
+    networkGroup.add(packetMesh);
+
     networkGroup.add(networkNodes);
     networkGroup.scale.setScalar(0.01);
     scene.add(networkGroup);
@@ -936,6 +960,24 @@ export default function CxrnerUniverseCanvas() {
       plasmaUniforms.uAudioMid.value += (audioMid - plasmaUniforms.uAudioMid.value) * damp;
       plasmaUniforms.uHover.value += (uState.hoverIntensity - plasmaUniforms.uHover.value) * damp;
 
+      // Atmosphere color smooth transition
+      const targetR = uState.atmosphereColor[0];
+      const targetG = uState.atmosphereColor[1];
+      const targetB = uState.atmosphereColor[2];
+      const curAtmos = nebulaUniforms.uAtmosphereColor.value;
+      curAtmos.x += (targetR - curAtmos.x) * damp * 0.45;
+      curAtmos.y += (targetG - curAtmos.y) * damp * 0.45;
+      curAtmos.z += (targetB - curAtmos.z) * damp * 0.45;
+      violetRimLight.color.setRGB(curAtmos.x, curAtmos.y, curAtmos.z);
+
+      // Beat shockwave decay & propagation
+      if (uState.shockwave > 0.001) {
+        nebulaUniforms.uShockwave.value = 1.0 - uState.shockwave;
+        uState.shockwave = Math.max(0, uState.shockwave - delta * 1.5);
+      } else {
+        nebulaUniforms.uShockwave.value = 0;
+      }
+
       auraUniforms.uTime.value = elapsed;
       auraUniforms.uAudioEnergy.value = audioEnergy;
 
@@ -1088,16 +1130,33 @@ export default function CxrnerUniverseCanvas() {
         netLineMat.opacity = netAlpha * 0.42;
         nodeMat.opacity = netAlpha * 0.9;
 
+        const targetNode =
+          uState.targetNodeIndex >= 0 && uState.targetNodeIndex < nodeCount
+            ? uState.targetNodeIndex
+            : -1;
+
         for (let i = 0; i < nodeCount; i++) {
           const p = nodePositions[i];
           dummy.position.copy(p);
-          const nodePulse = 0.75 + 0.35 * Math.sin(elapsed * 3.0 + i * 0.7) + audioMid * 0.5;
+          const isTarget = targetNode === i;
+          const nodePulse =
+            (isTarget ? 2.4 : 0.75 + 0.35 * Math.sin(elapsed * 3.0 + i * 0.7)) +
+            audioMid * 0.5;
           dummy.scale.setScalar(nodePulse);
           dummy.rotation.set(0, 0, 0);
           dummy.updateMatrix();
           networkNodes.setMatrixAt(i, dummy.matrix);
         }
         networkNodes.instanceMatrix.needsUpdate = true;
+
+        if (targetNode >= 0) {
+          const tp = nodePositions[targetNode];
+          const packetT = (elapsed * 2.4) % 1.0;
+          packetMesh.position.set(tp.x * packetT, tp.y * packetT, tp.z * packetT);
+          packetMat.opacity = netAlpha * 0.95;
+        } else {
+          packetMat.opacity = 0;
+        }
       }
 
       // ---- ARCHITECTURAL MONOLITH PRISMS (Section 06: s ~ 0.60..0.90) ----
@@ -1199,6 +1258,8 @@ export default function CxrnerUniverseCanvas() {
 
       nodeGeo.dispose();
       nodeMat.dispose();
+      packetGeo.dispose();
+      packetMat.dispose();
       netLineGeo.dispose();
       netLineMat.dispose();
       networkNodes.dispose();

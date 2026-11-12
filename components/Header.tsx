@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getSupabaseServerClient } from "../lib/supabaseServer";
 import MobileMenu from "./MobileMenu";
+import SfxToggle from "./visual/SfxToggle";
 import { User, ArrowUpRight } from "lucide-react";
 
 const navItems = [
@@ -68,6 +69,7 @@ export default async function Header() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
+            <SfxToggle />
             {isLoggedIn ? (
               <>
                 <Link

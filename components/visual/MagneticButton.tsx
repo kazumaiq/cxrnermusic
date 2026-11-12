@@ -2,6 +2,7 @@
 
 import { useRef, type ReactNode, type MouseEvent } from "react";
 import Link from "next/link";
+import { playHoverSound, playClickSound } from "../../lib/soundFX";
 
 interface MagneticButtonProps {
   children: ReactNode;
@@ -15,8 +16,8 @@ interface MagneticButtonProps {
 }
 
 /**
- * Magnetic interactive button / link with subtle cursor pull on desktop
- * and crisp tactile feedback on mobile.
+ * Magnetic interactive button / link with subtle cursor pull on desktop,
+ * crisp tactile sound feedback, and mobile responsiveness.
  */
 export default function MagneticButton({
   children,
@@ -29,6 +30,15 @@ export default function MagneticButton({
   ariaLabel,
 }: MagneticButtonProps) {
   const ref = useRef<HTMLElement | null>(null);
+
+  const handleMouseEnter = () => {
+    playHoverSound();
+  };
+
+  const handleClick = () => {
+    playClickSound();
+    onClick?.();
+  };
 
   const handleMouseMove = (e: MouseEvent<HTMLElement>) => {
     const el = ref.current;
@@ -50,8 +60,10 @@ export default function MagneticButton({
   const commonProps = {
     "data-cursor": cursorLabel,
     "aria-label": ariaLabel,
+    onMouseEnter: handleMouseEnter,
     onMouseMove: handleMouseMove,
     onMouseLeave: handleMouseLeave,
+    onClick: handleClick,
     className: `inline-flex items-center justify-center transition-transform duration-300 ease-out will-change-transform ${className}`,
   };
 
@@ -91,7 +103,6 @@ export default function MagneticButton({
         ref.current = node;
       }}
       type="button"
-      onClick={onClick}
       {...commonProps}
     >
       {children}

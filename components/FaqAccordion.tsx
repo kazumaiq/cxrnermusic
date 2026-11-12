@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Minus, ArrowUpRight } from "lucide-react";
 import type { FaqItem } from "../data/site";
+import { playClickSound } from "../lib/soundFX";
 
 interface FaqAccordionProps {
   items: FaqItem[];
@@ -12,6 +13,7 @@ export default function FaqAccordion({ items }: FaqAccordionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const toggle = (index: number) => {
+    playClickSound();
     setOpenIndex(openIndex === index ? null : index);
   };
 

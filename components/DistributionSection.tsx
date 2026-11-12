@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CheckCircle2, Radio } from "lucide-react";
 import { services } from "../data/site";
+import { setUniverseTargetNode } from "../lib/universeBridge";
+import { playClickSound, playHoverSound } from "../lib/soundFX";
 
 const PIPELINE = [
   {
@@ -79,8 +81,17 @@ export default function DistributionSection() {
               <button
                 key={item.code}
                 type="button"
-                onClick={() => setActiveStage(idx)}
-                onMouseEnter={() => setActiveStage(idx)}
+                onClick={() => {
+                  setActiveStage(idx);
+                  setUniverseTargetNode(idx * 4 + 2);
+                  playClickSound();
+                }}
+                onMouseEnter={() => {
+                  setActiveStage(idx);
+                  setUniverseTargetNode(idx * 4 + 2);
+                  playHoverSound();
+                }}
+                onMouseLeave={() => setUniverseTargetNode(-1)}
                 data-cursor={`STEP ${item.code}`}
                 className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all duration-300 flex items-center justify-between gap-4 ${
                   isActive
@@ -149,14 +160,25 @@ export default function DistributionSection() {
           </div>
 
           <div className="relative z-10 mt-8 pt-6 border-t border-white/10 space-y-4">
+            <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.25em] text-[#B46BFF]">
+              <Radio className="w-3 h-3 animate-pulse" />
+              <span>Глобальная сеть доставки // наведите на платформу</span>
+            </div>
             <div className="flex flex-wrap gap-1.5">
-              {DSP_NETWORK.map((dsp) => (
-                <span
+              {DSP_NETWORK.map((dsp, dIdx) => (
+                <button
                   key={dsp}
-                  className="px-2.5 py-1 rounded-full border border-white/10 bg-white/[0.03] font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/75"
+                  type="button"
+                  onMouseEnter={() => {
+                    setUniverseTargetNode((dIdx * 2 + 1) % 24);
+                    playHoverSound();
+                  }}
+                  onMouseLeave={() => setUniverseTargetNode(-1)}
+                  data-cursor="DSP"
+                  className="px-2.5 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-[#8737FF]/25 hover:border-[#B46BFF]/60 hover:text-white font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/75 transition-all duration-200"
                 >
                   {dsp}
-                </span>
+                </button>
               ))}
             </div>
 

@@ -29,6 +29,10 @@ export default function CosmicCursor() {
     let curY = mouseY;
     let dotX = mouseX;
     let dotY = mouseY;
+    let prevX = mouseX;
+    let prevY = mouseY;
+    let speed = 0;
+    let angle = 0;
     let isHovered = false;
     let isPressed = false;
     let currentLabel = "";
@@ -73,23 +77,43 @@ export default function CosmicCursor() {
     const tick = () => {
       rafId = requestAnimationFrame(tick);
 
-      curX += (mouseX - curX) * 0.16;
-      curY += (mouseY - curY) * 0.16;
-      dotX += (mouseX - dotX) * 0.55;
-      dotY += (mouseY - dotY) * 0.55;
+      const dx = mouseX - curX;
+      const dy = mouseY - curY;
+      curX += dx * 0.18;
+      curY += dy * 0.18;
+      dotX += (mouseX - dotX) * 0.58;
+      dotY += (mouseY - dotY) * 0.58;
+
+      // Dynamic velocity & direction for liquid lens distortion
+      const vx = mouseX - prevX;
+      const vy = mouseY - prevY;
+      prevX = mouseX;
+      prevY = mouseY;
+      const curSpeed = Math.sqrt(vx * vx + vy * vy);
+      speed += (curSpeed - speed) * 0.2;
+      if (curSpeed > 1.2) {
+        angle = Math.atan2(vy, vx);
+      }
 
       const outer = outerRef.current;
       const inner = innerRef.current;
       const lbl = labelRef.current;
 
       if (outer) {
-        const scale = isPressed ? 0.78 : isHovered ? (currentLabel ? 2.1 : 1.55) : 1;
-        outer.style.transform = `translate3d(${curX}px, ${curY}px, 0) translate(-50%, -50%) scale(${scale})`;
+        const baseScale = isPressed ? 0.78 : isHovered ? (currentLabel ? 2.1 : 1.55) : 1;
+        const stretch = 1 + Math.min(speed * 0.012, 0.42);
+        const squeeze = 1 / Math.sqrt(stretch);
+
+        outer.style.transform = `translate3d(${curX}px, ${curY}px, 0) translate(-50%, -50%) rotate(${angle}rad) scale(${baseScale * stretch}, ${baseScale * squeeze}) rotate(${-angle}rad)`;
         outer.style.borderColor = isHovered
-          ? "rgba(180, 107, 255, 0.9)"
-          : "rgba(217, 217, 226, 0.42)";
+          ? "rgba(180, 107, 255, 0.95)"
+          : speed > 8
+          ? "rgba(255, 255, 255, 0.65)"
+          : "rgba(217, 217, 226, 0.45)";
         outer.style.backgroundColor = isHovered
-          ? "rgba(135, 55, 255, 0.14)"
+          ? "rgba(135, 55, 255, 0.16)"
+          : speed > 10
+          ? "rgba(180, 107, 255, 0.08)"
           : "transparent";
       }
 

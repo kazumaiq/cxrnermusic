@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { setUniverseIntroCompleted } from "../../lib/universeBridge";
+import { playWhooshSound } from "../../lib/soundFX";
 
 /**
  * Short, skippable (~1.35s) cinematic intro overlay synced with the 3D WebGL camera fly-in.
@@ -27,6 +28,7 @@ export default function IntroSequence() {
 
     const exitTimer = window.setTimeout(() => {
       setPhase("exiting");
+      playWhooshSound();
     }, 1050);
 
     const doneTimer = window.setTimeout(() => {

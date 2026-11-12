@@ -4,6 +4,20 @@ import { useState, useMemo, useEffect, useRef, type MouseEvent } from "react";
 import Image from "next/image";
 import { Search, Disc3, ExternalLink, Music, ArrowUpRight, Sparkles } from "lucide-react";
 import type { ReleaseItem } from "../lib/releases";
+import { setUniverseAtmosphere } from "../lib/universeBridge";
+import { playReleaseChime } from "../lib/soundFX";
+
+// Unique atmospheric ionization hue for releases
+const RELEASE_ATMOSPHERE: Record<string, [number, number, number]> = {
+  "The Sadness of Reality": [0.529, 0.216, 1.0], // Electric Violet
+  "GET BACK": [0.88, 0.18, 0.32],              // Cyber Crimson
+  "Stream Of Dreams": [0.18, 0.65, 0.95],      // Stellar Cyan
+  "DEMURE": [0.78, 0.22, 0.88],                // Neon Magenta
+  "Celebrate": [0.94, 0.62, 0.18],             // Solar Gold
+  "TERANUM": [0.45, 0.22, 0.88],               // Deep Violet
+  "Paranoia is everywhere": [0.18, 0.72, 0.75],// Emerald Ion
+  "HALLUCINATIONN": [0.65, 0.18, 0.85],        // Amethyst
+};
 
 const DEFAULT_RELEASES: ReleaseItem[] = [
   {
@@ -116,41 +130,71 @@ function TiltCoverFrame({
   };
 
   return (
-    <div
-      ref={frameRef}
-      onMouseMove={handleMove}
-      onMouseLeave={handleLeave}
-      className={`relative aspect-square w-full rounded-2xl overflow-hidden bg-[#090611] transition-transform duration-300 ease-out will-change-transform ${
-        active
-          ? "ring-2 ring-[#B46BFF] shadow-[0_0_45px_rgba(135,55,255,0.42)]"
-          : "ring-1 ring-white/10 group-hover:ring-[#B46BFF]/60 group-hover:shadow-[0_24px_60px_rgba(135,55,255,0.28)]"
-      }`}
-    >
-      {isRemote ? (
-        <img
-          src={cover}
-          alt={alt}
-          loading="lazy"
-          className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
-        />
-      ) : (
-        <Image
-          src={cover}
-          alt={alt}
-          fill
-          sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 25vw"
-          className="object-cover transition duration-700 group-hover:scale-105"
-        />
-      )}
+    <div className="relative group/vinyl overflow-visible">
+      {/* 3D Vinyl Record sliding out from behind the sleeve */}
+      <div
+        className={`absolute right-0 top-1/2 -translate-y-1/2 w-[92%] h-[92%] rounded-full bg-[#08060d] border border-white/25 transition-all duration-700 ease-out shadow-[0_12px_36px_rgba(0,0,0,0.85)] flex items-center justify-center -z-10 ${
+          active
+            ? "translate-x-10 sm:translate-x-14 rotate-180"
+            : "group-hover:translate-x-8 group-hover:rotate-90"
+        }`}
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at center, transparent 28%, rgba(255,255,255,0.08) 30%, transparent 32%),
+            radial-gradient(circle at center, transparent 44%, rgba(255,255,255,0.06) 46%, transparent 48%),
+            radial-gradient(circle at center, transparent 60%, rgba(255,255,255,0.05) 62%, transparent 64%),
+            radial-gradient(circle at center, transparent 76%, rgba(255,255,255,0.05) 78%, transparent 80%),
+            radial-gradient(circle at center, transparent 88%, rgba(255,255,255,0.05) 90%, transparent 92%),
+            conic-gradient(from 0deg, rgba(255,255,255,0.18), transparent 60deg, rgba(255,255,255,0.14) 120deg, transparent 180deg, rgba(255,255,255,0.18) 240deg, transparent 300deg, rgba(255,255,255,0.14))
+          `,
+        }}
+      >
+        {/* Center vinyl label */}
+        <div className="w-[30%] h-[30%] rounded-full overflow-hidden border border-[#B46BFF]/70 shadow-md">
+          {isRemote ? (
+            <img src={cover} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <Image src={cover} alt="" fill className="object-cover" />
+          )}
+        </div>
+      </div>
 
-      {/* Volumetric Chrome Sheen Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-[#050407]/85 via-transparent to-[#B46BFF]/15 opacity-70 group-hover:opacity-45 transition duration-500" />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none" />
+      <div
+        ref={frameRef}
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
+        className={`relative aspect-square w-full rounded-2xl overflow-hidden bg-[#090611] transition-transform duration-300 ease-out will-change-transform ${
+          active
+            ? "ring-2 ring-[#B46BFF] shadow-[0_0_45px_rgba(135,55,255,0.42)]"
+            : "ring-1 ring-white/10 group-hover:ring-[#B46BFF]/60 group-hover:shadow-[0_24px_60px_rgba(135,55,255,0.28)]"
+        }`}
+      >
+        {isRemote ? (
+          <img
+            src={cover}
+            alt={alt}
+            loading="lazy"
+            className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <Image
+            src={cover}
+            alt={alt}
+            fill
+            sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 25vw"
+            className="object-cover transition duration-700 group-hover:scale-105"
+          />
+        )}
 
-      <div className="absolute top-3 left-3 flex items-center gap-2">
-        <span className="px-2.5 py-1 rounded-full bg-[#050407]/80 backdrop-blur-md border border-white/15 font-mono text-[9px] uppercase tracking-[0.22em] text-[#D9D9E2]">
-          {indexLabel}
-        </span>
+        {/* Volumetric Chrome Sheen Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#050407]/85 via-transparent to-[#B46BFF]/15 opacity-70 group-hover:opacity-45 transition duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none" />
+
+        <div className="absolute top-3 left-3 flex items-center gap-2">
+          <span className="px-2.5 py-1 rounded-full bg-[#050407]/80 backdrop-blur-md border border-white/15 font-mono text-[9px] uppercase tracking-[0.22em] text-[#D9D9E2]">
+            {indexLabel}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -208,6 +252,14 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
 
   const spotlight =
     filteredReleases[activeIndex] || filteredReleases[0] || releasesToDisplay[0];
+
+  // Dynamic ambient lighting transition to match spotlight release artwork
+  useEffect(() => {
+    if (spotlight) {
+      const hue = RELEASE_ATMOSPHERE[spotlight.title] || [0.529, 0.216, 1.0];
+      setUniverseAtmosphere(hue);
+    }
+  }, [spotlight]);
 
   return (
     <div className="space-y-12">
@@ -353,7 +405,10 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
               <article
                 key={`${release.title}-${index}`}
                 data-stagger-item
-                onClick={() => setActiveIndex(index)}
+                onClick={() => {
+                  setActiveIndex(index);
+                  playReleaseChime();
+                }}
                 data-cursor="SELECT"
                 className="group cursor-pointer flex flex-col justify-between space-y-3"
               >

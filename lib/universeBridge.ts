@@ -8,6 +8,9 @@ export interface UniverseState {
   introCompleted: boolean;
   hoverIntensity: number; // 0..1 when hovering interactive 3D-linked UI
   cursorLabel: string | null;
+  atmosphereColor: [number, number, number]; // [r, g, b] 0..1
+  shockwave: number; // 0..1 triggered on beat drops
+  targetNodeIndex: number; // Active DSP node in distribution network (-1 if none)
 }
 
 const initialState: UniverseState = {
@@ -18,6 +21,9 @@ const initialState: UniverseState = {
   introCompleted: false,
   hoverIntensity: 0,
   cursorLabel: null,
+  atmosphereColor: [0.529, 0.216, 1.0], // Electric Purple #8737FF default
+  shockwave: 0,
+  targetNodeIndex: -1,
 };
 
 declare global {
@@ -40,6 +46,21 @@ export function setUniverseAudio(playing: boolean, bass = 0, mid = 0) {
   st.audioBass = bass;
   st.audioMid = mid;
   st.audioEnergy = Math.min(1, bass * 0.65 + mid * 0.35);
+}
+
+export function triggerUniverseShockwave(strength = 1.0) {
+  const st = getUniverseState();
+  st.shockwave = Math.max(st.shockwave, Math.min(strength, 1.0));
+}
+
+export function setUniverseAtmosphere(rgb: [number, number, number]) {
+  const st = getUniverseState();
+  st.atmosphereColor = rgb;
+}
+
+export function setUniverseTargetNode(index: number) {
+  const st = getUniverseState();
+  st.targetNodeIndex = index;
 }
 
 export function setUniverseHover(intensity: number, label: string | null = null) {
