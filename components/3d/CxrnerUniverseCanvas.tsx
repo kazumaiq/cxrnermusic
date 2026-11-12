@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import * as THREE from "three";
-import { getUniverseState } from "../../lib/universeBridge";
+import { getUniverseState, triggerUniverseDisrupt } from "../../lib/universeBridge";
+import { playQuantumDisrupt } from "../../lib/soundFX";
 
 /**
  * CXRNER MUSIC — Unified 3D Cosmic Universe Engine
@@ -866,19 +867,62 @@ export default function CxrnerUniverseCanvas() {
     };
     updateScroll();
 
+    let isDraggingCore = false;
+    let lastPointerPos = { x: 0, y: 0 };
+    let coreSpinVelX = 0;
+    let coreSpinVelY = 0;
+    let coreManualRotX = 0;
+    let coreManualRotY = 0;
+    let dragDist = 0;
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (window.scrollY < window.innerHeight * 0.9) {
+        isDraggingCore = true;
+        lastPointerPos = { x: e.clientX, y: e.clientY };
+        dragDist = 0;
+      }
+    };
+
+    const onPointerUp = () => {
+      if (isDraggingCore && dragDist < 8 && window.scrollY < window.innerHeight * 0.75) {
+        triggerUniverseDisrupt();
+        playQuantumDisrupt();
+      }
+      isDraggingCore = false;
+    };
+
     const onPointerMove = (e: PointerEvent) => {
       pointerX = (e.clientX / Math.max(window.innerWidth, 1)) * 2 - 1;
       pointerY = -((e.clientY / Math.max(window.innerHeight, 1)) * 2 - 1);
+      if (isDraggingCore) {
+        const dx = e.clientX - lastPointerPos.x;
+        const dy = e.clientY - lastPointerPos.y;
+        dragDist += Math.abs(dx) + Math.abs(dy);
+        coreSpinVelY += dx * 0.005;
+        coreSpinVelX += dy * 0.005;
+        lastPointerPos = { x: e.clientX, y: e.clientY };
+      }
     };
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
-        pointerX = (e.touches[0].clientX / Math.max(window.innerWidth, 1)) * 2 - 1;
-        pointerY = -((e.touches[0].clientY / Math.max(window.innerHeight, 1)) * 2 - 1);
+        const touch = e.touches[0];
+        pointerX = (touch.clientX / Math.max(window.innerWidth, 1)) * 2 - 1;
+        pointerY = -((touch.clientY / Math.max(window.innerHeight, 1)) * 2 - 1);
+        if (isDraggingCore) {
+          const dx = touch.clientX - lastPointerPos.x;
+          const dy = touch.clientY - lastPointerPos.y;
+          dragDist += Math.abs(dx) + Math.abs(dy);
+          coreSpinVelY += dx * 0.006;
+          coreSpinVelX += dy * 0.006;
+          lastPointerPos = { x: touch.clientX, y: touch.clientY };
+        }
       }
     };
 
     window.addEventListener("scroll", updateScroll, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("pointerup", onPointerUp, { passive: true });
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: true });
 
@@ -1072,10 +1116,27 @@ export default function CxrnerUniverseCanvas() {
         coreGroup.scale.setScalar(0.65);
       }
 
-      // Core internal rotations + pointer tilt + audio energy boost
+      // Core kinetic drag physics & inertia damping
+      coreSpinVelX *= 0.93;
+      coreSpinVelY *= 0.93;
+      coreManualRotX += coreSpinVelX;
+      coreManualRotY += coreSpinVelY;
+
+      // Quantum Disruption shattering calculation
+      let disruptionFactor = 0;
+      if (uState.disruption > 0.001) {
+        disruptionFactor = Math.sin(uState.disruption * Math.PI);
+        uState.disruption = Math.max(0, uState.disruption - delta * 1.4);
+      }
+
+      // Core internal rotations + pointer tilt + audio energy boost + manual drag spin
       const spinBoost = 1 + Math.abs(scrollVelocity) * 1.4 + audioEnergy * 0.9;
-      coreGroup.rotation.y = smoothPointerX * 0.3 + elapsed * 0.09;
-      coreGroup.rotation.x = -smoothPointerY * 0.2 + s * Math.PI * 1.1;
+      coreGroup.rotation.y = smoothPointerX * 0.3 + elapsed * 0.09 + coreManualRotY;
+      coreGroup.rotation.x = -smoothPointerY * 0.2 + s * Math.PI * 1.1 + coreManualRotX;
+
+      // Disruption scale pulse on plasma core
+      plasmaCore.scale.setScalar(1.0 + disruptionFactor * 0.45);
+      plasmaUniforms.uHover.value += disruptionFactor * 2.2;
 
       // Keep radial aura billboard facing camera cleanly inside coreGroup
       auraPlane.quaternion.copy(coreGroup.quaternion).invert();
@@ -1089,17 +1150,18 @@ export default function CxrnerUniverseCanvas() {
       gyroRing3.rotation.x += delta * 0.28;
       gyroRing3.rotation.y += delta * 0.36;
 
-      // Update Instanced Orbital Shards
+      // Update Instanced Orbital Shards (with explosive outward shatter during disruption)
       for (let i = 0; i < shardCount; i++) {
         const sd = shardData[i];
         const a = sd.angle + elapsed * sd.speed * spinBoost;
+        const currentRadius = sd.radius + disruptionFactor * 3.4;
         dummy.position.set(
-          Math.cos(a) * sd.radius,
-          Math.sin(a * 0.7) * 0.55 + Math.sin(a) * sd.tilt,
-          Math.sin(a) * sd.radius
+          Math.cos(a) * currentRadius,
+          Math.sin(a * 0.7) * 0.55 + Math.sin(a) * sd.tilt + (disruptionFactor > 0 ? (Math.sin(i * 3.2) * disruptionFactor * 1.8) : 0),
+          Math.sin(a) * currentRadius
         );
         dummy.rotation.set(a * 1.3, a * 0.8, sd.tilt);
-        const pulseScale = sd.scale * (1 + audioBass * 0.35);
+        const pulseScale = sd.scale * (1 + audioBass * 0.35) * (1 + disruptionFactor * 1.5);
         dummy.scale.setScalar(pulseScale);
         dummy.updateMatrix();
         shardInstanced.setMatrixAt(i, dummy.matrix);
@@ -1231,6 +1293,8 @@ export default function CxrnerUniverseCanvas() {
 
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("scroll", updateScroll);
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("resize", onResize);

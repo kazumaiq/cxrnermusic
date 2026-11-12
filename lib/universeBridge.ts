@@ -11,6 +11,9 @@ export interface UniverseState {
   atmosphereColor: [number, number, number]; // [r, g, b] 0..1
   shockwave: number; // 0..1 triggered on beat drops
   targetNodeIndex: number; // Active DSP node in distribution network (-1 if none)
+  disruption: number; // 0..1 when core shatters into particles and reforms
+  dragDeltaX: number; // free-form 3D core spin delta
+  dragDeltaY: number;
 }
 
 const initialState: UniverseState = {
@@ -24,6 +27,9 @@ const initialState: UniverseState = {
   atmosphereColor: [0.529, 0.216, 1.0], // Electric Purple #8737FF default
   shockwave: 0,
   targetNodeIndex: -1,
+  disruption: 0,
+  dragDeltaX: 0,
+  dragDeltaY: 0,
 };
 
 declare global {
@@ -51,6 +57,18 @@ export function setUniverseAudio(playing: boolean, bass = 0, mid = 0) {
 export function triggerUniverseShockwave(strength = 1.0) {
   const st = getUniverseState();
   st.shockwave = Math.max(st.shockwave, Math.min(strength, 1.0));
+}
+
+export function triggerUniverseDisrupt() {
+  const st = getUniverseState();
+  st.disruption = 1.0;
+  st.shockwave = 1.0;
+}
+
+export function applyUniverseCoreDrag(dx: number, dy: number) {
+  const st = getUniverseState();
+  st.dragDeltaX += dx;
+  st.dragDeltaY += dy;
 }
 
 export function setUniverseAtmosphere(rgb: [number, number, number]) {

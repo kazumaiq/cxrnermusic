@@ -9,6 +9,9 @@ import FaqAccordion from "../components/FaqAccordion";
 import IntroSequence from "../components/visual/IntroSequence";
 import ScrollChoreographer from "../components/visual/ScrollChoreographer";
 import MagneticButton from "../components/visual/MagneticButton";
+import HeroHudControls from "../components/visual/HeroHudControls";
+import BeatLaunchpad from "../components/visual/BeatLaunchpad";
+import RoyaltyCalculator from "../components/visual/RoyaltyCalculator";
 import { faqItems, stats } from "../data/site";
 import { getArtists } from "../lib/artists";
 import { getFeaturedRelease } from "../lib/featured";
@@ -134,6 +137,9 @@ export default async function HomePage() {
                   <span>Слушать релизы</span>
                 </MagneticButton>
               </div>
+
+              {/* Interactive Cyber-HUD Controls & Telemetry */}
+              <HeroHudControls />
             </div>
 
             {/* Right Column: Spacer for 3D Core + Audio-Reactive Track Dock */}
@@ -179,6 +185,15 @@ export default async function HomePage() {
           MUSIC WITHOUT BOUNDARIES — CXRNER MUSIC —
         </div>
       </div>
+
+      {/* =====================================================================
+          SECTION 01.B — INTERACTIVE CXRNER BEAT ENGINE / SOUNDPAD
+          ===================================================================== */}
+      <section id="beatpad" className="relative py-12 sm:py-20">
+        <Container className="relative z-10">
+          <BeatLaunchpad />
+        </Container>
+      </section>
 
       {/* =====================================================================
           SECTION 02 — ABOUT CXRNER (MUSIC WITHOUT BOUNDARIES)
@@ -385,6 +400,11 @@ export default async function HomePage() {
           </div>
 
           <DistributionSection />
+
+          {/* Interactive 70/30 Royalty Simulator */}
+          <div className="mt-14 sm:mt-20">
+            <RoyaltyCalculator />
+          </div>
         </Container>
       </section>
 

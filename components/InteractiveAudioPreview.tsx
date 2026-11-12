@@ -11,7 +11,7 @@ import {
   Disc3,
 } from "lucide-react";
 import { setUniverseAudio, triggerUniverseShockwave } from "../lib/universeBridge";
-import { playClickSound } from "../lib/soundFX";
+import { playClickSound, playVinylScratch } from "../lib/soundFX";
 
 interface Track {
   title: string;
@@ -44,6 +44,36 @@ export default function InteractiveAudioPreview({ track }: AudioPreviewProps) {
   const [frequencyData, setFrequencyData] = useState<number[]>(() =>
     Array.from({ length: 32 }, (_, i) => 0.16 + Math.sin(i * 0.45) * 0.12 + 0.08)
   );
+
+  const [scratchAngle, setScratchAngle] = useState(0);
+  const isScratchingRef = useRef(false);
+  const lastScratchXRef = useRef(0);
+
+  const handleVinylPointerDown = (e: React.PointerEvent) => {
+    isScratchingRef.current = true;
+    lastScratchXRef.current = e.clientX;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleVinylPointerMove = (e: React.PointerEvent) => {
+    if (!isScratchingRef.current) return;
+    const dx = e.clientX - lastScratchXRef.current;
+    if (Math.abs(dx) > 3) {
+      setScratchAngle((prev) => prev + dx * 4);
+      playVinylScratch();
+      if (audioRef.current) {
+        audioRef.current.playbackRate = dx > 0 ? 1.35 : 0.65;
+      }
+      lastScratchXRef.current = e.clientX;
+    }
+  };
+
+  const handleVinylPointerUp = () => {
+    isScratchingRef.current = false;
+    if (audioRef.current) {
+      audioRef.current.playbackRate = 1.0;
+    }
+  };
 
   const audioSrc = track.audioSrc || "/audio/the-sadness-of-reality.mp3";
   const yandexAlbumUrl =
@@ -243,14 +273,25 @@ export default function InteractiveAudioPreview({ track }: AudioPreviewProps) {
             )}
           </button>
 
-          {/* 3D Vinyl Sleeve with sliding grooved record */}
-          <div className="relative group/sleeve flex items-center flex-shrink-0 pr-3">
+          {/* 3D Vinyl Sleeve with sliding grooved record (Interactive DJ Scratch) */}
+          <div
+            onPointerDown={handleVinylPointerDown}
+            onPointerMove={handleVinylPointerMove}
+            onPointerUp={handleVinylPointerUp}
+            onPointerCancel={handleVinylPointerUp}
+            data-cursor="SCRATCH"
+            title="Зажмите и двигайте для скретча"
+            className="relative group/sleeve flex items-center flex-shrink-0 pr-3 cursor-grab active:cursor-grabbing touch-none select-none"
+          >
             {/* The Vinyl Record */}
             <div
-              className={`absolute left-0 w-11 h-11 rounded-full bg-[#08060d] border border-white/25 transition-all duration-700 ease-out shadow-[0_4px_16px_rgba(0,0,0,0.85)] flex items-center justify-center ${
-                isPlaying ? "translate-x-5 rotate-180" : "group-hover/sleeve:translate-x-3.5 rotate-45"
+              className={`absolute left-0 w-11 h-11 rounded-full bg-[#08060d] border border-white/25 transition-transform duration-300 ease-out shadow-[0_4px_16px_rgba(0,0,0,0.85)] flex items-center justify-center ${
+                isPlaying ? "translate-x-5" : "group-hover/sleeve:translate-x-3.5"
               }`}
               style={{
+                transform: isPlaying
+                  ? `translateX(20px) rotate(${scratchAngle}deg)`
+                  : `translateX(14px) rotate(${scratchAngle + 45}deg)`,
                 backgroundImage: `
                   radial-gradient(circle at center, transparent 30%, rgba(255,255,255,0.08) 32%, transparent 34%),
                   radial-gradient(circle at center, transparent 46%, rgba(255,255,255,0.06) 48%, transparent 50%),
