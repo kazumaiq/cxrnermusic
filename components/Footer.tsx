@@ -101,6 +101,17 @@ export default function Footer() {
             <ul className="space-y-2.5 text-xs font-mono text-[#D9D9E2]/65">
               <li>
                 <Link
+                  href="/link"
+                  className="text-white hover:text-[#B46BFF] transition inline-flex items-center gap-1.5 font-semibold"
+                >
+                  <span className="text-[#00F0FF]">CXRNER LINK</span>
+                  <span className="px-1.5 py-0.2 rounded bg-[#8737FF] text-white text-[8px] font-bold">
+                    NEW
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/submit-release"
                   className="text-white hover:text-[#B46BFF] transition inline-flex items-center gap-1 font-semibold"
                 >

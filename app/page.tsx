@@ -12,11 +12,12 @@ import MagneticButton from "../components/visual/MagneticButton";
 import HeroHudControls from "../components/visual/HeroHudControls";
 import BeatLaunchpad from "../components/visual/BeatLaunchpad";
 import RoyaltyCalculator from "../components/visual/RoyaltyCalculator";
+import CxrnerLinkSection from "../components/CxrnerLinkSection";
 import { faqItems, stats } from "../data/site";
 import { getArtists } from "../lib/artists";
 import { getFeaturedRelease } from "../lib/featured";
 import { getReleases } from "../lib/releases";
-import { ArrowDown, ArrowRight, ArrowUpRight, Disc3, Send } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Disc3, Send, Radio } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -118,7 +119,7 @@ export default async function HomePage() {
               </div>
 
               {/* Magnetic CTAs */}
-              <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 flex-wrap">
                 <MagneticButton
                   href="/submit-release"
                   cursorLabel="SUBMIT"
@@ -126,6 +127,18 @@ export default async function HomePage() {
                 >
                   <span>Отправить релиз</span>
                   <ArrowRight className="w-4 h-4" />
+                </MagneticButton>
+
+                <MagneticButton
+                  href="/link"
+                  cursorLabel="LINK"
+                  className="btn-void-ghost px-6 py-3.5 sm:px-7 sm:py-4 font-mono text-xs uppercase tracking-[0.18em] border border-[#B46BFF]/40 bg-[#8737FF]/10 hover:bg-[#8737FF]/25 text-[#D9D9E2] flex items-center gap-2 shadow-[0_0_20px_rgba(135,55,255,0.2)]"
+                >
+                  <Radio className="w-4 h-4 text-[#B46BFF]" />
+                  <span>CXRNER LINK</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#8737FF] text-white font-bold tracking-wider shadow-[0_0_10px_#8737FF]">
+                    NEW
+                  </span>
                 </MagneticButton>
 
                 <MagneticButton
@@ -411,14 +424,21 @@ export default async function HomePage() {
       <div className="cosmic-hairline" />
 
       {/* =====================================================================
-          SECTION 06 — WHY CXRNER & FAQ
+          SECTION 06 — CXRNER LINK (SMART PRE-SAVES & MUSIC LINKS)
+          ===================================================================== */}
+      <CxrnerLinkSection />
+
+      <div className="cosmic-hairline" />
+
+      {/* =====================================================================
+          SECTION 07 — WHY CXRNER & FAQ
           ===================================================================== */}
       <section id="why-cxrner" className="relative py-24 sm:py-36">
         <Container className="relative z-10 space-y-24">
           <div className="space-y-10">
             <div className="max-w-3xl space-y-3">
               <span className="font-mono text-xs uppercase tracking-[0.28em] text-[#B46BFF] block">
-                [06] WHY CXRNER MUSIC
+                [07] WHY CXRNER MUSIC
               </span>
               <h2 className="font-heavy text-5xl sm:text-7xl uppercase tracking-tight leading-[0.9] text-white">
                 <span className="block overflow-hidden">
@@ -452,14 +472,14 @@ export default async function HomePage() {
       </section>
 
       {/* =====================================================================
-          SECTION 07 — SEND YOUR RELEASE (ENERGY PORTAL)
+          SECTION 08 — SEND YOUR RELEASE (ENERGY PORTAL)
           ===================================================================== */}
       <section id="send-release" className="relative py-28 sm:py-40">
         <Container className="relative z-10">
           <div className="max-w-4xl mx-auto text-center space-y-8 rounded-3xl p-8 sm:p-14 lg:p-20 border border-[#B46BFF]/35 bg-[#090611]/65 backdrop-blur-2xl shadow-[0_0_90px_rgba(135,55,255,0.22)]">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 font-mono text-[10px] uppercase tracking-[0.28em] text-[#D9D9E2]">
               <span className="w-2 h-2 rounded-full bg-[#B46BFF] animate-ping" />
-              [07] RELEASE SUBMISSION PORTAL
+              [08] RELEASE SUBMISSION PORTAL
             </span>
 
             <h2 className="font-heavy text-5xl sm:text-7xl md:text-8xl uppercase tracking-tight leading-[0.88] text-white">

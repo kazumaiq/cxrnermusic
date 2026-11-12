@@ -56,16 +56,26 @@ export default async function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-[11px] font-mono uppercase tracking-[0.16em] text-[#D9D9E2]/75">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="transition duration-200 hover:text-white py-1 relative group whitespace-nowrap shrink-0"
-              >
-                {item.label}
-                <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-gradient-to-r from-[#8737FF] to-white transition-all duration-300 group-hover:w-full" />
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isLink = item.href === "/link";
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`transition duration-200 py-1 relative group whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                    isLink ? "text-white font-semibold" : "hover:text-white"
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  {isLink && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-[#8737FF] text-white text-[8px] font-bold tracking-wider shadow-[0_0_8px_#8737FF]">
+                      NEW
+                    </span>
+                  )}
+                  <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-gradient-to-r from-[#8737FF] to-white transition-all duration-300 group-hover:w-full" />
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Desktop Actions */}
@@ -108,8 +118,17 @@ export default async function Header() {
             </Link>
           </div>
 
-          {/* Mobile Drawer */}
-          <MobileMenu isLoggedIn={isLoggedIn} navItems={navItems} />
+          {/* Mobile Right Controls: Quick Link Button + Drawer */}
+          <div className="flex md:hidden items-center gap-2">
+            <Link
+              href="/link"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/20 font-mono text-[10px] uppercase font-bold text-white tracking-wider shadow-[0_0_12px_rgba(135,55,255,0.35)]"
+            >
+              <span>LINK</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
+            </Link>
+            <MobileMenu isLoggedIn={isLoggedIn} navItems={navItems} />
+          </div>
         </div>
       </div>
     </header>

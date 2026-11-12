@@ -90,6 +90,7 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
           </p>
           {navItems.map((item, idx) => {
             const isActive = pathname === item.href;
+            const isLink = item.href === "/link";
             return (
               <Link
                 key={item.href}
@@ -98,14 +99,21 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
                 className={`flex items-center justify-between w-full px-4 py-3.5 rounded-2xl font-heavy text-2xl tracking-wide uppercase transition ${
                   isActive
                     ? "bg-[#8737FF]/20 text-white border border-[#B46BFF]/45"
+                    : isLink
+                    ? "text-white border border-[#8737FF]/40 bg-[#8737FF]/15"
                     : "text-[#D9D9E2]/85 hover:text-white hover:bg-white/5"
                 }`}
               >
-                <div className="flex items-baseline gap-3">
+                <div className="flex items-center gap-3">
                   <span className="font-mono text-[10px] text-[#B46BFF]">
                     0{idx + 1}
                   </span>
                   <span>{item.label}</span>
+                  {isLink && (
+                    <span className="px-2 py-0.5 rounded-full bg-[#8737FF] text-white font-mono text-[10px] font-bold tracking-wider shadow-[0_0_10px_#8737FF]">
+                      NEW
+                    </span>
+                  )}
                 </div>
                 <ArrowUpRight className="w-4 h-4 text-[#B46BFF]" />
               </Link>

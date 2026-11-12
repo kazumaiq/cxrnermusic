@@ -10,8 +10,9 @@ const SECTIONS = [
   { id: "releases", code: "03", label: "RELEASES" },
   { id: "artists", code: "04", label: "ARTISTS" },
   { id: "distribution", code: "05", label: "NETWORK" },
-  { id: "why-cxrner", code: "06", label: "ADVANTAGES" },
-  { id: "send-release", code: "07", label: "PORTAL" },
+  { id: "cxrner-link", code: "06", label: "LINK" },
+  { id: "why-cxrner", code: "07", label: "ADVANTAGES" },
+  { id: "send-release", code: "08", label: "PORTAL" },
 ];
 
 /**
