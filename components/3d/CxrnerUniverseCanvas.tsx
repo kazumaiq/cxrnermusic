@@ -165,19 +165,25 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
     vec3 pos = position;
 
     // Gentle orbital drift
-    float drift = uTime * 0.22 + aPhase;
-    pos.x += sin(drift * 0.9) * 0.35;
-    pos.y += cos(drift * 0.7) * 0.35;
-    pos.z += sin(drift * 0.5) * 0.25 - uScrollVelocity * 1.6;
+    float drift = uTime * 0.14 + aPhase * 6.2831;
+    pos.x += sin(drift * 0.6) * 0.18;
+    pos.y += cos(drift * 0.5) * 0.18;
+    pos.z += sin(drift * 0.35) * 0.14 - uScrollVelocity * 1.1;
 
     vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
-    float dist = max(-mvPos.z, 1.0);
+    float dist = max(-mvPos.z, 0.1);
 
-    float twinkle = 0.62 + 0.38 * sin(uTime * 1.8 + aPhase * 6.28);
-    vAlpha = twinkle * smoothstep(95.0, 6.0, dist);
+    // Natural twinkling
+    float twinkle = 0.68 + 0.32 * sin(uTime * 1.8 + aPhase * 12.56);
 
-    float size = aScale * uPixelRatio * (1.0 + uAudioEnergy * 0.45) * (92.0 / dist);
-    gl_PointSize = clamp(size, 1.2, 22.0);
+    // Camera proximity fade: never let any particle block the lens or text (< 2.5 units)
+    float nearFade = smoothstep(2.2, 4.2, dist);
+    float farFade = smoothstep(85.0, 10.0, dist);
+    vAlpha = twinkle * nearFade * farFade;
+
+    // Crisp point size calculation: capped at max 6.0px (retina) so they look like pin-sharp stars, NOT huge blurry meatballs
+    float size = aScale * uPixelRatio * (1.0 + uAudioEnergy * 0.25) * (46.0 / max(dist, 1.8));
+    gl_PointSize = clamp(size, 1.0, 6.0);
     gl_Position = projectionMatrix * mvPos;
   }
 `;
@@ -191,9 +197,12 @@ const PARTICLE_FRAGMENT_SHADER = /* glsl */ `
     float d = length(uv);
     if (d > 0.5) discard;
 
-    float core = smoothstep(0.5, 0.0, d);
-    float glow = pow(core, 2.2);
-    gl_FragColor = vec4(vColor, glow * vAlpha);
+    // Razor-sharp stellar core with smooth inverse-distance optical bloom
+    float core = smoothstep(0.18, 0.0, d);
+    float halo = exp(-d * 6.4) * 0.52;
+    float intensity = core * 1.15 + halo;
+
+    gl_FragColor = vec4(vColor, intensity * vAlpha);
   }
 `;
 
@@ -201,7 +210,7 @@ const NEBULA_VERTEX_SHADER = /* glsl */ `
   varying vec2 vUv;
   void main() {
     vUv = uv;
-    gl_Position = vec4(position.xy, 0.999, 1.0);
+    gl_Position = vec4(position.xy, 0.9999, 1.0);
   }
 `;
 
@@ -210,14 +219,17 @@ const NEBULA_FRAGMENT_SHADER = /* glsl */ `
   uniform float uScroll;
   uniform float uAudioEnergy;
   uniform vec2 uPointer;
+  uniform vec2 uResolution;
   varying vec2 vUv;
 
+  // Compact pseudo-random hash
   float hash21(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
     p += dot(p, p + 45.32);
     return fract(p.x * p.y);
   }
 
+  // Smooth bilinear noise
   float noise2(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
@@ -229,45 +241,113 @@ const NEBULA_FRAGMENT_SHADER = /* glsl */ `
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
   }
 
-  float fbm2(vec2 p) {
+  // 5-octave rotated Fractional Brownian Motion
+  float fbm(vec2 p) {
     float v = 0.0;
-    float a = 0.5;
-    for (int i = 0; i < 4; i++) {
+    float a = 0.52;
+    mat2 rot = mat2(0.8, 0.6, -0.6, 0.8);
+    for (int i = 0; i < 5; i++) {
       v += a * noise2(p);
-      p = p * 2.02 + vec2(3.1, 7.4);
-      a *= 0.5;
+      p = rot * p * 2.05 + vec2(1.4, 3.1);
+      a *= 0.49;
     }
     return v;
   }
 
+  // Crisp procedural star generation in fragment shader (pinpoint sharpness, zero vertex cost)
+  float starLayer(vec2 p, float scale, float density, float twinkleRate, float t) {
+    vec2 gridId = floor(p * scale);
+    vec2 gridUv = fract(p * scale) - 0.5;
+
+    float h = hash21(gridId);
+    if (h < density) return 0.0;
+
+    // Small random offset within cell
+    vec2 offset = vec2(hash21(gridId + 3.1), hash21(gridId + 17.7)) * 0.7 - 0.35;
+    float d = length(gridUv - offset);
+
+    // Natural twinkling
+    float twinkle = 0.65 + 0.35 * sin(t * twinkleRate + h * 62.83);
+
+    // Razor-sharp pinpoint star core
+    float core = smoothstep(0.065, 0.0, d);
+    float halo = exp(-d * 14.0) * 0.38;
+
+    // Subtle 4-point optical diffraction spike for top 1.8% brightest stars (Hubble / James Webb style)
+    float spike = 0.0;
+    if (h > 0.982) {
+      vec2 delta = abs(gridUv - offset);
+      spike = (exp(-delta.x * 24.0) * exp(-delta.y * 2.8) +
+               exp(-delta.y * 24.0) * exp(-delta.x * 2.8)) * 0.42;
+    }
+
+    return (core * 1.25 + halo + spike) * twinkle;
+  }
+
   void main() {
-    vec2 uv = vUv;
-    vec2 centered = uv - 0.5;
+    // Aspect ratio correction so cosmic structures don't stretch on mobile or ultrawide
+    vec2 p = vUv - 0.5;
+    p.x *= uResolution.x / max(uResolution.y, 1.0);
 
-    // Subtle pointer & scroll drift
-    vec2 flow = vec2(uTime * 0.015 + uPointer.x * 0.03, -uScroll * 0.35 + uPointer.y * 0.02);
-    float n1 = fbm2(uv * 2.6 + flow);
-    float n2 = fbm2(uv * 4.2 - flow * 0.6 + vec2(n1 * 0.7));
+    // Natural cosmic inclination angle (~20 deg)
+    float rotAngle = 0.35;
+    mat2 cosmicRot = mat2(cos(rotAngle), sin(rotAngle), -sin(rotAngle), cos(rotAngle));
+    vec2 cPos = cosmicRot * (p + vec2(uPointer.x * 0.02, -uScroll * 0.28 + uPointer.y * 0.015));
 
-    // Volumetric diagonal light shaft
-    float beam = exp(-pow((centered.x * 0.8 + centered.y * 0.45 + 0.05), 2.0) * 6.5);
-    float radial = exp(-dot(centered, centered) * 3.4);
+    // --- 1. DEEP SPACE NEBULA (Domain-warped fluid gas filaments) ---
+    float t = uTime * 0.012;
+    vec2 q = vec2(
+      fbm(cPos * 1.5 + vec2(t * 0.3, -t * 0.15)),
+      fbm(cPos * 1.5 + vec2(4.2 + t * 0.2, 2.8 - t * 0.18))
+    );
 
-    vec3 deepBlack = vec3(0.020, 0.016, 0.027);   // #050407
-    vec3 cosmicBlack = vec3(0.035, 0.024, 0.067); // #090611
-    vec3 darkViolet = vec3(0.086, 0.043, 0.157);  // #160B28
-    vec3 electricPurple = vec3(0.529, 0.216, 1.0);
+    vec2 r = vec2(
+      fbm(cPos * 2.2 + 2.8 * q + vec2(1.7, 9.2) - t * 0.4),
+      fbm(cPos * 2.2 + 2.8 * q + vec2(8.3, 2.8) + t * 0.3)
+    );
 
-    vec3 col = mix(deepBlack, cosmicBlack, smoothstep(0.2, 0.85, n1));
-    col = mix(col, darkViolet, smoothstep(0.45, 0.92, n2) * (0.48 + radial * 0.35));
+    float gasField = fbm(cPos * 1.2 + 3.4 * r);
+    float gasWisps = fbm(cPos * 3.4 + q * 1.6);
+    float darkRift = smoothstep(0.32, 0.72, fbm(cPos * 2.4 + r * 1.4));
 
-    // Restrained volumetric glow
-    float energyMask = beam * n2 * (0.14 + uAudioEnergy * 0.12 + smoothstep(0.65, 1.0, uScroll) * 0.12);
-    col += electricPurple * energyMask;
+    // Deep organic cosmic color grading
+    vec3 voidBlack     = vec3(0.012, 0.009, 0.018); // Pure deep cosmic black #030205
+    vec3 midnightAbyss = vec3(0.026, 0.016, 0.048); // Deep interstellar space
+    vec3 nebulaIndigo  = vec3(0.075, 0.035, 0.145); // Diffuse molecular cloud #130925
+    vec3 ionPurple     = vec3(0.380, 0.140, 0.760); // Ionized hydrogen emission #6124c2
+    vec3 neonViolet    = vec3(0.680, 0.320, 1.000); // Luminous stellar ionization ridge #ad52ff
+    vec3 starlightCyan = vec3(0.240, 0.520, 0.820); // Delicate cool stellar reflection mist #3d85d1
 
-    // Subtle chromatic edge vignette
-    float vignette = smoothstep(0.95, 0.22, length(centered));
-    col *= mix(0.62, 1.0, vignette);
+    // Layer the atmospheric gas
+    vec3 col = mix(voidBlack, midnightAbyss, smoothstep(0.12, 0.85, gasField));
+    col = mix(col, nebulaIndigo, smoothstep(0.30, 0.90, gasWisps) * 0.65);
+
+    // Luminous emission gas, carved organically by interstellar dark dust rifts
+    float emission = smoothstep(0.40, 0.86, gasField) * (1.0 - darkRift * 0.58);
+    col += ionPurple * emission * (0.36 + uAudioEnergy * 0.18);
+    col += neonViolet * pow(emission, 2.2) * 0.32;
+    col += starlightCyan * smoothstep(0.65, 0.95, gasWisps) * 0.16;
+
+    // --- 2. PROCEDURAL DISTANT STELLAR FIELD (Per-Pixel Sharp Stars) ---
+    // Background micro-pinpoints (thousands of tiny distant stars)
+    float starsFar = starLayer(cPos + vec2(0.12, 0.34), 110.0, 0.86, 1.2, uTime);
+    // Midground stars (crisper, twinkling)
+    float starsMid = starLayer(cPos * 1.1 + vec2(0.45, 0.78), 52.0, 0.94, 2.1, uTime);
+    // Bright landmark stars with diffraction spikes
+    float starsNear = starLayer(cPos * 1.2 + vec2(0.89, 0.12), 22.0, 0.985, 2.8, uTime);
+
+    vec3 starColorFar = vec3(0.85, 0.88, 1.0);
+    vec3 starColorMid = mix(vec3(0.9, 0.93, 1.0), vec3(1.0, 0.92, 0.80), hash21(floor(cPos * 52.0)));
+    vec3 starColorNear = mix(vec3(0.95, 0.96, 1.0), vec3(0.82, 0.65, 1.0), hash21(floor(cPos * 22.0)));
+
+    col += starColorFar * starsFar * 0.65;
+    col += starColorMid * starsMid * 0.95;
+    col += starColorNear * starsNear * 1.25;
+
+    // --- 3. SUBTLE CINEMATIC VIGNETTE & EDGES ---
+    float distFromCenter = length(vUv - 0.5);
+    float vignette = smoothstep(0.98, 0.28, distFromCenter);
+    col *= mix(0.72, 1.0, vignette);
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -409,6 +489,7 @@ export default function CxrnerUniverseCanvas() {
       uScroll: { value: 0 },
       uAudioEnergy: { value: 0 },
       uPointer: { value: new THREE.Vector2(0, 0) },
+      uResolution: { value: new THREE.Vector2(width, height) },
     };
     const nebulaMat = new THREE.ShaderMaterial({
       vertexShader: NEBULA_VERTEX_SHADER,
@@ -674,34 +755,40 @@ export default function CxrnerUniverseCanvas() {
     // =========================================================================
     // 12. MULTI-LAYER COSMIC DUST & VOLUMETRIC PARTICLES
     // =========================================================================
-    const particleCount = isMobile ? 260 : 900;
+    const particleCount = isMobile ? 320 : 850;
     const pPositions = new Float32Array(particleCount * 3);
     const pColors = new Float32Array(particleCount * 3);
     const pScales = new Float32Array(particleCount);
     const pPhases = new Float32Array(particleCount);
 
-    const colWhite = new THREE.Color(0xffffff);
+    // Natural stellar spectral colors
+    const colDiamond = new THREE.Color(0xffffff); // Pure white A-type
+    const colCoolIce = new THREE.Color(0xbfdbfe); // O/B-type blue star
+    const colWarmGold = new THREE.Color(0xfef08a); // F/G-type stellar warm
+    const colVioletLum = new THREE.Color(0xd8b4fe); // Ionized violet accent
     const colSilver = new THREE.Color(0xd9d9e2);
-    const colPurple = new THREE.Color(0x8737ff);
-    const colViolet = new THREE.Color(0xb46bff);
 
     for (let i = 0; i < particleCount; i++) {
-      pPositions[i * 3] = (Math.random() - 0.5) * 26;
-      pPositions[i * 3 + 1] = (Math.random() - 0.5) * 18;
-      pPositions[i * 3 + 2] = (Math.random() - 0.5) * 32 - 4;
+      pPositions[i * 3] = (Math.random() - 0.5) * 32;
+      pPositions[i * 3 + 1] = (Math.random() - 0.5) * 22;
+      // Push stars into deep 3D volume (z <= -2) to prevent any particle from flying into camera lens
+      pPositions[i * 3 + 2] = -Math.random() * 38 - 2.5;
 
-      pScales[i] = 0.55 + Math.random() * 1.9;
+      // Delicate micro-scale for pin-sharp diamond starlight
+      pScales[i] = 0.42 + Math.random() * 0.72;
       pPhases[i] = Math.random();
 
       const r = Math.random();
       const chosen =
-        r < 0.14
-          ? colPurple
-          : r < 0.28
-          ? colViolet
-          : r < 0.65
+        r < 0.42
+          ? colDiamond
+          : r < 0.68
           ? colSilver
-          : colWhite;
+          : r < 0.84
+          ? colCoolIce
+          : r < 0.94
+          ? colVioletLum
+          : colWarmGold;
       pColors[i * 3] = chosen.r;
       pColors[i * 3 + 1] = chosen.g;
       pColors[i * 3 + 2] = chosen.b;
@@ -785,6 +872,7 @@ export default function CxrnerUniverseCanvas() {
       renderer.setPixelRatio(nextDpr);
       particleUniforms.uPixelRatio.value = nextDpr;
       renderer.setSize(width, height, false);
+      nebulaUniforms.uResolution.value.set(width, height);
       updateScroll();
     };
     window.addEventListener("resize", onResize, { passive: true });

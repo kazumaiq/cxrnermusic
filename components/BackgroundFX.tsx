@@ -20,8 +20,8 @@ export default function BackgroundFX() {
         <CxrnerUniverseCanvas />
 
         {/* Subtle Architectural Grid & Film Grain Texture */}
-        <div className="gothic-grid absolute inset-0 opacity-20 [mask-image:radial-gradient(ellipse_85%_75%_at_50%_45%,#000_35%,transparent_100%)] pointer-events-none" />
-        <div className="film-grain absolute inset-0 opacity-25 mix-blend-screen pointer-events-none" />
+        <div className="gothic-grid absolute inset-0 opacity-[0.07] [mask-image:radial-gradient(ellipse_85%_75%_at_50%_45%,#000_35%,transparent_100%)] pointer-events-none" />
+        <div className="film-grain absolute inset-0 opacity-20 mix-blend-screen pointer-events-none" />
       </div>
 
       {/* Desktop-only precision reticle cursor */}
