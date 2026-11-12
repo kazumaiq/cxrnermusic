@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Container from "../components/Container";
 import Counter from "../components/Counter";
 import InteractiveAudioPreview from "../components/InteractiveAudioPreview";
@@ -49,80 +48,78 @@ export default async function HomePage() {
           ===================================================================== */}
       <section
         id="hero"
-        className="relative min-h-[100svh] flex flex-col justify-between pt-28 sm:pt-36 pb-10 sm:pb-14"
+        className="relative min-h-[100svh] flex flex-col justify-between pt-20 sm:pt-24 lg:pt-28 pb-6 sm:pb-10"
       >
-        <Container className="relative z-10 flex-1 flex flex-col justify-between">
-          {/* Top Telemetry Strip */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="relative w-9 h-9 rounded-xl bg-[#090611] border border-[#D9D9E2]/20 p-1 flex-shrink-0 shadow-[0_0_20px_rgba(135,55,255,0.28)]">
-                <Image
-                  src="/logo.png"
-                  alt="CXRNER MUSIC"
-                  width={36}
-                  height={36}
-                  className="object-contain w-full h-full"
-                  priority
-                />
-              </div>
-              <div className="flex items-center gap-2 font-mono text-[10px] sm:text-xs uppercase tracking-[0.26em] text-[#D9D9E2]">
-                <span className="w-2 h-2 rounded-full bg-[#8737FF] animate-pulse shadow-[0_0_10px_#8737FF]" />
-                <span>CXRNER // INDEPENDENT RECORD LABEL</span>
-              </div>
+        <Container className="relative z-10 flex-1 flex flex-col justify-between gap-4">
+          {/* Desktop Top Micro-Line Only (Avoids duplicate logo peeking under mobile header) */}
+          <div className="hidden lg:flex items-center justify-between gap-4 border-b border-white/10 pb-3.5 font-mono text-[10px] uppercase tracking-[0.26em] text-[#D9D9E2]/65">
+            <div className="flex items-center gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#8737FF] shadow-[0_0_10px_#8737FF]" />
+              <span>INDEPENDENT RECORD LABEL &amp; DISTRIBUTION</span>
             </div>
-
-            <div className="hidden sm:flex items-center gap-6 font-mono text-[10px] uppercase tracking-[0.24em] text-[#D9D9E2]/60">
+            <div className="flex items-center gap-6">
               <span>70/30 РОЯЛТИ</span>
               <span>150+ ПЛАТФОРМ</span>
               <span>24–72Ч МОДЕРАЦИЯ</span>
             </div>
           </div>
 
-          {/* Center Monumental Composition (Leaves right side open for the 3D Cosmic Core) */}
-          <div className="my-auto py-6 sm:py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+          {/* Center Monumental Composition (Leaves right side / top mobile stage open for 3D Core) */}
+          <div className="my-auto py-2 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-end">
             {/* Dedicated mobile 3D visual stage above hero headline */}
-            <div className="h-48 sm:h-56 lg:hidden pointer-events-none" aria-hidden="true" />
-            <div className="lg:col-span-7 space-y-6 bg-gradient-to-b from-[#050407]/0 via-[#050407]/55 to-[#050407]/0 lg:bg-none rounded-3xl py-2 lg:py-0">
-              <div className="overflow-hidden">
-                <p
+            <div className="h-[215px] sm:h-[250px] lg:hidden pointer-events-none" aria-hidden="true" />
+
+            <div className="lg:col-span-7 space-y-3.5 sm:space-y-5">
+              <div className="overflow-hidden py-0.5">
+                <div
                   data-reveal="mask-line"
-                  className="font-mono text-xs sm:text-sm uppercase tracking-[0.32em] text-[#B46BFF]"
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#B46BFF]/40 bg-[#090611]/75 backdrop-blur-md font-mono text-[10px] sm:text-xs uppercase tracking-[0.18em] text-[#D9D9E2] whitespace-nowrap"
                 >
-                  [01] DIGITAL SOUND UNIVERSE
-                </p>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#B46BFF]" />
+                  <span>Лейбл и дистрибуция • 70/30</span>
+                </div>
               </div>
 
-              <h1 className="font-heavy uppercase tracking-tight leading-[0.95] select-none">
-                <span className="block overflow-hidden pb-1.5">
+              <h1 className="font-heavy uppercase tracking-tight leading-[1.04] select-none -space-y-2 sm:-space-y-3 lg:-space-y-4">
+                <span className="block overflow-hidden py-1">
                   <span
                     data-reveal="mask-line"
-                    className="block text-[20vw] sm:text-[13vw] lg:text-[9.5rem] text-chrome-gradient"
+                    className="block text-[15.5vw] sm:text-[13vw] lg:text-[9.2rem] text-chrome-gradient"
                   >
                     CXRNER
                   </span>
                 </span>
-                <span className="block overflow-hidden pb-1.5">
+                <span className="block overflow-hidden py-1">
                   <span
                     data-reveal="mask-line"
-                    className="block text-[20vw] sm:text-[13vw] lg:text-[9.5rem] text-violet-energy"
+                    className="block text-[15.5vw] sm:text-[13vw] lg:text-[9.2rem] text-violet-energy"
                   >
                     MUSIC
                   </span>
                 </span>
               </h1>
 
-              <p className="max-w-lg text-sm sm:text-base text-[#D9D9E2]/80 leading-relaxed">
-                Независимый музыкальный лейбл и глобальная дистрибуция. Выпускаем
-                релизы на Яндекс Музыке, VK Музыке, Spotify, Apple Music и ещё 150+
-                площадках с прозрачной моделью роялти 70/30.
+              <p className="max-w-lg text-[13px] sm:text-base text-[#D9D9E2]/85 leading-relaxed">
+                Выпускаем релизы на Яндекс Музыке, VK Музыке, Spotify, Apple Music и
+                ещё 150+ площадках. Прозрачные роялти 70/30, питчинг в плейлисты и
+                личный кабинет артиста.
               </p>
 
+              {/* Key Label Metrics Pills on Mobile/Tablet */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#B46BFF] lg:hidden">
+                <span>70/30 РОЯЛТИ</span>
+                <span className="text-white/25">•</span>
+                <span>150+ ПЛАТФОРМ</span>
+                <span className="text-white/25">•</span>
+                <span>24–72Ч РЕЛИЗ</span>
+              </div>
+
               {/* Magnetic CTAs */}
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                 <MagneticButton
                   href="/submit-release"
                   cursorLabel="SUBMIT"
-                  className="btn-energy px-8 py-4 rounded-full font-mono text-xs uppercase tracking-[0.2em] font-bold"
+                  className="btn-energy px-7 py-3.5 sm:px-8 sm:py-4 rounded-full font-mono text-xs uppercase tracking-[0.18em] font-bold"
                 >
                   <span>Отправить релиз</span>
                   <ArrowRight className="w-4 h-4" />
@@ -131,16 +128,16 @@ export default async function HomePage() {
                 <MagneticButton
                   href="#releases"
                   cursorLabel="CATALOG"
-                  className="btn-void-ghost px-8 py-4 font-mono text-xs uppercase tracking-[0.2em]"
+                  className="btn-void-ghost px-7 py-3.5 sm:px-8 sm:py-4 font-mono text-xs uppercase tracking-[0.18em]"
                 >
                   <Disc3 className="w-4 h-4 text-[#B46BFF]" />
-                  <span>Смотреть каталог</span>
+                  <span>Слушать релизы</span>
                 </MagneticButton>
               </div>
             </div>
 
             {/* Right Column: Spacer for 3D Core + Audio-Reactive Track Dock */}
-            <div className="lg:col-span-5 flex flex-col justify-end items-end gap-4 pt-6 sm:pt-8 lg:pt-0">
+            <div className="lg:col-span-5 flex flex-col justify-end items-end gap-4 pt-2 lg:pt-0">
               <div className="w-full max-w-[440px]">
                 <InteractiveAudioPreview
                   track={{
@@ -159,13 +156,13 @@ export default async function HomePage() {
           </div>
 
           {/* Bottom Scroll Prompt */}
-          <div className="flex items-center justify-between pt-4 border-t border-white/10 font-mono text-[10px] uppercase tracking-[0.26em] text-[#D9D9E2]/55">
+          <div className="hidden sm:flex items-center justify-between pt-3 border-t border-white/10 font-mono text-[10px] uppercase tracking-[0.26em] text-[#D9D9E2]/55">
             <span>SCROLL TO EXPLORE UNIVERSE</span>
             <a
               href="#about"
               className="inline-flex items-center gap-2 hover:text-white transition"
             >
-              <span>02 / ABOUT</span>
+              <span>02 / О ЛЕЙБЛЕ</span>
               <ArrowDown className="w-3.5 h-3.5 text-[#B46BFF] animate-bounce" />
             </a>
           </div>

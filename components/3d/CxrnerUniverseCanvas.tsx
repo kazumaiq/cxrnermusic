@@ -25,54 +25,45 @@ const PLASMA_VERTEX_SHADER = /* glsl */ `
   uniform float uTime;
   uniform float uAudioBass;
   uniform float uHover;
-  varying vec3 vNormal;
+  varying vec3 vWorldNormal;
   varying vec3 vViewPos;
-  varying vec3 vLocalPos;
-  varying float vNoise;
+  varying float vElevation;
 
-  // Compact 3D pseudo-simplex turbulence
-  float hash(vec3 p) {
-    p = fract(p * 0.3183099 + 0.1);
-    p *= 17.0;
-    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+  // Smooth analytical multi-wave sound resonance displacement (artifact-free C∞ surface)
+  float waveField(vec3 p, float t, float amp) {
+    float w1 = sin(p.x * 2.8 + t * 1.1) * cos(p.y * 2.6 - t * 0.85) * sin(p.z * 2.4 + t * 0.6);
+    float w2 = sin(p.y * 4.4 - t * 1.4 + p.x * 2.1) * cos(p.z * 4.1 + t * 0.9);
+    float w3 = cos((p.x + p.y + p.z) * 3.2 - t * 1.25);
+    return (w1 * 0.55 + w2 * 0.30 + w3 * 0.15) * amp;
   }
 
-  float noise3D(vec3 x) {
-    vec3 i = floor(x);
-    vec3 f = fract(x);
-    f = f * f * (3.0 - 2.0 * f);
-    return mix(
-      mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
-          mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-      mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
-          mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
-      f.z
-    );
-  }
-
-  float fbm(vec3 p) {
-    float v = 0.0;
-    float a = 0.5;
-    for (int i = 0; i < 3; i++) {
-      v += a * noise3D(p);
-      p = p * 2.05 + vec3(1.7, 9.2, 4.3);
-      a *= 0.5;
-    }
-    return v;
+  vec3 displacePos(vec3 p, vec3 n, float t, float amp) {
+    return p + n * waveField(p, t, amp);
   }
 
   void main() {
-    vLocalPos = position;
-    float t = uTime * 0.65;
-    float n = fbm(position * 2.1 + vec3(t, -t * 0.7, t * 0.4));
-    vNoise = n;
+    float amp = 0.085 + uAudioBass * 0.16 + uHover * 0.045;
+    float t = uTime * 0.85;
+    vec3 n = normalize(normal);
 
-    float disp = (n - 0.5) * (0.14 + uAudioBass * 0.24 + uHover * 0.08);
-    vec3 displaced = position + normal * disp;
+    float d = waveField(position, t, amp);
+    vElevation = d / max(amp, 0.001);
+    vec3 displaced = position + n * d;
+
+    // Finite-difference tangent normal recomputation so specular reflections stay silky smooth
+    vec3 up = abs(n.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vec3 tangent = normalize(cross(up, n));
+    vec3 bitangent = normalize(cross(n, tangent));
+    float eps = 0.025;
+
+    vec3 pT = displacePos(position + tangent * eps, normalize(position + tangent * eps), t, amp);
+    vec3 pB = displacePos(position + bitangent * eps, normalize(position + bitangent * eps), t, amp);
+    vec3 computedNormal = normalize(cross(pT - displaced, pB - displaced));
+    if (dot(computedNormal, n) < 0.0) computedNormal = -computedNormal;
 
     vec4 mvPos = modelViewMatrix * vec4(displaced, 1.0);
     vViewPos = -mvPos.xyz;
-    vNormal = normalize(normalMatrix * normal);
+    vWorldNormal = normalize(normalMatrix * computedNormal);
     gl_Position = projectionMatrix * mvPos;
   }
 `;
@@ -82,29 +73,79 @@ const PLASMA_FRAGMENT_SHADER = /* glsl */ `
   uniform float uAudioBass;
   uniform float uAudioMid;
   uniform float uHover;
-  varying vec3 vNormal;
+  varying vec3 vWorldNormal;
   varying vec3 vViewPos;
-  varying vec3 vLocalPos;
-  varying float vNoise;
+  varying float vElevation;
 
   void main() {
-    vec3 viewDir = normalize(vViewPos);
-    float fresnel = pow(1.0 - max(dot(normalize(vNormal), viewDir), 0.0), 2.4);
+    vec3 N = normalize(vWorldNormal);
+    vec3 V = normalize(vViewPos);
+    vec3 R = reflect(-V, N);
 
-    vec3 deepObsidian = vec3(0.035, 0.02, 0.07);
-    vec3 electricPurple = vec3(0.529, 0.216, 1.0); // #8737FF
-    vec3 neonViolet = vec3(0.706, 0.420, 1.0);     // #B46BFF
-    vec3 chromeWhite = vec3(0.95, 0.95, 1.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float fresnel = pow(1.0 - NdotV, 3.0);
 
-    float vein = smoothstep(0.46, 0.74, vNoise + sin(vLocalPos.y * 5.0 - uTime * 2.2) * 0.08);
-    float pulse = 0.75 + 0.25 * sin(uTime * 2.5) + uAudioBass * 0.7;
+    // Studio directional lights in view space
+    vec3 L1 = normalize(vec3(-0.55, 0.72, 0.65)); // Cool silver key softbox
+    vec3 L2 = normalize(vec3(0.75, -0.35, 0.45)); // Electric violet rim
+    vec3 L3 = normalize(vec3(0.0, -0.8, 0.5));   // Subtle under-fill
 
-    vec3 col = mix(deepObsidian, electricPurple, vein * 0.9);
-    col = mix(col, neonViolet, fresnel * 0.95);
-    col += chromeWhite * pow(fresnel, 4.0) * (0.65 + uAudioMid * 0.65 + uHover * 0.35);
-    col *= pulse;
+    vec3 H1 = normalize(L1 + V);
+    vec3 H2 = normalize(L2 + V);
 
-    gl_FragColor = vec4(col, 0.96);
+    float specKey = pow(max(dot(N, H1), 0.0), 42.0);
+    float specRim = pow(max(dot(N, H2), 0.0), 22.0);
+    float diffKey = max(dot(N, L1), 0.0);
+    float diffRim = max(dot(N, L2), 0.0);
+    float crest = smoothstep(-0.2, 0.9, vElevation);
+
+    // Studio softbox reflection band on liquid chrome/obsidian
+    float studioHorizon = smoothstep(0.08, 0.55, R.y) * smoothstep(0.95, 0.35, R.y);
+    float violetSweep = smoothstep(-0.3, 0.6, R.x) * (1.0 - abs(R.y));
+
+    vec3 deepObsidian = vec3(0.024, 0.016, 0.048);
+    vec3 liquidTitanium = vec3(0.14, 0.12, 0.22);
+    vec3 chromeSilver = vec3(0.88, 0.89, 0.95);
+    vec3 electricPurple = vec3(0.529, 0.216, 1.0);
+    vec3 neonViolet = vec3(0.72, 0.44, 1.0);
+
+    vec3 col = mix(deepObsidian, liquidTitanium, diffKey * 0.55 + crest * 0.35);
+    col += chromeSilver * studioHorizon * 0.42;
+    col += electricPurple * (diffRim * 0.45 + violetSweep * 0.32 + crest * (0.28 + uAudioBass * 0.45));
+    col += neonViolet * fresnel * (0.9 + uAudioMid * 0.55 + uHover * 0.25);
+    col += chromeSilver * specKey * 0.95;
+    col += neonViolet * specRim * (0.8 + uAudioBass * 0.6);
+
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
+const AURA_VERTEX_SHADER = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const AURA_FRAGMENT_SHADER = /* glsl */ `
+  uniform float uTime;
+  uniform float uAudioEnergy;
+  varying vec2 vUv;
+
+  void main() {
+    vec2 p = (vUv - 0.5) * 2.0;
+    float r = length(p);
+    float glowInner = exp(-r * r * 5.2);
+    float glowOuter = exp(-r * r * 1.9);
+
+    vec3 deepViolet = vec3(0.32, 0.11, 0.65);
+    vec3 electricPurple = vec3(0.56, 0.24, 1.0);
+
+    float pulse = 0.88 + 0.12 * sin(uTime * 1.6) + uAudioEnergy * 0.35;
+    vec3 col = mix(deepViolet, electricPurple, glowInner) * pulse;
+    float alpha = (glowOuter * 0.38 + glowInner * 0.34) * smoothstep(1.0, 0.35, r);
+    gl_FragColor = vec4(col, alpha);
   }
 `;
 
@@ -293,13 +334,13 @@ export default function CxrnerUniverseCanvas() {
     let width = window.innerWidth;
     let height = window.innerHeight;
 
-    // 1. RENDERER
+    // 1. RENDERER (Crisp MSAA antialiasing on all devices so curves have zero pixel jaggedness)
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
         canvas,
         alpha: false,
-        antialias: !isMobile,
+        antialias: true,
         powerPreference: "high-performance",
         stencil: false,
       });
@@ -309,8 +350,8 @@ export default function CxrnerUniverseCanvas() {
     }
 
     const baseDpr = isMobile
-      ? Math.min(window.devicePixelRatio || 1, 1.25)
-      : Math.min(window.devicePixelRatio || 1, 1.75);
+      ? Math.min(window.devicePixelRatio || 1, 1.75)
+      : Math.min(window.devicePixelRatio || 1, 2.0);
     renderer.setPixelRatio(baseDpr);
     renderer.setSize(width, height, false);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -401,44 +442,59 @@ export default function CxrnerUniverseCanvas() {
     pointerLight.position.set(0, 0, 4.5);
     scene.add(pointerLight);
 
-    // 6. SHARED METALLIC & OBSIDIAN MATERIALS
-    const chromeMaterial = new THREE.MeshStandardMaterial({
-      color: 0xd9d9e2,
+    // 6. SHARED METALLIC & OBSIDIAN MATERIALS (Studio Clearcoat Chrome)
+    const chromeMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xe6e6f0,
       metalness: 0.96,
-      roughness: 0.12,
-      envMapIntensity: 1.6,
+      roughness: 0.1,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.06,
+      envMapIntensity: 2.2,
     });
 
-    const darkChromeMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1b1628,
+    const darkChromeMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x29223c,
       metalness: 0.92,
-      roughness: 0.18,
-      envMapIntensity: 1.4,
+      roughness: 0.16,
+      clearcoat: 0.85,
+      clearcoatRoughness: 0.12,
+      envMapIntensity: 1.9,
     });
 
     const obsidianMaterial = new THREE.MeshStandardMaterial({
-      color: 0x090611,
-      metalness: 0.85,
-      roughness: 0.24,
-      envMapIntensity: 1.2,
-    });
-
-    const violetWireMaterial = new THREE.MeshBasicMaterial({
-      color: 0x8737ff,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.42,
+      color: 0x0b0816,
+      metalness: 0.88,
+      roughness: 0.2,
+      envMapIntensity: 1.5,
     });
 
     // =========================================================================
-    // 7. CENTRAL HERO SYMBOL — CXRNER COSMIC CORE
+    // 7. CENTRAL HERO SYMBOL — SCULPTURAL LIQUID-OBSIDIAN RESONANCE CORE
     // =========================================================================
     const coreGroup = new THREE.Group();
-    coreGroup.position.set(isMobile ? 0 : 1.75, isMobile ? 0.45 : 0.05, 0);
+    coreGroup.position.set(isMobile ? 0 : 1.8, isMobile ? 1.72 : 0.22, 0);
     scene.add(coreGroup);
 
-    // 7a. Inner Plasma Energy Core (Custom GLSL Shader)
-    const plasmaGeo = new THREE.IcosahedronGeometry(0.95, isMobile ? 3 : 5);
+    // 7a. Soft Volumetric Radial Halo Behind Core
+    const auraGeo = new THREE.PlaneGeometry(5.6, 5.6);
+    const auraUniforms = {
+      uTime: { value: 0 },
+      uAudioEnergy: { value: 0 },
+    };
+    const auraMat = new THREE.ShaderMaterial({
+      vertexShader: AURA_VERTEX_SHADER,
+      fragmentShader: AURA_FRAGMENT_SHADER,
+      uniforms: auraUniforms,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const auraPlane = new THREE.Mesh(auraGeo, auraMat);
+    auraPlane.position.z = -1.2;
+    coreGroup.add(auraPlane);
+
+    // 7b. High-Res Sculptural Liquid-Chrome / Obsidian Core (Analytical Normal Displacement)
+    const plasmaGeo = new THREE.SphereGeometry(1.06, isMobile ? 64 : 96, isMobile ? 64 : 96);
     const plasmaUniforms = {
       uTime: { value: 0 },
       uAudioBass: { value: 0 },
@@ -449,74 +505,48 @@ export default function CxrnerUniverseCanvas() {
       vertexShader: PLASMA_VERTEX_SHADER,
       fragmentShader: PLASMA_FRAGMENT_SHADER,
       uniforms: plasmaUniforms,
-      transparent: true,
     });
     const plasmaCore = new THREE.Mesh(plasmaGeo, plasmaMat);
     coreGroup.add(plasmaCore);
 
-    // 7b. Outer Geodesic Metallic Cage (Edges + Subtle Violet Energy Frame)
-    const cageGeo = new THREE.IcosahedronGeometry(1.36, 1);
-    const cageEdgesGeo = new THREE.EdgesGeometry(cageGeo);
-    const cageLineMat = new THREE.LineBasicMaterial({
-      color: 0xd9d9e2,
-      transparent: true,
-      opacity: 0.72,
-    });
-    const cageLines = new THREE.LineSegments(cageEdgesGeo, cageLineMat);
-    coreGroup.add(cageLines);
-
-    const innerCageMesh = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1.22, 1),
-      violetWireMaterial
-    );
-    coreGroup.add(innerCageMesh);
-
-    // 7c. 3 Counter-Rotating Chrome Gyroscopic Rings
-    const gyroRing1Geo = new THREE.TorusGeometry(1.62, 0.028, 16, isMobile ? 64 : 112);
+    // 7c. 3 Precision-Machined Orbital Rings (Smooth High-Segment Geometry, No Wireframe Soup)
+    const gyroRing1Geo = new THREE.TorusGeometry(1.52, 0.036, 28, isMobile ? 128 : 180);
     const gyroRing1 = new THREE.Mesh(gyroRing1Geo, chromeMaterial);
-    gyroRing1.rotation.x = 0.65;
-    gyroRing1.rotation.y = 0.35;
+    gyroRing1.rotation.x = 1.05;
+    gyroRing1.rotation.y = 0.25;
     coreGroup.add(gyroRing1);
 
-    const gyroRing2Geo = new THREE.TorusGeometry(1.92, 0.018, 14, isMobile ? 64 : 112);
+    const gyroRing2Geo = new THREE.TorusGeometry(1.78, 0.018, 22, isMobile ? 120 : 160);
     const gyroRing2 = new THREE.Mesh(gyroRing2Geo, darkChromeMaterial);
-    gyroRing2.rotation.x = -0.78;
-    gyroRing2.rotation.z = 0.52;
+    gyroRing2.rotation.x = -0.82;
+    gyroRing2.rotation.z = 0.42;
     coreGroup.add(gyroRing2);
 
-    const gyroRing3Geo = new THREE.TorusGeometry(2.22, 0.012, 12, isMobile ? 64 : 96);
-    const gyroRing3Mat = new THREE.MeshBasicMaterial({
+    const gyroRing3Geo = new THREE.TorusGeometry(1.98, 0.01, 16, isMobile ? 112 : 160);
+    const gyroRing3Mat = new THREE.MeshStandardMaterial({
       color: 0xb46bff,
+      emissive: 0x8737ff,
+      emissiveIntensity: 1.6,
+      metalness: 0.4,
+      roughness: 0.2,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.85,
     });
     const gyroRing3 = new THREE.Mesh(gyroRing3Geo, gyroRing3Mat);
-    gyroRing3.rotation.y = 0.95;
+    gyroRing3.rotation.y = 0.9;
+    gyroRing3.rotation.x = 0.35;
     coreGroup.add(gyroRing3);
 
-    // 7d. Grooved Obsidian Vinyl Orbital Halo (Music Label Identity Bridge)
-    const vinylHaloGeo = new THREE.RingGeometry(1.42, 1.56, isMobile ? 48 : 96);
-    const vinylHaloMat = new THREE.MeshStandardMaterial({
-      color: 0x090611,
-      metalness: 0.94,
-      roughness: 0.16,
-      side: THREE.DoubleSide,
-      envMapIntensity: 1.5,
-    });
-    const vinylHalo = new THREE.Mesh(vinylHaloGeo, vinylHaloMat);
-    vinylHalo.rotation.x = Math.PI * 0.35;
-    coreGroup.add(vinylHalo);
-
-    // 7e. Instanced Orbital Crystalline Shards (InstancedMesh)
-    const shardCount = isMobile ? 16 : 36;
-    const shardGeo = new THREE.OctahedronGeometry(0.065, 0);
+    // 7d. Polished Micro-Spheres Orbiting Along the Rings (Smooth Spheres Instead of Jagged Shards)
+    const shardCount = isMobile ? 12 : 24;
+    const shardGeo = new THREE.SphereGeometry(0.034, 14, 14);
     const shardInstanced = new THREE.InstancedMesh(shardGeo, chromeMaterial, shardCount);
     const shardData = Array.from({ length: shardCount }, (_, i) => ({
-      radius: 1.75 + (i % 5) * 0.24,
-      speed: 0.32 + (i % 7) * 0.08,
+      radius: 1.64 + (i % 3) * 0.24,
+      speed: 0.24 + (i % 5) * 0.06,
       angle: (i / shardCount) * Math.PI * 2,
-      tilt: ((i % 4) - 1.5) * 0.45,
-      scale: 0.65 + (i % 3) * 0.45,
+      tilt: ((i % 4) - 1.5) * 0.35,
+      scale: 0.65 + (i % 3) * 0.35,
     }));
     coreGroup.add(shardInstanced);
 
@@ -750,8 +780,8 @@ export default function CxrnerUniverseCanvas() {
       camera.updateProjectionMatrix();
 
       const nextDpr = nowMobile
-        ? Math.min(window.devicePixelRatio || 1, 1.25)
-        : Math.min(window.devicePixelRatio || 1, 1.75);
+        ? Math.min(window.devicePixelRatio || 1, 1.75)
+        : Math.min(window.devicePixelRatio || 1, 2.0);
       renderer.setPixelRatio(nextDpr);
       particleUniforms.uPixelRatio.value = nextDpr;
       renderer.setSize(width, height, false);
@@ -818,6 +848,9 @@ export default function CxrnerUniverseCanvas() {
       plasmaUniforms.uAudioMid.value += (audioMid - plasmaUniforms.uAudioMid.value) * damp;
       plasmaUniforms.uHover.value += (uState.hoverIntensity - plasmaUniforms.uHover.value) * damp;
 
+      auraUniforms.uTime.value = elapsed;
+      auraUniforms.uAudioEnergy.value = audioEnergy;
+
       particleUniforms.uTime.value = elapsed;
       particleUniforms.uScrollVelocity.value = scrollVelocity;
       particleUniforms.uAudioEnergy.value = audioEnergy;
@@ -858,9 +891,9 @@ export default function CxrnerUniverseCanvas() {
         // 0.45 (Releases): Recedes slightly into center-back
         // 0.65 (Distribution): Centers as network transmitter
         // 0.88+ (Send Release): Shrinks into the Energy Portal singularity
-        const heroX = mobileNow ? 0 : 1.75;
-        const heroY = mobileNow ? 1.45 : 0.05;
-        const heroScale = mobileNow ? 0.66 : 1.0;
+        const heroX = mobileNow ? 0 : 1.8;
+        const heroY = mobileNow ? 1.72 : 0.22;
+        const heroScale = mobileNow ? 0.56 : 1.02;
         const aboutX = mobileNow ? -0.4 : -2.1;
         const midX = 0;
 
@@ -911,23 +944,20 @@ export default function CxrnerUniverseCanvas() {
 
       // Core internal rotations + pointer tilt + audio energy boost
       const spinBoost = 1 + Math.abs(scrollVelocity) * 1.4 + audioEnergy * 0.9;
-      coreGroup.rotation.y = smoothPointerX * 0.32 + elapsed * 0.12;
-      coreGroup.rotation.x = -smoothPointerY * 0.24 + s * Math.PI * 1.4;
+      coreGroup.rotation.y = smoothPointerX * 0.3 + elapsed * 0.09;
+      coreGroup.rotation.x = -smoothPointerY * 0.2 + s * Math.PI * 1.1;
 
-      cageLines.rotation.y -= delta * 0.22 * spinBoost;
-      cageLines.rotation.z += delta * 0.14;
-      innerCageMesh.rotation.x += delta * 0.18;
+      // Keep radial aura billboard facing camera cleanly inside coreGroup
+      auraPlane.quaternion.copy(coreGroup.quaternion).invert();
 
-      gyroRing1.rotation.z += delta * 0.48 * spinBoost;
-      gyroRing1.rotation.x = 0.65 + Math.sin(elapsed * 0.45) * 0.22;
+      gyroRing1.rotation.z += delta * 0.42 * spinBoost;
+      gyroRing1.rotation.x = 1.05 + Math.sin(elapsed * 0.4) * 0.16;
 
-      gyroRing2.rotation.y -= delta * 0.58 * spinBoost;
-      gyroRing2.rotation.z = 0.52 + Math.cos(elapsed * 0.38) * 0.2;
+      gyroRing2.rotation.y -= delta * 0.52 * spinBoost;
+      gyroRing2.rotation.z = 0.42 + Math.cos(elapsed * 0.35) * 0.14;
 
-      gyroRing3.rotation.x += delta * 0.35;
-      gyroRing3.rotation.y += delta * 0.42;
-
-      vinylHalo.rotation.z -= delta * 0.75 * (uState.audioPlaying ? 1.8 : 1.0);
+      gyroRing3.rotation.x += delta * 0.28;
+      gyroRing3.rotation.y += delta * 0.36;
 
       // Update Instanced Orbital Shards
       for (let i = 0; i < shardCount; i++) {
@@ -1064,18 +1094,13 @@ export default function CxrnerUniverseCanvas() {
 
       plasmaGeo.dispose();
       plasmaMat.dispose();
-      cageGeo.dispose();
-      cageEdgesGeo.dispose();
-      cageLineMat.dispose();
-      innerCageMesh.geometry.dispose();
-      violetWireMaterial.dispose();
+      auraGeo.dispose();
+      auraMat.dispose();
 
       gyroRing1Geo.dispose();
       gyroRing2Geo.dispose();
       gyroRing3Geo.dispose();
       gyroRing3Mat.dispose();
-      vinylHaloGeo.dispose();
-      vinylHaloMat.dispose();
 
       shardGeo.dispose();
       shardInstanced.dispose();
