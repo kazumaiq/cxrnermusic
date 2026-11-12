@@ -3,6 +3,7 @@ import Container from "../../../../../components/Container";
 import LinkAnalyticsClient from "../../../../../components/link/LinkAnalyticsClient";
 import { getSupabaseServerClient } from "../../../../../lib/supabaseServer";
 import { isAdminUser } from "../../../../../lib/admin";
+import { getSmartLinkById } from "../../../../../lib/smartLinksDb";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -27,9 +28,7 @@ export default async function SmartLinkAnalyticsPage({ params }: PageProps) {
 
   const isAdmin = isAdminUser(user);
 
-  let query = supabase.from("smart_links").select("id, title, slug").eq("id", id).is("deleted_at", null);
-  if (!isAdmin) query = query.eq("user_id", user.id);
-  const { data: link } = await query.maybeSingle();
+  const { link } = await getSmartLinkById(id, isAdmin ? undefined : user.id);
 
   if (!link) {
     notFound();

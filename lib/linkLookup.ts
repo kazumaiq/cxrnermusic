@@ -1,4 +1,8 @@
 // Music Metadata & UPC/EAN Release Lookup Adapters for CXRNER LINK
+import { getSupabaseServerClient } from "./supabaseServer";
+import { validateUpcChecksum } from "./slug";
+
+export { validateUpcChecksum };
 
 export interface PlatformLinkCandidate {
   platform_key: string;
@@ -8,7 +12,7 @@ export interface PlatformLinkCandidate {
 }
 
 export interface ReleaseLookupResult {
-  source: "cxrner" | "itunes" | "deezer" | "musicbrainz" | "spotify" | "manual";
+  source: "cxrner" | "itunes" | "deezer" | "musicbrainz" | "spotify" | "manual" | "unreleased_presave";
   title: string;
   artist: string;
   cover_url: string;
@@ -19,50 +23,61 @@ export interface ReleaseLookupResult {
   release_type: "single" | "ep" | "album";
   label_name: string;
   platforms: PlatformLinkCandidate[];
+  is_unreleased?: boolean;
 }
 
-/** Validates UPC-A (12-digit) or EAN-13 (13-digit) checksum */
-export function validateUpcChecksum(code: string): { isValid: boolean; error?: string } {
-  const digits = code.trim().replace(/\D/g, "");
+/** 1. Lookup in internal CXRNER database (cxrner_forms) */
+async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | null> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const cleanUpc = upc.trim().replace(/\D/g, "");
 
-  if (digits.length !== 12 && digits.length !== 13) {
-    return {
-      isValid: false,
-      error: "UPC/EAN код должен содержать ровно 12 (UPC-A) или 13 (EAN-13) цифр",
-    };
-  }
+    const { data: rows } = await supabase
+      .from("cxrner_forms")
+      .select("id, artist_name, track_name, genre, status, upc, created_at, form_payload")
+      .or(`upc.eq.${cleanUpc}`)
+      .limit(1);
 
-  // Modulo-10 checksum check
-  const chars = digits.split("").map(Number);
-  const checkDigit = chars[chars.length - 1];
-  const payload = chars.slice(0, -1);
+    if (rows && rows.length > 0) {
+      const form = rows[0];
+      const payload = form.form_payload || {};
+      const cover =
+        payload.cover_url ||
+        payload.artwork_url ||
+        payload.cover ||
+        payload.image_url ||
+        payload.media_url ||
+        "";
+      const relDate = payload.release_date || form.created_at?.split("T")[0] || null;
+      const isPast = relDate ? new Date(relDate) <= new Date() : false;
 
-  let sum = 0;
-  if (digits.length === 12) {
-    // UPC-A: odd position (1-based) * 3, even position * 1
-    for (let i = 0; i < payload.length; i++) {
-      sum += (i % 2 === 0 ? 3 : 1) * payload[i];
+      return {
+        source: "cxrner",
+        title: form.track_name || "Без названия",
+        artist: form.artist_name || "Артист",
+        cover_url: cover,
+        upc: cleanUpc,
+        release_date: relDate || undefined,
+        genre: form.genre || "Electronic",
+        release_type: "single",
+        label_name: "CXRNER MUSIC",
+        is_unreleased: !isPast,
+        platforms: [
+          { platform_key: "yandex", platform_name: "Яндекс Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+          { platform_key: "vk", platform_name: "VK Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+          { platform_key: "spotify", platform_name: "Spotify", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+          { platform_key: "apple", platform_name: "Apple Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+          { platform_key: "youtube", platform_name: "YouTube Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+        ],
+      };
     }
-  } else {
-    // EAN-13: odd position (1-based) * 1, even position * 3
-    for (let i = 0; i < payload.length; i++) {
-      sum += (i % 2 === 0 ? 1 : 3) * payload[i];
-    }
+    return null;
+  } catch {
+    return null;
   }
-
-  const calculatedCheck = (10 - (sum % 10)) % 10;
-
-  if (checkDigit !== calculatedCheck) {
-    return {
-      isValid: false,
-      error: `Неверная контрольная цифра кода (ожидалась ${calculatedCheck}, введено ${checkDigit})`,
-    };
-  }
-
-  return { isValid: true };
 }
 
-/** 1. Lookup via Apple iTunes Search/Lookup API */
+/** 2. Lookup via Apple iTunes Search/Lookup API */
 async function lookupItunesByUpc(upc: string): Promise<ReleaseLookupResult | null> {
   try {
     const url = `https://itunes.apple.com/lookup?upc=${encodeURIComponent(upc)}&entity=album`;
@@ -100,13 +115,14 @@ async function lookupItunesByUpc(upc: string): Promise<ReleaseLookupResult | nul
       release_type: relType,
       label_name: item.copyright ? item.copyright.replace(/^©\s*\d+\s*/, "").replace(/^℗\s*\d+\s*/, "") : "CXRNER MUSIC",
       platforms,
+      is_unreleased: false,
     };
   } catch {
     return null;
   }
 }
 
-/** 2. Lookup via Deezer API */
+/** 3. Lookup via Deezer API */
 async function lookupDeezerByUpc(upc: string): Promise<ReleaseLookupResult | null> {
   try {
     const url = `https://api.deezer.com/album/upc:${encodeURIComponent(upc)}`;
@@ -142,13 +158,14 @@ async function lookupDeezerByUpc(upc: string): Promise<ReleaseLookupResult | nul
       release_type: relType,
       label_name: item.label || "CXRNER MUSIC",
       platforms,
+      is_unreleased: false,
     };
   } catch {
     return null;
   }
 }
 
-/** 3. Lookup via MusicBrainz API */
+/** 4. Lookup via MusicBrainz API */
 async function lookupMusicBrainzByUpc(upc: string): Promise<ReleaseLookupResult | null> {
   try {
     const url = `https://musicbrainz.org/ws/2/release/?query=barcode:${encodeURIComponent(upc)}&fmt=json`;
@@ -166,32 +183,37 @@ async function lookupMusicBrainzByUpc(upc: string): Promise<ReleaseLookupResult 
       source: "musicbrainz",
       title,
       artist,
-      cover_url: "", // MusicBrainz needs separate cover art archive call
+      cover_url: "",
       upc,
       release_date: releaseDate,
       genre: "Electronic",
       release_type: "single",
       label_name: item["label-info-list"]?.[0]?.label?.name || "CXRNER MUSIC",
       platforms: [],
+      is_unreleased: false,
     };
   } catch {
     return null;
   }
 }
 
-/** Primary Orchestrator: UPC / EAN Lookup */
-export async function lookupReleaseByUpc(upc: string): Promise<ReleaseLookupResult | null> {
+/** Primary Orchestrator: UPC / EAN Lookup with Pre-save Fallback */
+export async function lookupReleaseByUpc(upc: string): Promise<ReleaseLookupResult> {
   const cleanUpc = upc.trim().replace(/\D/g, "");
-  if (!cleanUpc) return null;
 
-  // Run Apple iTunes and Deezer concurrently
+  // 1. Check internal CXRNER database
+  const cxrnerDbResult = await lookupCxrnerDbByUpc(cleanUpc);
+  if (cxrnerDbResult) {
+    return cxrnerDbResult;
+  }
+
+  // 2. Run Apple iTunes and Deezer concurrently
   const [itunesResult, deezerResult] = await Promise.all([
     lookupItunesByUpc(cleanUpc),
     lookupDeezerByUpc(cleanUpc),
   ]);
 
   if (itunesResult && deezerResult) {
-    // Merge platforms and best cover
     const platforms = [...itunesResult.platforms];
     deezerResult.platforms.forEach((dp) => {
       if (!platforms.some((p) => p.platform_key === dp.platform_key)) {
@@ -209,11 +231,31 @@ export async function lookupReleaseByUpc(upc: string): Promise<ReleaseLookupResu
   if (itunesResult) return itunesResult;
   if (deezerResult) return deezerResult;
 
-  // Fallback to MusicBrainz
+  // 3. Fallback to MusicBrainz
   const mbResult = await lookupMusicBrainzByUpc(cleanUpc);
   if (mbResult) return mbResult;
 
-  return null;
+  // 4. If not found in public stores, it is an UNRELEASED track ready for Pre-save!
+  const defaultFutureDate = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
+  return {
+    source: "unreleased_presave",
+    title: "",
+    artist: "",
+    cover_url: "",
+    upc: cleanUpc,
+    release_date: defaultFutureDate,
+    genre: "Electronic",
+    release_type: "single",
+    label_name: "CXRNER MUSIC",
+    is_unreleased: true,
+    platforms: [
+      { platform_key: "yandex", platform_name: "Яндекс Музыка", url: "", button_text: "Pre-save" },
+      { platform_key: "vk", platform_name: "VK Музыка", url: "", button_text: "Pre-save" },
+      { platform_key: "spotify", platform_name: "Spotify", url: "", button_text: "Pre-save" },
+      { platform_key: "apple", platform_name: "Apple Music", url: "", button_text: "Pre-save" },
+      { platform_key: "youtube", platform_name: "YouTube Music", url: "", button_text: "Pre-save" },
+    ],
+  };
 }
 
 /** Search Releases by Text Query (Artist / Title) across catalogs */
@@ -241,6 +283,7 @@ export async function searchReleasesByQuery(query: string): Promise<ReleaseLooku
             genre: item.primaryGenreName || "Electronic",
             release_type: (item.trackCount || 1) > 6 ? "album" : (item.trackCount || 1) > 1 ? "ep" : "single",
             label_name: item.copyright || "CXRNER MUSIC",
+            is_unreleased: false,
             platforms: item.collectionViewUrl
               ? [
                   {

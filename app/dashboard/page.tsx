@@ -3,7 +3,9 @@ import Container from "../../components/Container";
 import GlowButton from "../../components/GlowButton";
 import DashboardReleasesTable from "../../components/DashboardReleasesTable";
 import TelegramSyncCard from "../../components/TelegramSyncCard";
+import CxrnerLinkHeroCard from "../../components/link/CxrnerLinkHeroCard";
 import { getSupabaseServerClient } from "../../lib/supabaseServer";
+import { getUserSmartLinks } from "../../lib/smartLinksDb";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -100,6 +102,8 @@ export default async function DashboardPage() {
   const inModeration = forms.filter((f) => f.status === "pending" || f.status === "moderation").length;
   const liveReleases = forms.filter((f) => f.status === "approved" || f.status === "uploaded" || f.status === "released").length;
   const fixRequired = forms.filter((f) => f.status === "fix_required").length;
+
+  const userSmartLinks = await getUserSmartLinks(user.id);
 
   return (
     <div className="section-padding pt-28 sm:pt-36">
@@ -203,45 +207,9 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* CXRNER LINK Hub Banner Card */}
-        <div className="mb-8 p-6 sm:p-7 rounded-3xl border border-[#B46BFF]/40 bg-gradient-to-r from-[#8737FF]/20 via-[#160B28]/60 to-[#090611] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_0_40px_rgba(135,55,255,0.2)]">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#8737FF] flex items-center justify-center text-white shadow-lg flex-shrink-0">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-[#00F0FF] font-bold">
-                  НОВЫЙ СЕРВИС
-                </span>
-                <span className="text-white/30">•</span>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-[#B46BFF]">
-                  PRE-SAVE &amp; SMART LINKS
-                </span>
-              </div>
-              <h3 className="font-heavy text-xl uppercase tracking-tight text-white mt-0.5">
-                CXRNER LINK
-              </h3>
-              <p className="text-xs text-[#D9D9E2]/80 mt-1 max-w-xl">
-                Создавайте мульти-ссылки на 150+ стримингов, запускайте Pre-save кампании и отслеживайте переходы слушателей.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/links/new"
-              className="btn-energy px-6 py-3 rounded-full font-mono text-xs uppercase tracking-wider font-bold inline-flex items-center gap-2 whitespace-nowrap shadow-md"
-            >
-              <span>Создать ссылку</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/dashboard/links"
-              className="btn-void-ghost px-5 py-3 rounded-full font-mono text-xs uppercase tracking-wider text-white whitespace-nowrap"
-            >
-              <span>Мои ссылки</span>
-            </Link>
-          </div>
+        {/* CXRNER LINK Hub Hero Card (Narvent & Martin Garrix STMPD aesthetic) */}
+        <div className="mb-10">
+          <CxrnerLinkHeroCard activeCount={userSmartLinks.length} />
         </div>
 
         {/* Telegram Sync integration banner */}

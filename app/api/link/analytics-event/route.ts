@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { recordLinkClickEvent } from "@/lib/smartLinksDb";
 import crypto from "node:crypto";
 
 function isBot(userAgent: string): boolean {
@@ -28,7 +29,6 @@ export async function POST(request: Request) {
 
     const userAgent = request.headers.get("user-agent") || "";
     if (isBot(userAgent)) {
-      // Quietly ignore bot traffic from analytical metrics
       return NextResponse.json({ success: true, ignored: "bot" });
     }
 
@@ -46,59 +46,26 @@ export async function POST(request: Request) {
     const device = detectDevice(userAgent);
     const country = request.headers.get("x-vercel-ip-country") || "RU";
 
-    const supabase = await getSupabaseServerClient();
-
-    // 1. Record granular analytics row
-    await supabase.from("smart_link_analytics").insert({
-      smart_link_id,
-      event_type,
-      platform_key: platform_key || null,
-      visitor_hash: visitorHash,
-      referrer: referrer ? String(referrer).slice(0, 256) : null,
-      country,
-      device,
+    // 1. Dual-engine update (table + profile fallback)
+    await recordLinkClickEvent({
+      linkId: smart_link_id,
+      eventType: event_type,
+      platformKey: platform_key,
     });
 
-    // 2. Increment aggregate counter on smart_links table
-    if (event_type === "view") {
-      const { error: rpcErr } = await supabase.rpc("increment_smart_link_views", { link_id: smart_link_id });
-      if (rpcErr) {
-        // Fallback direct update if RPC is not yet registered in SQL
-        const { data: cur } = await supabase.from("smart_links").select("views_count").eq("id", smart_link_id).single();
-        if (cur) {
-          await supabase.from("smart_links").update({ views_count: (cur.views_count || 0) + 1 }).eq("id", smart_link_id);
-        }
-      }
-    } else if (event_type === "click") {
-      const { error: rpcErr } = await supabase.rpc("increment_smart_link_clicks", { link_id: smart_link_id });
-      if (rpcErr) {
-        const { data: cur } = await supabase.from("smart_links").select("clicks_count").eq("id", smart_link_id).single();
-        if (cur) {
-          await supabase.from("smart_links").update({ clicks_count: (cur.clicks_count || 0) + 1 }).eq("id", smart_link_id);
-        }
-      }
-
-      // Also increment platform clicks count
-      if (platform_key) {
-        const { data: pCur } = await supabase
-          .from("smart_link_platforms")
-          .select("id, clicks_count")
-          .eq("smart_link_id", smart_link_id)
-          .eq("platform_key", platform_key)
-          .maybeSingle();
-        if (pCur) {
-          await supabase
-            .from("smart_link_platforms")
-            .update({ clicks_count: (pCur.clicks_count || 0) + 1 })
-            .eq("id", pCur.id);
-        }
-      }
-    } else if (event_type === "presave") {
-      const { data: cur } = await supabase.from("smart_links").select("presaves_count").eq("id", smart_link_id).single();
-      if (cur) {
-        await supabase.from("smart_links").update({ presaves_count: (cur.presaves_count || 0) + 1 }).eq("id", smart_link_id);
-      }
-    }
+    // 2. Try recording granular event row if table exists
+    try {
+      const supabase = await getSupabaseServerClient();
+      await supabase.from("smart_link_analytics").insert({
+        smart_link_id,
+        event_type,
+        platform_key: platform_key || null,
+        visitor_hash: visitorHash,
+        referrer: referrer ? String(referrer).slice(0, 256) : null,
+        country,
+        device,
+      });
+    } catch {}
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

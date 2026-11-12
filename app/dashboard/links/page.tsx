@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Container from "../../../components/Container";
 import DashboardLinksClient from "../../../components/link/DashboardLinksClient";
 import { getSupabaseServerClient } from "../../../lib/supabaseServer";
+import { getUserSmartLinks } from "../../../lib/smartLinksDb";
 import Link from "next/link";
 import { ChevronLeft, Radio } from "lucide-react";
 
@@ -21,12 +22,7 @@ export default async function DashboardLinksPage() {
     redirect("/auth/login?redirect=/dashboard/links");
   }
 
-  const { data: links = [] } = await supabase
-    .from("smart_links")
-    .select("id, title, artist, cover_url, slug, status, is_out_now, views_count, clicks_count, presaves_count, created_at")
-    .eq("user_id", user.id)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+  const links = await getUserSmartLinks(user.id);
 
   return (
     <div className="relative min-h-[100svh] bg-[#050407] text-white pt-24 pb-20 overflow-x-hidden">

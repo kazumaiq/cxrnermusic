@@ -8,7 +8,6 @@ export async function GET(request: Request) {
     const query = searchParams.get("query")?.trim();
 
     if (upc) {
-      // Validate checksum if provided
       const check = validateUpcChecksum(upc);
       if (!check.isValid) {
         return NextResponse.json(
@@ -18,17 +17,18 @@ export async function GET(request: Request) {
       }
 
       const release = await lookupReleaseByUpc(upc);
-      if (!release) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Релиз с данным UPC не найден в открытых базах. Вы можете ввести данные вручную.",
-          },
-          { status: 404 }
-        );
+
+      if (release.is_unreleased) {
+        return NextResponse.json({
+          success: true,
+          is_unreleased: true,
+          release,
+          message:
+            "⚡ Релиз не найден на открытых витринах — режим Pre-save активирован! Заполните метаданные и дату релиза.",
+        });
       }
 
-      return NextResponse.json({ success: true, release });
+      return NextResponse.json({ success: true, is_unreleased: false, release });
     }
 
     if (query) {

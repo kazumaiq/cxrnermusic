@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getSupabaseServerClient } from "../../../lib/supabaseServer";
+import { getSmartLinkBySlug } from "../../../lib/smartLinksDb";
 import PublicSmartLink from "../../../components/link/PublicSmartLink";
 
 interface PageProps {
@@ -13,13 +14,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const cleanSlug = slug.toLowerCase().trim();
 
-  const supabase = await getSupabaseServerClient();
-  const { data: link } = await supabase
-    .from("smart_links")
-    .select("title, artist, cover_url, description, label_name, is_out_now")
-    .eq("slug", cleanSlug)
-    .is("deleted_at", null)
-    .maybeSingle();
+  const { link } = await getSmartLinkBySlug(cleanSlug);
 
   if (!link) {
     return {
@@ -77,44 +72,33 @@ export default async function SmartLinkPage({ params }: PageProps) {
   const { slug } = await params;
   const cleanSlug = slug.toLowerCase().trim();
 
-  const supabase = await getSupabaseServerClient();
-
-  // 1. Fetch smart link
-  const { data: link } = await supabase
-    .from("smart_links")
-    .select("*")
-    .eq("slug", cleanSlug)
-    .is("deleted_at", null)
-    .maybeSingle();
+  // 1. Fetch smart link & platforms seamlessly from table or fallback store
+  const { link, platforms: rawPlatforms } = await getSmartLinkBySlug(cleanSlug);
 
   // 2. If not found, check slug_history for 301 redirect
   if (!link) {
-    const { data: history } = await supabase
-      .from("slug_history")
-      .select("new_slug")
-      .eq("old_slug", cleanSlug)
-      .maybeSingle();
+    try {
+      const supabase = await getSupabaseServerClient();
+      const { data: history } = await supabase
+        .from("slug_history")
+        .select("new_slug")
+        .eq("old_slug", cleanSlug)
+        .maybeSingle();
 
-    if (history?.new_slug) {
-      redirect(`/link/${history.new_slug}`);
-    }
+      if (history?.new_slug) {
+        redirect(`/link/${history.new_slug}`);
+      }
+    } catch {}
 
     notFound();
   }
-
-  // 3. Fetch platforms
-  const { data: rawPlatforms = [] } = await supabase
-    .from("smart_link_platforms")
-    .select("*")
-    .eq("smart_link_id", link.id)
-    .order("display_order", { ascending: true });
 
   // Dynamic Out Now check (real-time on visit even between daily crons)
   const isExpiredPreSave =
     Boolean(link.auto_out_now) &&
     !link.is_out_now &&
     Boolean(link.release_date) &&
-    new Date(link.release_date) <= new Date();
+    new Date(link.release_date!) <= new Date();
 
   if (isExpiredPreSave) {
     link.is_out_now = true;

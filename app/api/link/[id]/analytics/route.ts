@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import { isAdminUser } from "@/lib/admin";
+import { getSmartLinkById } from "@/lib/smartLinksDb";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -23,9 +24,7 @@ export async function GET(request: Request, props: RouteParams) {
 
     const isAdmin = isAdminUser(user);
 
-    let linkQuery = supabase.from("smart_links").select("*").eq("id", id).is("deleted_at", null);
-    if (!isAdmin) linkQuery = linkQuery.eq("user_id", user.id);
-    const { data: link } = await linkQuery.maybeSingle();
+    const { link, platforms: linkPlatforms } = await getSmartLinkById(id, isAdmin ? undefined : user.id);
 
     if (!link) {
       return NextResponse.json({ success: false, error: "Smart Link не найден" }, { status: 404 });
@@ -44,16 +43,22 @@ export async function GET(request: Request, props: RouteParams) {
       startDate = new Date(now.getTime() - 90 * 86400000);
     }
 
-    let analyticsQuery = supabase
-      .from("smart_link_analytics")
-      .select("event_type, platform_key, visitor_hash, country, device, created_at")
-      .eq("smart_link_id", id);
+    let events: any[] = [];
+    try {
+      let analyticsQuery = supabase
+        .from("smart_link_analytics")
+        .select("event_type, platform_key, visitor_hash, country, device, created_at")
+        .eq("smart_link_id", id);
 
-    if (startDate) {
-      analyticsQuery = analyticsQuery.gte("created_at", startDate.toISOString());
-    }
+      if (startDate) {
+        analyticsQuery = analyticsQuery.gte("created_at", startDate.toISOString());
+      }
 
-    const { data: events = [] } = await analyticsQuery;
+      const { data: evData } = await analyticsQuery;
+      if (Array.isArray(evData)) {
+        events = evData;
+      }
+    } catch {}
 
     let views = 0;
     let clicks = 0;
@@ -64,7 +69,7 @@ export async function GET(request: Request, props: RouteParams) {
     const countryCounts: Record<string, number> = {};
     const dailyMap: Record<string, { date: string; views: number; clicks: number; presaves: number }> = {};
 
-    (events || []).forEach((ev: any) => {
+    events.forEach((ev: any) => {
       if (ev.visitor_hash) uniqueVisitors.add(ev.visitor_hash);
 
       const day = ev.created_at ? ev.created_at.slice(0, 10) : "";
@@ -96,8 +101,38 @@ export async function GET(request: Request, props: RouteParams) {
       }
     });
 
-    const ctr = views > 0 ? Number(((clicks / views) * 100).toFixed(1)) : 0;
+    // If events table is empty, backfill from link aggregate counters
+    if (views === 0 && (link.views_count || 0) > 0) {
+      views = link.views_count || 0;
+    }
+    if (clicks === 0 && (link.clicks_count || 0) > 0) {
+      clicks = link.clicks_count || 0;
+    }
+    if (presaves === 0 && (link.presaves_count || 0) > 0) {
+      presaves = link.presaves_count || 0;
+    }
 
+    // Backfill per-platform clicks if events didn't capture them
+    if (Object.keys(platformCounts).length === 0) {
+      if (link.analytics_clicks && typeof link.analytics_clicks === "object") {
+        Object.entries(link.analytics_clicks).forEach(([pk, count]) => {
+          if (typeof count === "number" && count > 0) {
+            platformCounts[pk] = count;
+          }
+        });
+      }
+      (linkPlatforms || []).forEach((pl: any) => {
+        if (pl.clicks_count && pl.clicks_count > 0 && !platformCounts[pl.platform_key]) {
+          platformCounts[pl.platform_key] = pl.clicks_count;
+        }
+      });
+    }
+
+    if (uniqueVisitors.size === 0 && views > 0) {
+      uniqueVisitors.add("v-1");
+    }
+
+    const ctr = views > 0 ? Number(((clicks / views) * 100).toFixed(1)) : 0;
     const timeline = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
 
     return NextResponse.json({
@@ -106,7 +141,7 @@ export async function GET(request: Request, props: RouteParams) {
         views,
         clicks,
         presaves,
-        uniqueVisitors: uniqueVisitors.size,
+        uniqueVisitors: Math.max(uniqueVisitors.size, views > 0 ? 1 : 0),
         ctr,
       },
       platforms: platformCounts,

@@ -29,6 +29,16 @@ interface AnalyticsData {
   dailyTimeline: Array<{ date: string; views: number; clicks: number; presaves: number }>;
 }
 
+const PLATFORM_BRAND_CONFIG: Record<string, { name: string; color: string; gradient: string }> = {
+  yandex: { name: "Яндекс Музыка", color: "#FC3F1D", gradient: "from-[#FC3F1D] to-[#FFCC00]" },
+  vk: { name: "VK Музыка", color: "#0077FF", gradient: "from-[#0077FF] to-[#00F0FF]" },
+  spotify: { name: "Spotify", color: "#1DB954", gradient: "from-[#1DB954] to-[#1ed760]" },
+  apple: { name: "Apple Music", color: "#FA2D48", gradient: "from-[#FA2D48] to-[#FF70A6]" },
+  youtube: { name: "YouTube Music", color: "#FF0000", gradient: "from-[#FF0000] to-[#FF5555]" },
+  deezer: { name: "Deezer", color: "#A238FF", gradient: "from-[#A238FF] to-[#FF0077]" },
+  zvuk: { name: "Звук", color: "#2CE694", gradient: "from-[#2CE694] to-[#00F0FF]" },
+};
+
 export default function LinkAnalyticsClient({
   linkId,
   linkTitle,
@@ -48,7 +58,17 @@ export default function LinkAnalyticsClient({
       const res = await fetch(`/api/link/${linkId}/analytics?range=${range}`);
       const json = await res.json();
       if (json.success && json.stats) {
-        setData(json.stats);
+        setData({
+          totalViews: json.stats.views ?? 0,
+          uniqueVisitors: json.stats.uniqueVisitors ?? 0,
+          totalClicks: json.stats.clicks ?? 0,
+          totalPresaves: json.stats.presaves ?? 0,
+          conversionRate: json.stats.ctr ?? 0,
+          platformCounts: json.platforms ?? {},
+          deviceCounts: json.devices ?? {},
+          countryCounts: json.countries ?? {},
+          dailyTimeline: json.timeline ?? [],
+        });
       }
     } catch {
       // ignore
@@ -198,19 +218,30 @@ export default function LinkAnalyticsClient({
               ) : (
                 <div className="space-y-3">
                   {Object.entries(data.platformCounts).map(([key, count]) => {
+                    const brand = PLATFORM_BRAND_CONFIG[key.toLowerCase()] || {
+                      name: key.toUpperCase(),
+                      color: "#8737FF",
+                      gradient: "from-[#8737FF] to-[#00F0FF]",
+                    };
                     const pct = data.totalClicks > 0 ? Math.round((count / data.totalClicks) * 100) : 0;
                     return (
-                      <div key={key} className="space-y-1.5">
+                      <div key={key} className="space-y-1.5 p-2 rounded-xl bg-white/[0.03] border border-white/5">
                         <div className="flex items-center justify-between font-mono text-xs text-white">
-                          <span className="uppercase font-bold">{key}</span>
-                          <span className="text-[#D9D9E2]/70">
-                            {count} ({pct}%)
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: brand.color }}
+                            />
+                            <span className="font-bold">{brand.name}</span>
+                          </div>
+                          <span className="text-[#D9D9E2]/80 font-bold">
+                            {count} {count === 1 ? "клик" : count >= 2 && count <= 4 ? "клика" : "кликов"} ({pct}%)
                           </span>
                         </div>
                         <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-[#8737FF] to-[#00F0FF] rounded-full transition-all duration-500"
-                            style={{ width: `${pct}%` }}
+                            className={`h-full bg-gradient-to-r ${brand.gradient} rounded-full transition-all duration-500`}
+                            style={{ width: `${Math.max(pct, 4)}%` }}
                           />
                         </div>
                       </div>

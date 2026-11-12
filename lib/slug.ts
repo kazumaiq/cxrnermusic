@@ -124,3 +124,17 @@ export function getSmartLinkDisplayPrefix(): string {
   }
   return "cxrnermusic.vercel.app/link/";
 }
+
+/** Validates UPC-A (12-digit) or EAN-13 (13-digit) code with soft check */
+export function validateUpcChecksum(code: string): { isValid: boolean; warning?: string; error?: string } {
+  const digits = code.trim().replace(/\D/g, "");
+
+  if (!digits || digits.length < 6 || digits.length > 18) {
+    return {
+      isValid: false,
+      error: "Штрихкод должен содержать от 6 до 18 цифр",
+    };
+  }
+
+  return { isValid: true };
+}

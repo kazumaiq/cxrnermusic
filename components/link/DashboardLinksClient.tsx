@@ -33,6 +33,12 @@ interface SmartLinkItem {
   clicks_count: number;
   presaves_count: number;
   created_at: string;
+  platforms?: Array<{
+    platform_key: string;
+    platform_name: string;
+    clicks_count?: number;
+  }>;
+  analytics_clicks?: Record<string, number>;
 }
 
 interface DashboardLinksClientProps {
@@ -268,6 +274,27 @@ export default function DashboardLinksClient({ initialLinks }: DashboardLinksCli
                         )}
                       </button>
                     </div>
+
+                    {/* Per-platform click breakdown pill */}
+                    {Boolean(link.clicks_count && link.clicks_count > 0) && (
+                      <div className="flex items-center gap-1.5 flex-wrap mt-2 font-mono text-[9px] uppercase tracking-wider">
+                        <span className="text-[#00F0FF] font-bold">Клики по площадкам:</span>
+                        {link.platforms
+                          ?.filter((p) => (p.clicks_count || 0) > 0)
+                          .map((p) => (
+                            <span key={p.platform_key} className="px-1.5 py-0.5 rounded bg-white/10 text-white">
+                              {p.platform_name}: <strong className="text-[#B46BFF]">{p.clicks_count}</strong>
+                            </span>
+                          ))}
+                        {(!link.platforms || link.platforms.every((p) => !p.clicks_count)) && link.analytics_clicks && (
+                          Object.entries(link.analytics_clicks).map(([k, c]) => (
+                            <span key={k} className="px-1.5 py-0.5 rounded bg-white/10 text-white">
+                              {k}: <strong className="text-[#B46BFF]">{c}</strong>
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
