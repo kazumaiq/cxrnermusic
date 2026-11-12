@@ -1,101 +1,111 @@
 import Link from "next/link";
 import Image from "next/image";
 import Container from "./Container";
-import { Sparkles, Send, Globe, Disc, ShieldCheck, Mail, ArrowUpRight, Music } from "lucide-react";
+import { ArrowUpRight, Globe, Mail, Music, Send } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-24 border-t border-purple-500/20 bg-gradient-to-b from-[#090910]/75 to-[#040407]/85 backdrop-blur-md overflow-hidden">
-      {/* Ambient purple bloom */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-48 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+    <footer className="relative mt-24 border-t border-white/15 bg-[#050407]/90 backdrop-blur-2xl overflow-hidden">
+      {/* Subtle Cosmic Horizon Glow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[780px] h-56 bg-[#8737FF]/12 rounded-full blur-[130px] pointer-events-none" />
 
-      <Container className="pt-16 pb-12 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-12">
-          {/* Column 1: Brand Info */}
-          <div className="lg:col-span-2">
+      <Container className="pt-16 pb-10 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-14 border-b border-white/10">
+          {/* Brand Identity */}
+          <div className="lg:col-span-5 space-y-5">
             <Link href="/" className="inline-flex items-center gap-3 group">
-              <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-black/80 border border-purple-500/40 group-hover:border-purple-400 overflow-hidden transition duration-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+              <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-[#090611] border border-[#D9D9E2]/20 group-hover:border-[#B46BFF] overflow-hidden shadow-[0_0_20px_rgba(135,55,255,0.28)] transition">
                 <Image
                   src="/logo.png"
                   alt="CXRNER MUSIC"
-                  width={40}
-                  height={40}
-                  className="object-contain w-full h-full p-1 group-hover:scale-105 transition"
+                  width={44}
+                  height={44}
+                  className="object-contain w-full h-full p-1"
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-gothic font-bold text-base tracking-[0.28em] text-white group-hover:text-purple-300 transition">
+                <span className="font-heavy text-xl tracking-[0.25em] text-white uppercase">
                   CXRNER MUSIC
                 </span>
-                <span className="font-mono text-[9px] tracking-[0.25em] uppercase text-purple-400">
-                  Global Independent Label
+                <span className="font-mono text-[9px] tracking-[0.26em] uppercase text-[#B46BFF]">
+                  GLOBAL INDEPENDENT RECORD LABEL
                 </span>
               </div>
             </Link>
 
-            <p className="mt-4 max-w-sm text-xs leading-6 text-neutral-300 font-sans">
-              Международный независимый музыкальный лейбл и экосистема цифровой дистрибуции.
-              Выпускаем треки на 150+ стримингов, защищаем авторские права и обеспечиваем прозрачные выплаты 70/30.
+            <p className="max-w-sm text-xs sm:text-sm leading-relaxed text-[#D9D9E2]/70">
+              Международный независимый музыкальный лейбл и цифровая дистрибуция.
+              150+ стриминговых платформ, 256 стран и территорий, модель роялти 70/30.
             </p>
 
-            <div className="mt-6 flex flex-wrap gap-2 text-xs">
+            <div className="flex flex-wrap gap-2">
               <a
                 href="https://music.yandex.ru/label/5978511"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 font-mono text-[10px] uppercase text-purple-300 hover:bg-purple-500/20 transition"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#B46BFF]/35 bg-[#8737FF]/12 font-mono text-[10px] uppercase tracking-wider text-white hover:bg-[#8737FF]/25 transition"
               >
-                <Music className="w-3.5 h-3.5 text-purple-400" />
-                Яндекс Музыка лейбла
+                <Music className="w-3.5 h-3.5 text-[#B46BFF]" />
+                <span>Яндекс Музыка</span>
+                <ArrowUpRight className="w-3 h-3 opacity-60" />
               </a>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/10 bg-white/5 font-mono text-[10px] uppercase text-neutral-300">
-                <Globe className="w-3.5 h-3.5 text-purple-400" />
-                150+ стран мира
+
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/75">
+                <Globe className="w-3.5 h-3.5 text-[#D9D9E2]" />
+                <span>150+ DSP · 256 стран</span>
               </span>
             </div>
           </div>
 
-          {/* Column 2: Навигация */}
-          <div>
-            <h4 className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-purple-300 mb-4">// НАВИГАЦИЯ</h4>
-            <ul className="space-y-2.5 text-xs font-mono text-neutral-400">
+          {/* Navigation */}
+          <div className="lg:col-span-2">
+            <h4 className="font-mono text-[10px] font-bold uppercase tracking-[0.26em] text-[#B46BFF] mb-4">
+              // РАЗДЕЛЫ
+            </h4>
+            <ul className="space-y-2.5 text-xs font-mono text-[#D9D9E2]/65">
               <li>
-                <Link href="/#releases" className="hover:text-white transition inline-flex items-center gap-1">
+                <Link href="/#about" className="hover:text-white transition">
+                  О лейбле
+                </Link>
+              </li>
+              <li>
+                <Link href="/#releases" className="hover:text-white transition">
                   Каталог релизов
                 </Link>
               </li>
               <li>
                 <Link href="/#artists" className="hover:text-white transition">
-                  Артисты лейбла
+                  Артисты
                 </Link>
               </li>
               <li>
-                <Link href="/#services" className="hover:text-white transition">
-                  Сервисы и питчинг
+                <Link href="/#distribution" className="hover:text-white transition">
+                  Дистрибуция
                 </Link>
               </li>
               <li>
                 <Link href="/#faq" className="hover:text-white transition">
-                  База знаний & FAQ
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-white transition">
-                  Связаться с командой
+                  FAQ
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Column 3: Артистам */}
-          <div>
-            <h4 className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-purple-300 mb-4">// АРТИСТАМ</h4>
-            <ul className="space-y-2.5 text-xs font-mono text-neutral-400">
+          {/* Artist Ecosystem */}
+          <div className="lg:col-span-2">
+            <h4 className="font-mono text-[10px] font-bold uppercase tracking-[0.26em] text-[#B46BFF] mb-4">
+              // АРТИСТАМ
+            </h4>
+            <ul className="space-y-2.5 text-xs font-mono text-[#D9D9E2]/65">
               <li>
-                <Link href="/submit-release" className="text-white hover:text-purple-300 transition font-semibold inline-flex items-center gap-1">
-                  Отправить релиз <ArrowUpRight className="w-3.5 h-3.5 text-purple-400" />
+                <Link
+                  href="/submit-release"
+                  className="text-white hover:text-[#B46BFF] transition inline-flex items-center gap-1 font-semibold"
+                >
+                  <span>Отправить релиз</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-[#B46BFF]" />
                 </Link>
               </li>
               <li>
@@ -105,62 +115,73 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/auth/register" className="hover:text-white transition">
-                  Регистрация аккаунта
+                  Регистрация
                 </Link>
               </li>
               <li>
                 <Link href="/offer" className="hover:text-white transition">
-                  Условия и оферта 70/30
+                  Оферта 70/30
                 </Link>
               </li>
+              <li>
+                <Link href="/contact" className="hover:text-white transition">
+                  Контакты
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Official Channels */}
+          <div className="lg:col-span-3">
+            <h4 className="font-mono text-[10px] font-bold uppercase tracking-[0.26em] text-[#B46BFF] mb-4">
+              // ОФИЦИАЛЬНЫЕ КАНАЛЫ
+            </h4>
+            <ul className="space-y-3 text-xs font-mono text-[#D9D9E2]/70">
               <li>
                 <a
                   href="https://t.me/moder_cxrner_bot"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white transition inline-flex items-center gap-1 text-purple-300"
+                  className="hover:text-white transition inline-flex items-center gap-2"
                 >
-                  <Send className="w-3.5 h-3.5 text-purple-400" />
-                  Бот модерации
+                  <Send className="w-3.5 h-3.5 text-[#B46BFF]" />
+                  <span>Telegram-бот: @moder_cxrner_bot</span>
                 </a>
               </li>
-            </ul>
-          </div>
-
-          {/* Column 4: Контакты & Соцсети */}
-          <div>
-            <h4 className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-purple-300 mb-4">// СВЯЗЬ</h4>
-            <ul className="space-y-2.5 text-xs font-mono text-neutral-400">
               <li>
                 <a
                   href="https://t.me/kazumaiq"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white transition inline-flex items-center gap-1"
+                  className="hover:text-white transition inline-flex items-center gap-2"
                 >
-                  Основатель: @kazumaiq
+                  <Send className="w-3.5 h-3.5 text-[#D9D9E2]" />
+                  <span>Основатель / A&R: @kazumaiq</span>
                 </a>
               </li>
               <li>
                 <a
                   href="mailto:cxrner.label@gmail.com"
-                  className="hover:text-white transition inline-flex items-center gap-1 truncate"
+                  className="hover:text-white transition inline-flex items-center gap-2"
                 >
-                  <Mail className="w-3.5 h-3.5 text-neutral-400" />
-                  cxrner.label@gmail.com
+                  <Mail className="w-3.5 h-3.5 text-[#D9D9E2]" />
+                  <span>cxrner.label@gmail.com</span>
                 </a>
-              </li>
-              <li className="pt-2">
-                <span className="block font-mono text-[11px] text-neutral-500 mb-1">Время ответа модерации:</span>
-                <span className="font-mono text-xs text-white font-semibold">24-72 часа</span>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-neutral-400">
-          <p>© {currentYear} CXRNER MUSIC. Официальная дистрибуция и паблишинг.</p>
+        {/* Monumental Typographic Watermark */}
+        <div className="py-8 overflow-hidden select-none pointer-events-none">
+          <p className="font-heavy text-[14vw] sm:text-[10vw] leading-[0.82] tracking-tight uppercase text-center text-outline-chrome opacity-40">
+            CXRNER MUSIC
+          </p>
+        </div>
+
+        {/* Bottom Copyright Bar */}
+        <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-[#D9D9E2]/55">
+          <p>© {currentYear} CXRNER MUSIC. Официальный лейбл и дистрибуция.</p>
           <div className="flex items-center gap-6">
             <Link href="/offer" className="hover:text-white transition">
               Публичная оферта
@@ -168,8 +189,13 @@ export default function Footer() {
             <Link href="/contact" className="hover:text-white transition">
               Контакты
             </Link>
-            <a href="https://t.me/moder_cxrner_bot" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
-              Telegram
+            <a
+              href="https://music.yandex.ru/label/5978511"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition"
+            >
+              Яндекс Музыка
             </a>
           </div>
         </div>

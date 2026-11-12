@@ -1,17 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getSupabaseServerClient } from "../lib/supabaseServer";
-import Container from "./Container";
 import MobileMenu from "./MobileMenu";
-import { Sparkles, User, ArrowUpRight } from "lucide-react";
+import { User, ArrowUpRight } from "lucide-react";
 
 const navItems = [
   { label: "Главная", href: "/" },
+  { label: "О лейбле", href: "/#about" },
   { label: "Релизы", href: "/#releases" },
   { label: "Артисты", href: "/#artists" },
-  { label: "Услуги", href: "/#services" },
+  { label: "Дистрибуция", href: "/#distribution" },
   { label: "FAQ", href: "/#faq" },
-  { label: "Оферта", href: "/offer" },
   { label: "Контакты", href: "/contact" },
 ];
 
@@ -30,13 +29,13 @@ export default async function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-3.5 sm:pt-4">
-        <div className="rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-[#09090e]/90">
+        <div className="rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 flex items-center justify-between border border-[#D9D9E2]/15 shadow-[0_12px_40px_rgba(5,4,7,0.85)] backdrop-blur-2xl bg-[#050407]/80">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group">
-            <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-black/80 border border-purple-500/40 group-hover:border-purple-400 overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.3)] transition duration-300">
+          <Link href="/" className="flex items-center gap-3 group" data-cursor="HOME">
+            <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#090611] border border-[#D9D9E2]/20 group-hover:border-[#B46BFF] overflow-hidden shadow-[0_0_18px_rgba(135,55,255,0.28)] transition duration-300">
               <Image
                 src="/logo.png"
-                alt="CXRNER MUSIC logo"
+                alt="CXRNER MUSIC"
                 width={36}
                 height={36}
                 className="object-contain w-full h-full p-0.5 group-hover:scale-110 transition duration-300"
@@ -44,25 +43,25 @@ export default async function Header() {
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-gothic font-bold text-xs sm:text-sm tracking-[0.28em] text-white group-hover:text-purple-300 transition">
+              <span className="font-heavy font-bold text-sm sm:text-base tracking-[0.28em] text-white group-hover:text-[#B46BFF] transition">
                 CXRNER
               </span>
-              <span className="font-mono text-[8px] tracking-[0.25em] uppercase text-purple-400 -mt-0.5 hidden sm:block">
-                MUSIC LABEL
+              <span className="font-mono text-[8px] tracking-[0.28em] uppercase text-[#D9D9E2]/60 -mt-0.5 hidden sm:block">
+                MUSIC UNIVERSE
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-xs font-mono uppercase tracking-[0.18em] text-neutral-300">
+          <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-[11px] font-mono uppercase tracking-[0.16em] text-[#D9D9E2]/75">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="transition duration-200 hover:text-white py-1 relative group"
+                className="transition duration-200 hover:text-white py-1 relative group whitespace-nowrap shrink-0"
               >
                 {item.label}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-300 group-hover:w-full" />
+                <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-gradient-to-r from-[#8737FF] to-white transition-all duration-300 group-hover:w-full" />
               </Link>
             ))}
           </nav>
@@ -73,15 +72,15 @@ export default async function Header() {
               <>
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-purple-500/30 bg-purple-500/10 text-xs font-mono font-medium uppercase tracking-wider text-purple-300 hover:bg-purple-500/20 hover:text-white transition"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#B46BFF]/35 bg-[#8737FF]/12 text-[11px] font-mono uppercase tracking-wider text-white hover:bg-[#8737FF]/25 transition"
                 >
-                  <User className="w-3.5 h-3.5 text-purple-400" />
-                  Кабинет
+                  <User className="w-3.5 h-3.5 text-[#B46BFF]" />
+                  <span>Кабинет</span>
                 </Link>
                 <form action="/auth/logout" method="post">
                   <button
                     type="submit"
-                    className="px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-neutral-500 hover:text-red-400 transition"
+                    className="px-2.5 py-2 font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/50 hover:text-red-400 transition"
                   >
                     Выйти
                   </button>
@@ -90,23 +89,23 @@ export default async function Header() {
             ) : (
               <Link
                 href="/auth/login"
-                className="px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-300 hover:text-white transition"
+                className="px-3.5 py-2 font-mono text-[11px] uppercase tracking-wider text-[#D9D9E2]/75 hover:text-white transition"
               >
                 Вход
               </Link>
             )}
 
-            {/* Primary CTA */}
             <Link
               href="/submit-release"
-              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full font-mono text-xs uppercase tracking-wider font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] active:scale-95 transition duration-300"
+              data-cursor="SUBMIT"
+              className="btn-energy px-5 py-2 rounded-full font-mono text-[11px] uppercase tracking-wider font-bold whitespace-nowrap shrink-0"
             >
               <span>Отправить релиз</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </Link>
           </div>
 
-          {/* Mobile Menu Component (renders portal to document.body) */}
+          {/* Mobile Drawer */}
           <MobileMenu isLoggedIn={isLoggedIn} navItems={navItems} />
         </div>
       </div>

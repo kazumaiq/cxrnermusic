@@ -43,7 +43,7 @@ const unbounded = Unbounded({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#020204",
+  themeColor: "#050407",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -116,9 +116,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="ru"
-      className={`dark scroll-smooth bg-[#020204] ${inter.variable} ${oswald.variable} ${bebasNeue.variable} ${spaceMono.variable} ${unbounded.variable}`}
+      className={`dark scroll-smooth bg-[#050407] ${inter.variable} ${oswald.variable} ${bebasNeue.variable} ${spaceMono.variable} ${unbounded.variable}`}
     >
-      <body className="min-h-screen bg-transparent text-[#EAEAEA] antialiased selection:bg-white selection:text-black">
+      <body className="min-h-screen bg-transparent text-white antialiased selection:bg-[#8737FF] selection:text-white">
         {/* Fullscreen 3D Starfield at Document Root */}
         <BackgroundFX />
 
