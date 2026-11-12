@@ -991,8 +991,8 @@ export default function CxrnerUniverseCanvas() {
         // 0.65 (Distribution): Centers as network transmitter
         // 0.88+ (Send Release): Shrinks into the Energy Portal singularity
         const heroX = mobileNow ? 0 : 1.8;
-        const heroY = mobileNow ? 1.72 : 0.22;
-        const heroScale = mobileNow ? 0.56 : 1.02;
+        const heroY = mobileNow ? -0.85 : 0.22;
+        const heroScale = mobileNow ? 0.44 : 1.02;
         const aboutX = mobileNow ? -0.4 : -2.1;
         const midX = 0;
 

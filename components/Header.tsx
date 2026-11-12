@@ -3,15 +3,15 @@ import Link from "next/link";
 import { getSupabaseServerClient } from "../lib/supabaseServer";
 import MobileMenu from "./MobileMenu";
 import SfxToggle from "./visual/SfxToggle";
-import { User, ArrowUpRight } from "lucide-react";
+import { User, ArrowUpRight, Radio } from "lucide-react";
 
 const navItems = [
   { label: "Главная", href: "/" },
+  { label: "CXRNER LINK", href: "/link" },
   { label: "О лейбле", href: "/#about" },
   { label: "Релизы", href: "/#releases" },
   { label: "Артисты", href: "/#artists" },
   { label: "Дистрибуция", href: "/#distribution" },
-  { label: "CXRNER LINK", href: "/link" },
   { label: "FAQ", href: "/#faq" },
   { label: "Контакты", href: "/contact" },
 ];
@@ -30,10 +30,11 @@ export default async function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-3.5 sm:pt-4">
-        <div className="rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 flex items-center justify-between border border-[#D9D9E2]/15 shadow-[0_12px_40px_rgba(5,4,7,0.85)] backdrop-blur-2xl bg-[#050407]/80">
+      {/* On mobile: sits flush with top border-b. On sm+: elegant floating pill */}
+      <div className="w-full sm:mx-auto sm:max-w-7xl sm:px-6 lg:px-8 sm:pt-4">
+        <div className="w-full px-4 py-3 sm:px-6 sm:py-2.5 flex items-center justify-between border-b sm:border border-white/10 sm:border-[#D9D9E2]/15 sm:rounded-full shadow-[0_8px_32px_rgba(5,4,7,0.9)] backdrop-blur-2xl bg-[#050407]/92 sm:bg-[#050407]/85">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group" data-cursor="HOME">
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0" data-cursor="HOME">
             <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#090611] border border-[#D9D9E2]/20 group-hover:border-[#B46BFF] overflow-hidden shadow-[0_0_18px_rgba(135,55,255,0.28)] transition duration-300">
               <Image
                 src="/logo.png"
@@ -45,7 +46,7 @@ export default async function Header() {
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-heavy font-bold text-sm sm:text-base tracking-[0.28em] text-white group-hover:text-[#B46BFF] transition">
+              <span className="font-heavy font-bold text-sm sm:text-base tracking-[0.24em] text-white group-hover:text-[#B46BFF] transition">
                 CXRNER
               </span>
               <span className="font-mono text-[8px] tracking-[0.28em] uppercase text-[#D9D9E2]/60 -mt-0.5 hidden sm:block">
@@ -66,9 +67,10 @@ export default async function Header() {
                     isLink ? "text-white font-semibold" : "hover:text-white"
                   }`}
                 >
+                  {isLink && <Radio className="w-3 h-3 text-[#B46BFF] animate-pulse" />}
                   <span>{item.label}</span>
                   {isLink && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-[#8737FF] text-white text-[8px] font-bold tracking-wider shadow-[0_0_8px_#8737FF]">
+                    <span className="px-1.5 py-0.2 rounded-full bg-gradient-to-r from-[#8737FF] to-[#00F0FF] text-white text-[8px] font-bold tracking-wider shadow-[0_0_8px_#8737FF]">
                       NEW
                     </span>
                   )}
@@ -118,14 +120,15 @@ export default async function Header() {
             </Link>
           </div>
 
-          {/* Mobile Right Controls: Quick Link Button + Drawer */}
+          {/* Mobile Right Controls: Prominent CXRNER LINK Pill + Drawer */}
           <div className="flex md:hidden items-center gap-2">
             <Link
               href="/link"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/20 font-mono text-[10px] uppercase font-bold text-white tracking-wider shadow-[0_0_12px_rgba(135,55,255,0.35)]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#B46BFF]/50 bg-gradient-to-r from-[#8737FF]/35 to-[#160B28] font-mono text-[11px] uppercase font-bold text-white tracking-wider shadow-[0_0_15px_rgba(135,55,255,0.4)] active:scale-95 transition"
             >
+              <Radio className="w-3 h-3 text-[#00F0FF] animate-pulse" />
               <span>LINK</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
+              <span className="px-1 py-0.2 rounded bg-[#8737FF] text-[8px] font-black">NEW</span>
             </Link>
             <MobileMenu isLoggedIn={isLoggedIn} navItems={navItems} />
           </div>

@@ -27,7 +27,7 @@ export default function CxrnerLinkSection() {
         <div className="mb-14 max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 font-mono text-xs uppercase tracking-[0.24em] text-[#D9D9E2]">
             <Sparkles className="w-3.5 h-3.5 text-[#B46BFF]" />
-            <span>[06] SMART LINKS &amp; PRE-SAVE PLATFORM</span>
+            <span>[03] SMART LINKS &amp; PRE-SAVE PLATFORM</span>
             <span className="px-1.5 py-0.2 rounded bg-[#00F0FF] text-black text-[9px] font-bold">
               NEW
             </span>

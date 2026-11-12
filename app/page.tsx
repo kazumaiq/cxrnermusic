@@ -11,7 +11,7 @@ import ScrollChoreographer from "../components/visual/ScrollChoreographer";
 import MagneticButton from "../components/visual/MagneticButton";
 import HeroHudControls from "../components/visual/HeroHudControls";
 import BeatLaunchpad from "../components/visual/BeatLaunchpad";
-import RoyaltyCalculator from "../components/visual/RoyaltyCalculator";
+import Link from "next/link";
 import CxrnerLinkSection from "../components/CxrnerLinkSection";
 import { faqItems, stats } from "../data/site";
 import { getArtists } from "../lib/artists";
@@ -70,9 +70,6 @@ export default async function HomePage() {
 
           {/* Center Monumental Composition (Leaves right side / top mobile stage open for 3D Core) */}
           <div className="my-auto py-2 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-end">
-            {/* Dedicated mobile 3D visual stage above hero headline */}
-            <div className="h-[215px] sm:h-[250px] lg:hidden pointer-events-none" aria-hidden="true" />
-
             <div className="lg:col-span-7 space-y-3.5 sm:space-y-5">
               <div className="overflow-hidden py-0.5">
                 <div
@@ -88,7 +85,7 @@ export default async function HomePage() {
                 <span className="block overflow-hidden py-1">
                   <span
                     data-reveal="mask-line"
-                    className="block text-[15.5vw] sm:text-[13vw] lg:text-[9.2rem] text-chrome-gradient"
+                    className="block text-[13vw] sm:text-[11vw] lg:text-[8.5rem] text-chrome-gradient"
                   >
                     CXRNER
                   </span>
@@ -96,7 +93,7 @@ export default async function HomePage() {
                 <span className="block overflow-hidden py-1">
                   <span
                     data-reveal="mask-line"
-                    className="block text-[15.5vw] sm:text-[13vw] lg:text-[9.2rem] text-violet-energy"
+                    className="block text-[13vw] sm:text-[11vw] lg:text-[8.5rem] text-violet-energy"
                   >
                     MUSIC
                   </span>
@@ -108,6 +105,38 @@ export default async function HomePage() {
                 ещё 150+ площадках. Прозрачные роялти 70/30, питчинг в плейлисты и
                 личный кабинет артиста.
               </p>
+
+              {/* High-Impact CXRNER LINK Spotlight Card */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#8737FF]/20 via-[#160B28]/85 to-[#090611] border border-[#B46BFF]/45 shadow-[0_0_30px_rgba(135,55,255,0.25)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#00F0FF] font-bold">
+                    <Radio className="w-3 h-3 text-[#00F0FF] animate-pulse" />
+                    <span>НОВЫЙ СЕРВИС · CXRNER LINK</span>
+                    <span className="px-1.5 py-0.2 rounded bg-[#8737FF] text-white text-[8px] font-bold">NEW</span>
+                  </div>
+                  <h3 className="font-heavy text-base sm:text-lg uppercase text-white tracking-wide">
+                    Музыкальные смарт-ссылки и Pre-save
+                  </h3>
+                  <p className="font-sans text-xs text-[#D9D9E2]/80 max-w-md leading-relaxed">
+                    Создавайте умные страницы релизов за 30 секунд по UPC штрихкоду, собирайте пресейвы фанатов и объединяйте 150+ площадок в одну красивую ссылку.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                  <Link
+                    href="/dashboard/links/new"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[#8737FF] to-[#B46BFF] text-white font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(135,55,255,0.35)] active:scale-95 transition"
+                  >
+                    <span>Создать ссылку</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href="/link"
+                    className="hidden sm:inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/20 hover:border-white/40 text-white font-mono text-xs uppercase tracking-wider transition"
+                  >
+                    Обзор
+                  </Link>
+                </div>
+              </div>
 
               {/* Key Label Metrics Pills on Mobile/Tablet */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#B46BFF] lg:hidden">
@@ -313,7 +342,14 @@ export default async function HomePage() {
       <div className="cosmic-hairline" />
 
       {/* =====================================================================
-          SECTION 03 — RELEASES SHOWCASE
+          SECTION 03 — CXRNER LINK (SMART PRE-SAVES & MUSIC LINKS)
+          ===================================================================== */}
+      <CxrnerLinkSection />
+
+      <div className="cosmic-hairline" />
+
+      {/* =====================================================================
+          SECTION 04 — RELEASES SHOWCASE
           ===================================================================== */}
       <section id="releases" className="relative py-24 sm:py-36">
         <Container className="relative z-10">
@@ -414,21 +450,13 @@ export default async function HomePage() {
 
           <DistributionSection />
 
-          {/* Interactive 70/30 Royalty Simulator */}
-          <div className="mt-14 sm:mt-20">
-            <RoyaltyCalculator />
-          </div>
+
         </Container>
       </section>
 
       <div className="cosmic-hairline" />
 
-      {/* =====================================================================
-          SECTION 06 — CXRNER LINK (SMART PRE-SAVES & MUSIC LINKS)
-          ===================================================================== */}
-      <CxrnerLinkSection />
 
-      <div className="cosmic-hairline" />
 
       {/* =====================================================================
           SECTION 07 — WHY CXRNER & FAQ

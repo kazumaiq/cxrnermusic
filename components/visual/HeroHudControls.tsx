@@ -26,7 +26,8 @@ export default function HeroHudControls() {
   };
 
   return (
-    <div className="pt-2 sm:pt-4 flex flex-col gap-2.5">
+    // Hidden on mobile to keep smartphone viewport clean and focused on music & CXRNER LINK
+    <div className="hidden sm:flex pt-2 sm:pt-4 flex-col gap-2.5">
       {/* Interactive HUD Trigger Buttons */}
       <div className="flex flex-wrap items-center gap-2">
         <button
