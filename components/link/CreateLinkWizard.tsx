@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -19,6 +19,8 @@ import {
   Music2,
   CheckCircle2,
   Zap,
+  Camera,
+  Image as ImageIcon,
 } from "lucide-react";
 import { generateSlug, validateCustomSlug, getSmartLinkDisplayPrefix, validateUpcChecksum } from "@/lib/slug";
 
@@ -87,6 +89,16 @@ export default function CreateLinkWizard() {
   const [template, setTemplate] = useState<"CYBER" | "MINIMAL" | "CINEMATIC" | "BRUTAL">("CYBER");
   const [platforms, setPlatforms] = useState<PlatformEntry[]>(DEFAULT_PLATFORMS);
 
+  // Unreleased barcode state (smooth Pre-save prompt without jarring empty redirect)
+  const [unreleasedPrompt, setUnreleasedPrompt] = useState<{
+    upc: string;
+    message: string;
+  } | null>(null);
+
+  // Cover image upload state & ref
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+
   // Submit State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -113,6 +125,58 @@ export default function CreateLinkWizard() {
     loadReleases();
   }, []);
 
+  // Mobile/desktop direct cover photo upload with canvas scaling (max 1200x1200px)
+  const handleCoverFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setSubmitError("Пожалуйста, выберите изображение (JPG, PNG, WebP)");
+      return;
+    }
+
+    setIsUploadingCover(true);
+    setSubmitError("");
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+          setCoverUrl(dataUrl);
+        } else {
+          setCoverUrl(uploadEvent.target?.result as string);
+        }
+        setIsUploadingCover(false);
+      };
+      img.onerror = () => {
+        setCoverUrl(uploadEvent.target?.result as string);
+        setIsUploadingCover(false);
+      };
+      img.src = uploadEvent.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Step 1: Perform UPC Lookup (supports unreleased Pre-saves smoothly)
   const handleUpcLookup = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -132,13 +196,28 @@ export default function CreateLinkWizard() {
     setSearchError("");
     setSearchSuccessNotice("");
     setSearchResults([]);
+    setUnreleasedPrompt(null);
 
     try {
       const res = await fetch(`/api/link/lookup?upc=${encodeURIComponent(clean)}`);
       const data = await res.json();
 
-      if (!data.success || !data.release) {
+      if (!data.success) {
         setSearchError(data.error || "Релиз не найден. Заполните данные вручную.");
+      } else if (!data.found || !data.release?.title) {
+        // Barcode is valid & accepted, but track is unreleased in public stores!
+        // DO NOT abruptly kick user to empty Step 2! Stay on Step 1 with pre-save setup card.
+        setUpc(clean);
+        setIsOutNow(false);
+        setUnreleasedPrompt({
+          upc: clean,
+          message:
+            data.message ||
+            "Штрихкод принят в дистрибуции! Так как трек ещё не опубликован на открытых витринах, укажите название и артиста для запуска Pre-save страницы.",
+        });
+        setSearchSuccessNotice(
+          `⚡ Штрихкод ${clean} принят! Активирован режим Pre-save кампании.`
+        );
       } else {
         if (data.is_unreleased) {
           setSearchSuccessNotice(
@@ -503,33 +582,117 @@ export default function CreateLinkWizard() {
 
           {/* Mode: UPC Search */}
           {searchMode === "upc" && (
-            <form onSubmit={handleUpcLookup} className="space-y-4 pt-2">
-              <div>
-                <label className="font-mono text-xs uppercase tracking-wider text-[#D9D9E2]/70 block mb-2">
-                  UPC или EAN штрихкод релиза (12 или 13 цифр):
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Например: 198015482931"
-                    value={upcInput}
-                    onChange={(e) => setUpcInput(e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none font-mono"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isSearching}
-                    className="btn-energy px-6 py-3 rounded-xl font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
-                  >
-                    {isSearching ? <Sparkles className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                    <span>{isSearching ? "Поиск..." : "Найти"}</span>
-                  </button>
+            <div className="space-y-4 pt-2">
+              <form onSubmit={handleUpcLookup}>
+                <div>
+                  <label className="font-mono text-xs uppercase tracking-wider text-[#D9D9E2]/70 block mb-2">
+                    UPC или EAN штрихкод релиза (12 или 13 цифр):
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Например: 8721616198715"
+                      value={upcInput}
+                      onChange={(e) => setUpcInput(e.target.value)}
+                      className="flex-1 bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none font-mono"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSearching}
+                      className="btn-energy px-6 py-3 rounded-xl font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+                    >
+                      {isSearching ? <Sparkles className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                      <span>{isSearching ? "Поиск..." : "Найти"}</span>
+                    </button>
+                  </div>
+                  <p className="font-mono text-[11px] text-[#D9D9E2]/50 mt-2">
+                    💡 Если релиз ещё не вышел в магазинах, штрихкод будет принят для запуска <span className="text-[#00F0FF] font-semibold">Pre-save кампании</span>.
+                  </p>
                 </div>
-                <p className="font-mono text-[11px] text-[#D9D9E2]/50 mt-2">
-                  💡 Если релиз ещё не вышел в магазинах, система автоматически активирует режим <span className="text-[#00F0FF] font-semibold">Pre-save</span>.
-                </p>
-              </div>
-            </form>
+              </form>
+
+              {/* Unreleased UPC Activation Card */}
+              {unreleasedPrompt && (
+                <div className="p-5 rounded-2xl border border-[#00F0FF]/40 bg-[#00F0FF]/10 space-y-4 animate-in fade-in duration-300">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#00F0FF] animate-pulse" />
+                    <span className="font-mono text-xs font-bold uppercase tracking-widest text-[#00F0FF]">
+                      Штрихкод подтверждён · Режим Pre-save кампании
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-mono text-xs text-white">
+                      UPC: <code className="text-[#00F0FF] font-bold px-1.5 py-0.5 rounded bg-black/50 border border-[#00F0FF]/30">{unreleasedPrompt.upc}</code>
+                    </p>
+                    <p className="text-xs text-[#D9D9E2]/80 leading-relaxed font-sans">
+                      {unreleasedPrompt.message}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="font-mono text-[11px] uppercase tracking-wider text-white/80 block mb-1">
+                        Название трека / альбома:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Например: Tide to life"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full bg-black/60 border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:border-[#00F0FF] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[11px] uppercase tracking-wider text-white/80 block mb-1">
+                        Исполнитель:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Например: Narvent"
+                        value={artist}
+                        onChange={(e) => setArtist(e.target.value)}
+                        className="w-full bg-black/60 border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:border-[#00F0FF] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!title.trim() || !artist.trim()) {
+                          setSearchError("Укажите название трека и имя исполнителя");
+                          return;
+                        }
+                        setUpc(unreleasedPrompt.upc);
+                        setIsOutNow(false);
+                        const generated = generateSlug(artist, title);
+                        setCustomSlug(generated);
+                        setPlatforms((prev) => prev.map((p) => ({ ...p, button_text: "Pre-save" })));
+                        setSearchError("");
+                        setStep(2);
+                      }}
+                      className="btn-energy px-6 py-3 rounded-xl font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2 shadow-[0_0_20px_rgba(0,240,255,0.3)]"
+                    >
+                      <Zap className="w-4 h-4 text-[#00F0FF]" />
+                      <span>⚡ Настроить страницу Pre-save →</span>
+                    </button>
+
+                    {myReleases.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchMode("my_releases");
+                        }}
+                        className="px-4 py-3 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 font-mono text-xs text-white/90 transition"
+                      >
+                        Выбрать из моих треков ({myReleases.length})
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Mode: Query Search */}
@@ -617,34 +780,95 @@ export default function CreateLinkWizard() {
               Метаданные и Стриминги
             </h2>
             <p className="text-xs sm:text-sm text-[#D9D9E2]/70">
-              Проверьте корректность информации и включите нужные площадки.
+              Проверьте корректность информации, обложку и включите нужные площадки.
             </p>
           </div>
 
+          {/* Pre-save Mode Alert */}
+          {!isOutNow && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#8737FF]/15 via-[#00F0FF]/10 to-transparent border border-[#00F0FF]/40 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-[#00F0FF]/20 text-[#00F0FF] flex-shrink-0 mt-0.5">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#00F0FF]">
+                    Режим Pre-save кампании {upc && `· UPC: ${upc}`}
+                  </span>
+                </div>
+                <p className="text-xs text-[#D9D9E2]/85 leading-relaxed font-sans">
+                  Страница будет собирать слушателей до официальной премьеры с живым таймером обратного отсчёта. Ссылки на стриминги можно добавить позже, когда трек появится на витринах.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
-            {/* Cover Preview & URL */}
+            {/* Cover Column with Direct Mobile/PC Upload */}
             <div className="sm:col-span-4 space-y-3">
               <label className="font-mono text-xs uppercase tracking-wider text-[#D9D9E2]/70 block">
                 Обложка релиза:
               </label>
-              <div className="w-full aspect-square rounded-2xl overflow-hidden bg-black/60 border border-white/20 relative group">
+
+              <input
+                type="file"
+                ref={coverFileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={handleCoverFileUpload}
+              />
+
+              <div
+                onClick={() => coverFileInputRef.current?.click()}
+                className="w-full aspect-square rounded-2xl overflow-hidden bg-black/60 border border-white/20 relative group cursor-pointer hover:border-[#00F0FF] transition shadow-lg"
+              >
                 {coverUrl ? (
-                  <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
+                  <>
+                    <img src={coverUrl} alt="Cover" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-center p-3 text-white transition">
+                      <Camera className="w-6 h-6 mb-1 text-[#00F0FF]" />
+                      <span className="font-mono text-[10px] uppercase font-bold tracking-wider">
+                        Нажмите, чтобы заменить
+                      </span>
+                    </div>
+                  </>
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center text-white/40 font-mono text-xs">
-                    <Upload className="w-6 h-6 mb-2 text-[#B46BFF]" />
-                    <span>Вставьте URL обложки</span>
+                  <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center text-white/50 font-mono text-xs group-hover:text-white transition">
+                    {isUploadingCover ? (
+                      <Sparkles className="w-7 h-7 mb-2 text-[#00F0FF] animate-spin" />
+                    ) : (
+                      <Upload className="w-7 h-7 mb-2 text-[#B46BFF] group-hover:text-[#00F0FF] transition" />
+                    )}
+                    <span className="font-bold">
+                      {isUploadingCover ? "Обработка фото..." : "Нажмите для выбора фото"}
+                    </span>
+                    <span className="text-[10px] text-white/40 mt-1">Галерея телефона или файлы</span>
                   </div>
                 )}
               </div>
-              <input
-                type="url"
-                required
-                placeholder="https://.../cover.jpg"
-                value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
-                className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none"
-              />
+
+              <button
+                type="button"
+                onClick={() => coverFileInputRef.current?.click()}
+                disabled={isUploadingCover}
+                className="w-full py-2.5 px-3 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-mono text-xs font-semibold uppercase tracking-wider inline-flex items-center justify-center gap-2 transition"
+              >
+                <Camera className="w-3.5 h-3.5 text-[#00F0FF]" />
+                <span>{coverUrl ? "Сменить фото с устройства" : "Загрузить фото с телефона / ПК"}</span>
+              </button>
+
+              <div className="pt-1">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-white/40 block mb-1">
+                  Или вставьте прямую ссылку:
+                </span>
+                <input
+                  type="url"
+                  placeholder="https://.../cover.jpg"
+                  value={coverUrl}
+                  onChange={(e) => setCoverUrl(e.target.value)}
+                  className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none"
+                />
+              </div>
             </div>
 
             {/* Title, Artist, Slug, Date */}
@@ -1030,7 +1254,7 @@ export default function CreateLinkWizard() {
           )}
 
           {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/10">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-white/10">
             <button
               type="button"
               onClick={() => setStep(2)}
@@ -1040,12 +1264,12 @@ export default function CreateLinkWizard() {
               <span>Назад</span>
             </button>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => handleFinalSubmit("draft")}
-                className="flex-1 sm:flex-none px-6 py-3 rounded-full border border-white/20 text-xs font-mono uppercase tracking-wider text-white hover:bg-white/10 disabled:opacity-50"
+                className="w-full sm:w-auto px-6 py-3 rounded-full border border-white/20 text-xs font-mono uppercase tracking-wider text-white hover:bg-white/10 disabled:opacity-50 whitespace-nowrap text-center"
               >
                 Сохранить черновик
               </button>
@@ -1054,9 +1278,9 @@ export default function CreateLinkWizard() {
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => handleFinalSubmit("published")}
-                className="flex-1 sm:flex-none btn-energy px-8 py-3 rounded-full font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(135,55,255,0.4)] disabled:opacity-50"
+                className="w-full sm:w-auto btn-energy px-8 py-3.5 rounded-full font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(135,55,255,0.4)] disabled:opacity-50 whitespace-nowrap text-center"
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-4 h-4 flex-shrink-0" />
                 <span>{isSubmitting ? "Публикация..." : "Опубликовать"}</span>
               </button>
             </div>

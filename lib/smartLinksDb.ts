@@ -41,14 +41,18 @@ export interface SmartLinkRecord {
 }
 
 /** Check if Supabase error is table not found / schema cache error */
-function isTableNotFoundError(err: any): boolean {
+export function isTableNotFoundError(err: any): boolean {
   if (!err) return false;
   const msg = String(err.message || err.details || err || "").toLowerCase();
+  const code = String(err.code || "").toUpperCase();
   return (
     msg.includes("could not find the table") ||
-    msg.includes("relation") && msg.includes("does not exist") ||
+    (msg.includes("relation") && msg.includes("does not exist")) ||
     msg.includes("schema cache") ||
-    msg.includes("42p01")
+    msg.includes("pgrst205") ||
+    msg.includes("42p01") ||
+    code === "PGRST205" ||
+    code === "42P01"
   );
 }
 
@@ -162,64 +166,70 @@ export async function createSmartLink(params: {
     let tableFailed = false;
     try {
       // Check slug uniqueness in table
-      const { data: existingSlug } = await supabase
+      const { data: existingSlug, error: checkSlugErr } = await supabase
         .from("smart_links")
         .select("id")
         .eq("slug", targetSlug)
         .is("deleted_at", null)
         .maybeSingle();
 
-      if (existingSlug) {
-        linkData.slug = `${targetSlug}-${Math.floor(100 + Math.random() * 900)}`;
+      if (checkSlugErr && isTableNotFoundError(checkSlugErr)) {
+        tableFailed = true;
       }
 
-      const { data: tableLink, error: tableErr } = await supabase
-        .from("smart_links")
-        .insert({
-          id: linkData.id,
-          user_id: linkData.user_id,
-          title: linkData.title,
-          artist: linkData.artist,
-          cover_url: linkData.cover_url,
-          slug: linkData.slug,
-          upc: linkData.upc,
-          isrc: linkData.isrc,
-          release_date: linkData.release_date,
-          release_type: linkData.release_type,
-          genre: linkData.genre,
-          label_name: linkData.label_name,
-          description: linkData.description,
-          status: linkData.status,
-          is_out_now: linkData.is_out_now,
-          auto_out_now: linkData.auto_out_now,
-          template: linkData.template,
-          design_config: linkData.design_config,
-          social_links: linkData.social_links,
-        })
-        .select()
-        .single();
+      if (!tableFailed) {
+        if (existingSlug) {
+          linkData.slug = `${targetSlug}-${Math.floor(100 + Math.random() * 900)}`;
+        }
 
-      if (tableErr) {
-        if (isTableNotFoundError(tableErr)) {
-          tableFailed = true;
+        const { data: tableLink, error: tableErr } = await supabase
+          .from("smart_links")
+          .insert({
+            id: linkData.id,
+            user_id: linkData.user_id,
+            title: linkData.title,
+            artist: linkData.artist,
+            cover_url: linkData.cover_url,
+            slug: linkData.slug,
+            upc: linkData.upc,
+            isrc: linkData.isrc,
+            release_date: linkData.release_date,
+            release_type: linkData.release_type,
+            genre: linkData.genre,
+            label_name: linkData.label_name,
+            description: linkData.description,
+            status: linkData.status,
+            is_out_now: linkData.is_out_now,
+            auto_out_now: linkData.auto_out_now,
+            template: linkData.template,
+            design_config: linkData.design_config,
+            social_links: linkData.social_links,
+          })
+          .select()
+          .single();
+
+        if (tableErr) {
+          if (isTableNotFoundError(tableErr)) {
+            tableFailed = true;
+          } else {
+            return { ok: false, error: tableErr.message };
+          }
         } else {
-          return { ok: false, error: tableErr.message };
+          // Table insert succeeded! Insert platforms
+          if (preparedPlatforms.length > 0) {
+            const platformRows = preparedPlatforms.map((p) => ({
+              smart_link_id: linkData.id,
+              platform_key: p.platform_key,
+              platform_name: p.platform_name,
+              url: p.url,
+              button_text: p.button_text,
+              display_order: p.display_order,
+              is_enabled: p.is_enabled,
+            }));
+            await supabase.from("smart_link_platforms").insert(platformRows);
+          }
+          return { ok: true, link: linkData };
         }
-      } else {
-        // Table insert succeeded! Insert platforms
-        if (preparedPlatforms.length > 0) {
-          const platformRows = preparedPlatforms.map((p) => ({
-            smart_link_id: linkData.id,
-            platform_key: p.platform_key,
-            platform_name: p.platform_name,
-            url: p.url,
-            button_text: p.button_text,
-            display_order: p.display_order,
-            is_enabled: p.is_enabled,
-          }));
-          await supabase.from("smart_link_platforms").insert(platformRows);
-        }
-        return { ok: true, link: linkData };
       }
     } catch (e: any) {
       if (isTableNotFoundError(e)) {

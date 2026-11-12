@@ -16,19 +16,28 @@ export async function GET(request: Request) {
         );
       }
 
-      const release = await lookupReleaseByUpc(upc);
+      const cleanUpc = upc.trim().replace(/\D/g, "");
+      const release = await lookupReleaseByUpc(cleanUpc);
+      const isFoundInDb = Boolean(release && release.title && release.title.trim());
 
-      if (release.is_unreleased) {
+      if (!isFoundInDb) {
         return NextResponse.json({
           success: true,
+          found: false,
           is_unreleased: true,
-          release,
+          upc: cleanUpc,
+          release: release || null,
           message:
-            "⚡ Релиз не найден на открытых витринах — режим Pre-save активирован! Заполните метаданные и дату релиза.",
+            "⚡ Релиз с этим UPC ещё не опубликован на открытых витринах (Apple Music, Spotify). Активируйте Pre-save кампанию, чтобы собирать слушателей до официальной премьеры!",
         });
       }
 
-      return NextResponse.json({ success: true, is_unreleased: false, release });
+      return NextResponse.json({
+        success: true,
+        found: true,
+        is_unreleased: Boolean(release.is_unreleased),
+        release,
+      });
     }
 
     if (query) {

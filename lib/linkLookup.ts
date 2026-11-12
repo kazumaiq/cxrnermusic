@@ -26,51 +26,91 @@ export interface ReleaseLookupResult {
   is_unreleased?: boolean;
 }
 
-/** 1. Lookup in internal CXRNER database (cxrner_forms) */
+/** 1. Lookup in internal CXRNER database (cxrner_forms & cxrner_releases) */
 async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | null> {
   try {
     const supabase = await getSupabaseServerClient();
     const cleanUpc = upc.trim().replace(/\D/g, "");
 
-    const { data: rows } = await supabase
-      .from("cxrner_forms")
-      .select("id, artist_name, track_name, genre, status, upc, created_at, form_payload")
-      .or(`upc.eq.${cleanUpc}`)
-      .limit(1);
+    // Check cxrner_forms
+    try {
+      const { data: rows } = await supabase
+        .from("cxrner_forms")
+        .select("id, artist_name, track_name, genre, status, upc, created_at, form_payload")
+        .eq("upc", cleanUpc)
+        .limit(1);
 
-    if (rows && rows.length > 0) {
-      const form = rows[0];
-      const payload = form.form_payload || {};
-      const cover =
-        payload.cover_url ||
-        payload.artwork_url ||
-        payload.cover ||
-        payload.image_url ||
-        payload.media_url ||
-        "";
-      const relDate = payload.release_date || form.created_at?.split("T")[0] || null;
-      const isPast = relDate ? new Date(relDate) <= new Date() : false;
+      if (rows && rows.length > 0) {
+        const form = rows[0];
+        const payload = form.form_payload || {};
+        const cover =
+          payload.cover_url ||
+          payload.artwork_url ||
+          payload.cover ||
+          payload.image_url ||
+          payload.media_url ||
+          "";
+        const relDate = payload.release_date || form.created_at?.split("T")[0] || null;
+        const isPast = relDate ? new Date(relDate) <= new Date() : false;
 
-      return {
-        source: "cxrner",
-        title: form.track_name || "Без названия",
-        artist: form.artist_name || "Артист",
-        cover_url: cover,
-        upc: cleanUpc,
-        release_date: relDate || undefined,
-        genre: form.genre || "Electronic",
-        release_type: "single",
-        label_name: "CXRNER MUSIC",
-        is_unreleased: !isPast,
-        platforms: [
-          { platform_key: "yandex", platform_name: "Яндекс Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-          { platform_key: "vk", platform_name: "VK Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-          { platform_key: "spotify", platform_name: "Spotify", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-          { platform_key: "apple", platform_name: "Apple Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-          { platform_key: "youtube", platform_name: "YouTube Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-        ],
-      };
-    }
+        return {
+          source: "cxrner",
+          title: form.track_name || "Без названия",
+          artist: form.artist_name || "Артист",
+          cover_url: cover,
+          upc: cleanUpc,
+          release_date: relDate || undefined,
+          genre: form.genre || "Electronic",
+          release_type: "single",
+          label_name: "CXRNER MUSIC",
+          is_unreleased: !isPast,
+          platforms: [
+            { platform_key: "yandex", platform_name: "Яндекс Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+            { platform_key: "vk", platform_name: "VK Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+            { platform_key: "spotify", platform_name: "Spotify", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+            { platform_key: "apple", platform_name: "Apple Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+            { platform_key: "youtube", platform_name: "YouTube Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+          ],
+        };
+      }
+    } catch {}
+
+    // Check cxrner_releases
+    try {
+      const { data: relRows } = await supabase
+        .from("cxrner_releases")
+        .select("*")
+        .eq("upc", cleanUpc)
+        .limit(1);
+
+      if (relRows && relRows.length > 0) {
+        const rel = relRows[0];
+        const payload = rel.form_payload || rel.data || {};
+        const cover = rel.cover_url || payload.cover_url || payload.artwork_url || "";
+        const relDate = rel.release_date || payload.release_date || null;
+        const isPast = relDate ? new Date(relDate) <= new Date() : false;
+
+        return {
+          source: "cxrner",
+          title: rel.name || rel.track_name || "Без названия",
+          artist: rel.nick || rel.artist_name || "Артист",
+          cover_url: cover,
+          upc: cleanUpc,
+          release_date: relDate || undefined,
+          genre: rel.genre || "Electronic",
+          release_type: "single",
+          label_name: "CXRNER MUSIC",
+          is_unreleased: !isPast,
+          platforms: [
+            { platform_key: "yandex", platform_name: "Яндекс Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+            { platform_key: "vk", platform_name: "VK Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+            { platform_key: "spotify", platform_name: "Spotify", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+            { platform_key: "apple", platform_name: "Apple Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
+          ],
+        };
+      }
+    } catch {}
+
     return null;
   } catch {
     return null;
