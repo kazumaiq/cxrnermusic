@@ -11,6 +11,7 @@ const navItems = [
   { label: "Релизы", href: "/#releases" },
   { label: "Артисты", href: "/#artists" },
   { label: "Дистрибуция", href: "/#distribution" },
+  { label: "CXRNER LINK", href: "/link" },
   { label: "FAQ", href: "/#faq" },
   { label: "Контакты", href: "/contact" },
 ];

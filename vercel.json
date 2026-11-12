@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/link/cron-out-now",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}

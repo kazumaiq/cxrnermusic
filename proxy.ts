@@ -6,6 +6,27 @@ const protectedPaths = ["/dashboard", "/submit-release", "/admin"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") || "";
+  const isLinkSubdomain = host.startsWith("link.");
+
+  // Multi-Domain Subdomain Rewrite: link.cxrnermusic.com/*
+  if (isLinkSubdomain) {
+    if (pathname === "/") {
+      return NextResponse.rewrite(new URL("/link", request.url));
+    }
+    if (
+      !pathname.startsWith("/api") &&
+      !pathname.startsWith("/_next") &&
+      !pathname.startsWith("/link") &&
+      !pathname.startsWith("/dashboard") &&
+      !pathname.startsWith("/auth") &&
+      !pathname.startsWith("/admin") &&
+      !pathname.includes(".")
+    ) {
+      return NextResponse.rewrite(new URL(`/link${pathname}`, request.url));
+    }
+  }
+
   const isProtected = protectedPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
   if (!isProtected) return NextResponse.next();
@@ -47,5 +68,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/submit-release", "/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
 };

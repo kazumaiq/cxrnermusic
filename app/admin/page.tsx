@@ -522,7 +522,7 @@ export default function AdminPage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5 flex flex-wrap gap-1.5">
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5 flex flex-wrap items-center gap-1.5">
           {[
             { id: "moderation", label: "Модерация треков", badge: moderationStats.pending, icon: Headphones },
             { id: "users", label: "Артисты и Telegram", badge: cabinetUsers.length, icon: Users },
@@ -557,6 +557,15 @@ export default function AdminPage() {
               </button>
             );
           })}
+
+          <Link
+            href="/admin/links"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider text-purple-300 hover:text-white hover:bg-purple-600/30 border border-purple-500/30 bg-purple-500/10 transition ml-auto"
+          >
+            <Radio className="w-4 h-4 text-purple-400" />
+            <span>CXRNER LINK</span>
+            <ExternalLink className="w-3 h-3 text-purple-400" />
+          </Link>
         </div>
 
         {/* Tab 1: MODERATION QUEUE */}

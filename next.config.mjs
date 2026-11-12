@@ -54,6 +54,26 @@ const nextConfig = {
         hostname: "cdn-images.dzcdn.net",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "i.scdn.co",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.scdn.co",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "feeudmwytkeuwemnmbwd.supabase.co",
+        pathname: "/**",
+      },
     ],
   },
 };
