@@ -103,11 +103,29 @@ export default async function SmartLinkPage({ params }: PageProps) {
   }
 
   // 3. Fetch platforms
-  const { data: platforms = [] } = await supabase
+  const { data: rawPlatforms = [] } = await supabase
     .from("smart_link_platforms")
     .select("*")
     .eq("smart_link_id", link.id)
     .order("display_order", { ascending: true });
 
-  return <PublicSmartLink link={link} platforms={platforms || []} />;
+  // Dynamic Out Now check (real-time on visit even between daily crons)
+  const isExpiredPreSave =
+    Boolean(link.auto_out_now) &&
+    !link.is_out_now &&
+    Boolean(link.release_date) &&
+    new Date(link.release_date) <= new Date();
+
+  if (isExpiredPreSave) {
+    link.is_out_now = true;
+  }
+
+  const platforms = (rawPlatforms || []).map((p: any) => {
+    if (isExpiredPreSave && p.button_text === "Pre-save") {
+      return { ...p, button_text: "Слушать" };
+    }
+    return p;
+  });
+
+  return <PublicSmartLink link={link} platforms={platforms} />;
 }
