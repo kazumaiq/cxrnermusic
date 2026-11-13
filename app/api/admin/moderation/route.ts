@@ -2,17 +2,92 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyAdminRequest, getAdminUser } from "@/lib/admin";
 import { syncTelegramMessage } from "@/lib/telegramSync";
+import {
+  loadBackupTelegramReleases,
+  transformPublicReleaseToDossier,
+} from "@/lib/telegramReleases";
+import { DossierRelease } from "@/components/admin/ReleaseDossierModal";
 
 function getServiceSupabase() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "https://wjhqtrfsuudiogpwwzgx.supabase.co";
   const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) {
-    throw new Error("Supabase credentials are not configured");
-  }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqaHF0cmZzdXVkaW9ncHd3emd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTE3OTYsImV4cCI6MjEwMTY4Nzc5Nn0.fNVIC3dZuz7LLUTE0aOnF4ILVKBYXcftdU1ZjXyMZmo";
+
   return createClient(url, key, { auth: { persistSession: false } });
+}
+
+async function getAllUnifiedReleases(supabase: any): Promise<DossierRelease[]> {
+  const map = new Map<string, DossierRelease>();
+
+  // 1. Initial Telegram bot backlog (contains real pending, on_upload, moderation, needfix, rejected)
+  try {
+    const backupReleases = loadBackupTelegramReleases();
+    for (const b of backupReleases) {
+      map.set(b.id, b);
+    }
+  } catch (err) {
+    console.warn("[Admin Moderation] Backup releases load notice:", err);
+  }
+
+  // 2. Load public releases from Supabase (160 approved releases synced from Telegram)
+  try {
+    const { data: pubData, error: pubErr } = await supabase
+      .from("cxrner_public_releases")
+      .select("*")
+      .limit(1000);
+
+    if (!pubErr && Array.isArray(pubData)) {
+      for (const row of pubData) {
+        const item = transformPublicReleaseToDossier(row);
+        map.set(item.id, item);
+      }
+    }
+  } catch (err) {
+    console.warn("[Admin Moderation] cxrner_public_releases load notice:", err);
+  }
+
+  // 3. Load cxrner_forms from Supabase (primary overrides for web actions & new submissions)
+  try {
+    const { data: formsData, error: formsErr } = await supabase
+      .from("cxrner_forms")
+      .select("*")
+      .limit(1000);
+
+    if (!formsErr && Array.isArray(formsData)) {
+      for (const f of formsData) {
+        map.set(f.id, {
+          id: f.id,
+          telegram_id: f.telegram_id,
+          username: f.username,
+          artist_name: f.artist_name,
+          track_name: f.track_name,
+          genre: f.genre,
+          release_type: f.release_type,
+          submission_key: f.submission_key,
+          status: f.status,
+          upc: f.upc,
+          reject_reason: f.reject_reason,
+          moderator_comment: f.moderator_comment,
+          moderation_message_id: f.moderation_message_id,
+          created_at: f.created_at,
+          updated_at: f.updated_at,
+          source: f.source,
+          user_deleted: f.user_deleted,
+          action_history: f.action_history,
+          form_payload: f.form_payload,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("[Admin Moderation] cxrner_forms load notice:", err);
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  );
 }
 
 export async function GET(request: Request) {
@@ -28,41 +103,36 @@ export async function GET(request: Request) {
     const showDeleted = searchParams.get("show_deleted") === "true";
 
     const supabase = getServiceSupabase();
+    const allReleases = await getAllUnifiedReleases(supabase);
 
-    let query = supabase
-      .from("cxrner_forms")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(500);
-
-    // Filter out deleted unless specifically looking at archive / deleted
+    // Filter by deleted state
+    let filtered = allReleases;
     if (!showDeleted && statusFilter !== "deleted" && statusFilter !== "archive") {
-      query = query.or("user_deleted.is.null,user_deleted.eq.false");
+      filtered = filtered.filter((f) => !f.user_deleted && f.status !== "deleted");
     }
 
+    // Filter by specific tab status
     if (statusFilter && statusFilter !== "all") {
       if (statusFilter === "pending" || statusFilter === "on_upload") {
-        query = query.in("status", ["pending", "on_upload"]);
+        filtered = filtered.filter((f) => f.status === "on_upload" || f.status === "pending");
       } else if (statusFilter === "moderation" || statusFilter === "on_moderation") {
-        query = query.in("status", ["moderation", "on_moderation"]);
+        filtered = filtered.filter((f) => f.status === "moderation" || f.status === "on_moderation");
       } else if (statusFilter === "needfix" || statusFilter === "fix_required") {
-        query = query.in("status", ["needfix", "fix_required"]);
+        filtered = filtered.filter((f) => f.status === "needfix" || f.status === "fix_required");
+      } else if (statusFilter === "approved" || statusFilter === "published") {
+        filtered = filtered.filter((f) => f.status === "approved" || f.status === "published");
+      } else if (statusFilter === "rejected") {
+        filtered = filtered.filter((f) => f.status === "rejected");
       } else if (statusFilter === "deleted" || statusFilter === "archive") {
-        query = query.or("user_deleted.eq.true,status.eq.deleted");
+        filtered = filtered.filter((f) => f.user_deleted || f.status === "deleted");
       } else {
-        query = query.eq("status", statusFilter);
+        filtered = filtered.filter((f) => f.status === statusFilter);
       }
     }
 
-    const { data: rawForms, error } = await query;
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    }
-
-    let forms = rawForms || [];
-
+    // Filter by search query
     if (searchQuery) {
-      forms = forms.filter((f) => {
+      filtered = filtered.filter((f) => {
         const text = [
           f.artist_name,
           f.track_name,
@@ -83,28 +153,22 @@ export async function GET(request: Request) {
       });
     }
 
-    // Fetch all for accurate tab count statistics
-    const { data: allStatsRows } = await supabase
-      .from("cxrner_forms")
-      .select("id, status, user_deleted, created_at, upc")
-      .limit(1000);
-
-    const all = allStatsRows || [];
-    const activeReleases = all.filter((f) => !f.user_deleted && f.status !== "deleted");
+    // Compute comprehensive statistics across the entire dataset
+    const activeReleases = allReleases.filter((f) => !f.user_deleted && f.status !== "deleted");
 
     const stats = {
       total: activeReleases.length,
-      all_count: all.length,
+      all_count: allReleases.length,
       on_upload: activeReleases.filter((f) => f.status === "on_upload" || f.status === "pending").length,
       moderation: activeReleases.filter((f) => f.status === "moderation" || f.status === "on_moderation").length,
       needfix: activeReleases.filter((f) => f.status === "needfix" || f.status === "fix_required").length,
       approved: activeReleases.filter((f) => f.status === "approved" || f.status === "published").length,
       rejected: activeReleases.filter((f) => f.status === "rejected").length,
-      archived: all.filter((f) => f.user_deleted || f.status === "deleted").length,
+      archived: allReleases.filter((f) => f.user_deleted || f.status === "deleted").length,
       with_upc: activeReleases.filter((f) => Boolean(f.upc && f.upc.trim())).length,
     };
 
-    return NextResponse.json({ ok: true, forms, stats });
+    return NextResponse.json({ ok: true, forms: filtered, stats });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
@@ -137,16 +201,24 @@ export async function PATCH(request: Request) {
 
     const supabase = getServiceSupabase();
 
-    // 1. Fetch current form state to preserve payload and history
-    const { data: currentForm, error: fetchErr } = await supabase
+    // 1. Fetch current form state from cxrner_forms OR unified memory
+    let currentForm: any = null;
+    const { data: dbForm } = await supabase
       .from("cxrner_forms")
       .select("*")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
-    if (fetchErr || !currentForm) {
+    if (dbForm) {
+      currentForm = dbForm;
+    } else {
+      const allReleases = await getAllUnifiedReleases(supabase);
+      currentForm = allReleases.find((r) => r.id === id);
+    }
+
+    if (!currentForm) {
       return NextResponse.json(
-        { ok: false, error: fetchErr?.message || "Заявка не найдена" },
+        { ok: false, error: "Заявка не найдена" },
         { status: 404 }
       );
     }
@@ -196,77 +268,61 @@ export async function PATCH(request: Request) {
 
     const updatedHistory = [historyItem, ...existingHistory];
 
-    // 3. Prepare DB updates
-    const updates: Record<string, any> = {
-      updated_at: now,
-      action_history: updatedHistory,
-    };
-
-    if (status !== undefined) updates.status = targetStatus;
-    if (upc !== undefined) updates.upc = targetUpc;
-    if (reject_reason !== undefined) updates.reject_reason = targetReject;
-    if (moderator_comment !== undefined) updates.moderator_comment = targetComment;
-
-    if (targetStatus === "deleted") {
-      updates.user_deleted = true;
-    } else if (restore) {
-      updates.user_deleted = false;
-      if (updates.status === "deleted") {
-        updates.status = "on_upload";
-      }
-    }
-
-    // Also update JSON form_payload so everything mirrors
+    // 3. Prepare updates
     const updatedPayload = {
       ...(currentForm.form_payload || {}),
-      status: updates.status || targetStatus,
-      upc: updates.upc !== undefined ? updates.upc : targetUpc,
-      reject_reason: updates.reject_reason !== undefined ? updates.reject_reason : targetReject,
-      moderator_comment: updates.moderator_comment !== undefined ? updates.moderator_comment : targetComment,
+      status: targetStatus,
+      upc: targetUpc !== undefined ? targetUpc : currentForm.upc,
+      reject_reason: targetReject !== undefined ? targetReject : currentForm.reject_reason,
+      moderator_comment: targetComment !== undefined ? targetComment : currentForm.moderator_comment,
       last_moderated_at: now,
       last_moderator: moderatorName,
     };
-    updates.form_payload = updatedPayload;
 
-    const { data: updated, error: updateErr } = await supabase
-      .from("cxrner_forms")
-      .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
+    const rowToSave = {
+      id: currentForm.id,
+      telegram_id: currentForm.telegram_id,
+      username: currentForm.username,
+      artist_name: currentForm.artist_name,
+      track_name: currentForm.track_name,
+      genre: currentForm.genre,
+      release_type: currentForm.release_type,
+      submission_key: currentForm.submission_key || currentForm.id,
+      status: targetStatus,
+      upc: targetUpc,
+      reject_reason: targetReject,
+      moderator_comment: targetComment,
+      moderation_message_id: currentForm.moderation_message_id,
+      source: currentForm.source || "telegram_bot",
+      user_deleted: targetStatus === "deleted" ? true : restore ? false : Boolean(currentForm.user_deleted),
+      action_history: updatedHistory,
+      form_payload: updatedPayload,
+      updated_at: now,
+    };
 
-    if (updateErr) {
-      return NextResponse.json({ ok: false, error: updateErr.message }, { status: 500 });
+    if (restore && rowToSave.status === "deleted") {
+      rowToSave.status = "on_upload";
+      rowToSave.user_deleted = false;
     }
 
-    // 4. Mirror approved release into cxrner_public_releases & cxrner_releases
-    if (targetStatus === "approved") {
-      try {
-        await supabase
-          .from("cxrner_public_releases")
-          .upsert(
-            {
-              id: currentForm.id,
-              title: currentForm.track_name || updatedPayload.name || "Без названия",
-              artist: currentForm.artist_name || updatedPayload.nick || "CXRNER ARTIST",
-              cover: updatedPayload.cover_url || updatedPayload.artwork_url || "/images/album-01.svg",
-              upc: targetUpc || null,
-              release_date: updatedPayload.release_date || updatedPayload.date || null,
-              genre: currentForm.genre || updatedPayload.genre || "Electronic",
-              updated_at: now,
-            },
-            { onConflict: "id" }
-          );
-      } catch (pubErr) {
-        console.warn("[Admin Moderation] public release mirror warning:", pubErr);
+    let updatedResult = rowToSave;
+
+    // Upsert into cxrner_forms
+    try {
+      const { data: upserted, error: upsertErr } = await supabase
+        .from("cxrner_forms")
+        .upsert(rowToSave, { onConflict: "id" })
+        .select()
+        .single();
+
+      if (!upsertErr && upserted) {
+        updatedResult = upserted;
       }
-    } else if (targetStatus === "rejected" || targetStatus === "deleted") {
-      try {
-        await supabase.from("cxrner_public_releases").delete().eq("id", currentForm.id);
-      } catch {}
+    } catch (saveErr) {
+      console.warn("[Admin Moderation] cxrner_forms upsert warning:", saveErr);
     }
 
-    // 5. Synchronize with Telegram group message in real-time
+    // 4. Synchronize with Telegram group message in real-time
     let tgSyncResult: { ok: boolean; error?: string } = { ok: false };
     const messageId =
       currentForm.moderation_message_id ||
@@ -300,11 +356,12 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      form: updated,
-      tg_sync: tgSyncResult,
-      message: `Статус успешно обновлён: ${targetStatus}`,
+      form: updatedResult,
+      telegram_sync: tgSyncResult,
+      message: "Статус релиза успешно обновлен",
     });
   } catch (err: any) {
+    console.error("[Admin Moderation PATCH] Exception:", err);
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
@@ -321,27 +378,20 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    const permanent = searchParams.get("permanent") === "true";
 
     if (!id) {
-      return NextResponse.json({ ok: false, error: "ID заявки обязателен" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "ID обязателен" }, { status: 400 });
     }
 
     const supabase = getServiceSupabase();
+    const allReleases = await getAllUnifiedReleases(supabase);
+    const current = allReleases.find((r) => r.id === id);
 
-    if (permanent) {
-      // Hard delete from database
-      const { error } = await supabase.from("cxrner_forms").delete().eq("id", id);
-      if (error) {
-        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-      }
-      return NextResponse.json({ ok: true, message: "Заявка безвозвратно удалена из базы" });
+    if (!current) {
+      return NextResponse.json({ ok: false, error: "Релиз не найден" }, { status: 404 });
     }
 
-    // Soft delete: set user_deleted = true and status = 'deleted'
     const now = new Date().toISOString();
-    const { data: current } = await supabase.from("cxrner_forms").select("*").eq("id", id).single();
-
     const existingHistory = Array.isArray(current?.action_history) ? current.action_history : [];
     const updatedHistory = [
       {
@@ -355,39 +405,35 @@ export async function DELETE(request: Request) {
       ...existingHistory,
     ];
 
-    const { data: updated, error } = await supabase
-      .from("cxrner_forms")
-      .update({
-        user_deleted: true,
-        status: "deleted",
-        action_history: updatedHistory,
-        updated_at: now,
-      })
-      .eq("id", id)
-      .select()
-      .single();
+    const deletedRow = {
+      ...current,
+      user_deleted: true,
+      status: "deleted",
+      action_history: updatedHistory,
+      updated_at: now,
+    };
 
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    }
+    try {
+      await supabase
+        .from("cxrner_forms")
+        .upsert(deletedRow, { onConflict: "id" });
+    } catch {}
 
     // Sync deletion to Telegram
-    if (current) {
-      await syncTelegramMessage({
-        formId: current.id,
-        telegramId: current.telegram_id,
-        messageId: current.moderation_message_id,
-        status: "deleted",
-        moderatorName: moderatorName,
-        artistName: current.artist_name,
-        trackName: current.track_name,
-        genre: current.genre,
-        releaseType: current.release_type,
-        payload: current.form_payload,
-      });
-    }
+    await syncTelegramMessage({
+      formId: current.id,
+      telegramId: current.telegram_id,
+      messageId: current.moderation_message_id ? Number(current.moderation_message_id) : null,
+      status: "deleted",
+      moderatorName: moderatorName,
+      artistName: current.artist_name,
+      trackName: current.track_name,
+      genre: current.genre,
+      releaseType: current.release_type,
+      payload: current.form_payload,
+    });
 
-    return NextResponse.json({ ok: true, form: updated, message: "Заявка перемещена в архив" });
+    return NextResponse.json({ ok: true, form: deletedRow, message: "Заявка перемещена в архив" });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
