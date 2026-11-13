@@ -4,7 +4,7 @@ export async function GET() {
   const supabaseUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
-    "https://feeudmwytkeuwemnmbwd.supabase.co";
+    "https://wjhqtrfsuudiogpwwzgx.supabase.co";
 
   try {
     const res = await fetch(`${supabaseUrl}/auth/v1/authorize?provider=google`, {
@@ -14,7 +14,12 @@ export async function GET() {
 
     // 302 or 200 means Google OAuth endpoint is ready and redirecting to Google
     if (res.status === 302 || res.status === 200 || res.status === 0) {
-      return NextResponse.json({ enabled: true });
+      return NextResponse.json({
+        enabled: true,
+        provider: "google",
+        supabaseUrl,
+        callbackUrl: `${supabaseUrl}/auth/v1/callback`,
+      });
     }
 
     if (res.status === 400) {
@@ -26,15 +31,28 @@ export async function GET() {
         return NextResponse.json({
           enabled: false,
           notConfiguredInSupabase: true,
+          provider: "google",
+          supabaseUrl,
+          callbackUrl: `${supabaseUrl}/auth/v1/callback`,
           message:
-            "Вход через Google еще не сохранен в Supabase. Убедитесь, что нажали кнопку 'Сохранить' в модальном окне Google в панели Supabase.",
+            "Вход через Google еще не включен в панели Supabase. Перейдите в Authentication -> Providers -> Google и сохраните Client ID и Client Secret.",
         });
       }
     }
 
-    return NextResponse.json({ enabled: true });
-  } catch {
-    // If probing fails for network reasons, do not block the user
-    return NextResponse.json({ enabled: true });
+    return NextResponse.json({
+      enabled: false,
+      provider: "google",
+      supabaseUrl,
+      callbackUrl: `${supabaseUrl}/auth/v1/callback`,
+      message: "Провайдер Google недоступен в текущей конфигурации базы данных.",
+    });
+  } catch (err: any) {
+    return NextResponse.json({
+      enabled: false,
+      provider: "google",
+      supabaseUrl,
+      error: err.message,
+    });
   }
 }
