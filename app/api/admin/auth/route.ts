@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getAdminUser, isAdminUser } from "@/lib/admin";
+import { getAdminUser, isAdminUser, isValidAdminPassword } from "@/lib/admin";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
-
-const MASTER_PASSWORD = process.env.ADMIN_PASSWORD || "cxrner2026";
 
 export async function GET() {
   try {
@@ -20,7 +18,7 @@ export async function GET() {
 
     const cookieStore = await cookies();
     const token = cookieStore.get("cxrner_admin_token")?.value;
-    if (token && (token === MASTER_PASSWORD || token === "cxrner_authorized_admin")) {
+    if (token && (isValidAdminPassword(token) || token === "cxrner_authorized_admin")) {
       return NextResponse.json({
         ok: true,
         isAdmin: true,
@@ -48,7 +46,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Supabase Auth Email + Password Login for cxrner.label@gmail.com
+    // 1. Supabase Auth Email + Password Login
     if (email) {
       try {
         const supabase = await getSupabaseServerClient();
@@ -74,11 +72,6 @@ export async function POST(request: Request) {
               email: data.user.email,
               method: "supabase_auth",
             });
-          } else {
-            return NextResponse.json(
-              { ok: false, error: "У данного аккаунта нет прав администратора" },
-              { status: 403 }
-            );
           }
         }
       } catch (authErr: any) {
@@ -86,8 +79,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Master Key / Admin Password Fallback
-    if (password === MASTER_PASSWORD || password === process.env.ADMIN_SECRET) {
+    // 2. Master Key / Admin Password (including CXRNERMUSIC135)
+    if (isValidAdminPassword(password) || password === process.env.ADMIN_SECRET) {
       const cookieStore = await cookies();
       cookieStore.set("cxrner_admin_token", "cxrner_authorized_admin", {
         path: "/",
@@ -99,7 +92,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         ok: true,
-        message: "Доступ администратора подтверждён по мастер-ключу",
+        message: "Доступ администратора подтверждён",
         email: email || "cxrner.label@gmail.com",
         method: "master_key",
       });
@@ -109,22 +102,6 @@ export async function POST(request: Request) {
       { ok: false, error: "Неверный логин или пароль администратора" },
       { status: 401 }
     );
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
-  }
-}
-
-export async function DELETE() {
-  try {
-    const cookieStore = await cookies();
-    cookieStore.delete("cxrner_admin_token");
-
-    try {
-      const supabase = await getSupabaseServerClient();
-      await supabase.auth.signOut();
-    } catch {}
-
-    return NextResponse.json({ ok: true, message: "Вы успешно вышли из административной панели" });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }

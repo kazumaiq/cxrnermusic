@@ -99,6 +99,9 @@ function LoginForm() {
     setError(null);
     setNotice(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
     try {
       let supabaseClient;
       try {
@@ -109,12 +112,53 @@ function LoginForm() {
         );
       }
 
-      const { error: signInError } = await supabaseClient.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+      // 1. First try Supabase standard sign in
+      const { data, error: signInError } = await supabaseClient.auth.signInWithPassword({
+        email: cleanEmail,
+        password: cleanPassword,
       });
 
-      if (signInError) throw signInError;
+      if (!signInError && data?.session) {
+        router.push("/dashboard");
+        return;
+      }
+
+      // 2. If it's an admin attempt (e.g. cxrner.label@gmail.com with CXRNERMUSIC135), authenticate via admin auth route
+      const adminAuthRes = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
+      }).catch(() => null);
+
+      if (adminAuthRes && adminAuthRes.ok) {
+        const adminData = await adminAuthRes.json().catch(() => null);
+        if (adminData?.ok) {
+          router.push("/admin/distribution");
+          return;
+        }
+      }
+
+      // 3. If standard Supabase signIn failed, display clear localized error
+      if (signInError) {
+        const msg = signInError.message || "";
+        if (
+          msg.includes("Invalid login credentials") ||
+          (signInError as any).code === "invalid_credentials"
+        ) {
+          throw new Error(
+            "Неверный email или пароль. Если вы еще не создавали аккаунт, нажмите «Зарегистрироваться» ниже."
+          );
+        }
+        if (
+          msg.includes("Email not confirmed") ||
+          (signInError as any).code === "email_not_confirmed"
+        ) {
+          throw new Error(
+            `Письмо с подтверждением отправлено на ${cleanEmail}. Проверьте почту или подтвердите аккаунт в панели Supabase.`
+          );
+        }
+        throw signInError;
+      }
 
       router.push("/dashboard");
     } catch (err: any) {

@@ -2,7 +2,14 @@ import type { User } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "./supabaseServer";
 import { cookies } from "next/headers";
 
-const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "cxrner2026";
+export const KNOWN_ADMIN_PASSWORDS = [
+  process.env.ADMIN_PASSWORD,
+  process.env.ADMIN_MASTER_KEY,
+  "CXRNERMUSIC135",
+  "cxrnermusic135",
+  "cxrner2026",
+].filter(Boolean) as string[];
+
 const KNOWN_ADMIN_EMAILS = [
   "cxrner.label@gmail.com",
   "kazumaiq@gmail.com",
@@ -14,6 +21,11 @@ function splitEnv(value: string | undefined) {
     .split(",")
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
+}
+
+export function isValidAdminPassword(pass: string): boolean {
+  if (!pass) return false;
+  return KNOWN_ADMIN_PASSWORDS.some((p) => p.trim() === pass.trim());
 }
 
 export function isAdminUser(user: Pick<User, "id" | "email"> | null | undefined) {
@@ -46,7 +58,7 @@ export async function verifyAdminRequest(request?: Request): Promise<boolean> {
   // 2. Check header x-admin-key
   if (request) {
     const headerKey = request.headers.get("x-admin-key");
-    if (headerKey && (headerKey === DEFAULT_ADMIN_PASSWORD || headerKey === process.env.ADMIN_SECRET)) {
+    if (headerKey && (isValidAdminPassword(headerKey) || headerKey === process.env.ADMIN_SECRET)) {
       return true;
     }
   }
@@ -55,7 +67,7 @@ export async function verifyAdminRequest(request?: Request): Promise<boolean> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("cxrner_admin_token")?.value;
-    if (token && (token === DEFAULT_ADMIN_PASSWORD || token === "cxrner_authorized_admin")) {
+    if (token && (isValidAdminPassword(token) || token === "cxrner_authorized_admin")) {
       return true;
     }
   } catch {
@@ -70,4 +82,3 @@ export async function requireAdmin(request?: Request) {
   if (!isAuthorized) throw new Error("ADMIN_UNAUTHORIZED");
   return true;
 }
-
