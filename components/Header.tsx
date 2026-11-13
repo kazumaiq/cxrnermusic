@@ -20,10 +20,11 @@ export default async function Header() {
   let isLoggedIn = false;
   try {
     const supabase = await getSupabaseServerClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    isLoggedIn = Boolean(session);
+    const sessionResult = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200)),
+    ]);
+    isLoggedIn = Boolean(sessionResult && "data" in sessionResult && sessionResult.data?.session);
   } catch {
     isLoggedIn = false;
   }

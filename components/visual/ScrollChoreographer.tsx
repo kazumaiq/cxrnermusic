@@ -38,11 +38,11 @@ export default function ScrollChoreographer() {
             {
               yPercent: 0,
               opacity: 1,
-              duration: 0.95,
+              duration: 0.85,
               ease: "power4.out",
               scrollTrigger: {
                 trigger: el,
-                start: "top 88%",
+                start: "top 96%",
                 once: true,
               },
             }
@@ -53,16 +53,16 @@ export default function ScrollChoreographer() {
         gsap.utils.toArray<HTMLElement>("[data-reveal='clip-photo']").forEach((el) => {
           gsap.fromTo(
             el,
-            { clipPath: "inset(14% 8% 14% 8% round 20px)", opacity: 0.35, scale: 0.96 },
+            { clipPath: "inset(10% 5% 10% 5% round 20px)", opacity: 0.5, scale: 0.97 },
             {
               clipPath: "inset(0% 0% 0% 0% round 20px)",
               opacity: 1,
               scale: 1,
-              duration: 1.05,
+              duration: 0.9,
               ease: "power3.out",
               scrollTrigger: {
                 trigger: el,
-                start: "top 86%",
+                start: "top 96%",
                 once: true,
               },
             }
@@ -75,16 +75,16 @@ export default function ScrollChoreographer() {
           if (!items.length) return;
           gsap.fromTo(
             items,
-            { y: 36, opacity: 0 },
+            { y: 28, opacity: 0 },
             {
               y: 0,
               opacity: 1,
-              duration: 0.75,
-              stagger: 0.08,
+              duration: 0.7,
+              stagger: 0.06,
               ease: "power3.out",
               scrollTrigger: {
                 trigger: group,
-                start: "top 84%",
+                start: "top 95%",
                 once: true,
               },
             }
@@ -144,7 +144,30 @@ export default function ScrollChoreographer() {
       });
     });
 
+    // Ensure ScrollTrigger recalculates after fonts, images, and layout settle
+    const refresh = () => ScrollTrigger.refresh();
+    const t1 = window.setTimeout(refresh, 350);
+    const t2 = window.setTimeout(refresh, 1200);
+    window.addEventListener("load", refresh);
+    document.fonts?.ready?.then(refresh).catch(() => {});
+
+    // Safety guarantee: ensure no reveal elements stay stuck at opacity: 0 on mobile or fast scroll
+    const safetyTimer = window.setTimeout(() => {
+      document
+        .querySelectorAll<HTMLElement>("[data-reveal='mask-line'], [data-reveal='clip-photo'], [data-stagger-item]")
+        .forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < window.innerHeight * 1.15 && Number(getComputedStyle(el).opacity) < 0.9) {
+            gsap.to(el, { opacity: 1, y: 0, yPercent: 0, scale: 1, clipPath: "inset(0% 0% 0% 0%)", duration: 0.4, overwrite: "auto" });
+          }
+        });
+    }, 1800);
+
     return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(safetyTimer);
+      window.removeEventListener("load", refresh);
       ctx.revert();
     };
   }, []);
