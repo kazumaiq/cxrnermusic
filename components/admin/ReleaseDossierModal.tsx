@@ -26,8 +26,10 @@ import {
   AlertTriangle,
   XCircle,
   ShieldAlert,
+  FlaskConical,
 } from "lucide-react";
 import { getStatusMeta } from "@/lib/telegramSync";
+import { isTestRelease } from "@/lib/testReleases";
 
 export interface DossierRelease {
   id: string;
@@ -212,6 +214,12 @@ export default function ReleaseDossierModal({
                   <span>{statusMeta.emoji}</span>
                   <span>{statusMeta.label}</span>
                 </span>
+                {isTestRelease(release) && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center gap-1 shadow-sm">
+                    <span>🧪</span>
+                    <span>Тестовая</span>
+                  </span>
+                )}
               </div>
               <p className="text-xs sm:text-sm text-[#D9D9E2]/75 truncate mt-0.5 font-normal">
                 <span className="font-medium text-white">{artist}</span>
@@ -260,6 +268,18 @@ export default function ReleaseDossierModal({
             <div className="p-4 rounded-2xl bg-red-500/15 border border-red-500/35 text-red-200 text-xs sm:text-sm flex items-center gap-2.5 shadow-lg">
               <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
               <span>{actionError}</span>
+            </div>
+          )}
+
+          {isTestRelease(release) && (
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-amber-200 text-xs sm:text-sm flex items-center gap-3 shadow-lg">
+              <FlaskConical className="w-5 h-5 text-amber-400 flex-shrink-0 animate-pulse" />
+              <div className="flex-1">
+                <span className="font-bold text-amber-300">Тестовая анкета:</span>{" "}
+                <span className="text-white/80">
+                  Эта заявка определена как проверочная (короткие тестовые имена, заглушки или тестовый ID).
+                </span>
+              </div>
             </div>
           )}
 

@@ -31,9 +31,11 @@ import {
   Music,
   ChevronRight,
   TrendingUp,
+  FlaskConical,
 } from "lucide-react";
 import ReleaseDossierModal, { DossierRelease } from "./ReleaseDossierModal";
 import { CANONICAL_STATUS_MAP, getStatusMeta } from "@/lib/telegramSync";
+import { isTestRelease } from "@/lib/testReleases";
 
 export type CmsTab =
   | "overview"
@@ -43,6 +45,7 @@ export type CmsTab =
   | "needfix"
   | "approved"
   | "rejected"
+  | "test"
   | "archive"
   | "stats"
   | "settings";
@@ -57,6 +60,7 @@ interface CmsStats {
   rejected: number;
   archived: number;
   with_upc: number;
+  test_count?: number;
 }
 
 export default function DistributionCmsClient({
@@ -91,6 +95,9 @@ export default function DistributionCmsClient({
   const [upcFilter, setUpcFilter] = useState("all");
   const [selectedRelease, setSelectedRelease] = useState<DossierRelease | null>(null);
   const [notification, setNotification] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [testFilterMode, setTestFilterMode] = useState<"all" | "test_only" | "exclude_test">("all");
+
+  const testFormsCount = useMemo(() => forms.filter((f) => isTestRelease(f)).length, [forms]);
 
   // Fetch Releases from Backend
   const fetchForms = async (showRefreshIndicator = false) => {
@@ -106,6 +113,9 @@ export default function DistributionCmsClient({
       else if (activeTab === "rejected") statusParam = "rejected";
       else if (activeTab === "archive") {
         statusParam = "archive";
+        showDeleted = "true";
+      } else if (activeTab === "test") {
+        statusParam = "test";
         showDeleted = "true";
       }
 
@@ -241,6 +251,14 @@ export default function DistributionCmsClient({
   // Filter & Search Logic
   const filteredForms = useMemo(() => {
     return forms.filter((f) => {
+      // Test releases filter
+      const isTest = isTestRelease(f);
+      if (activeTab === "test" || testFilterMode === "test_only") {
+        if (!isTest) return false;
+      } else if (testFilterMode === "exclude_test") {
+        if (isTest) return false;
+      }
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const p = f.form_payload || {};
@@ -277,7 +295,7 @@ export default function DistributionCmsClient({
 
       return true;
     });
-  }, [forms, searchQuery, genreFilter, typeFilter, upcFilter]);
+  }, [forms, searchQuery, genreFilter, typeFilter, upcFilter, activeTab, testFilterMode]);
 
   // Unique genres for filter
   const availableGenres = useMemo(() => {
@@ -470,6 +488,23 @@ export default function DistributionCmsClient({
           </button>
 
           <button
+            onClick={() => setActiveTab("test")}
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
+              activeTab === "test"
+                ? "bg-gradient-to-r from-amber-600 to-[#8737FF] text-white font-semibold shadow-[0_0_20px_rgba(245,158,11,0.35)]"
+                : "text-amber-300/80 hover:bg-amber-500/10 hover:text-amber-200"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <FlaskConical className="w-4 h-4 text-amber-400" />
+              <span>Тестовые анкеты</span>
+            </div>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">
+              {stats.test_count ?? testFormsCount}
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab("archive")}
             className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "archive"
@@ -647,6 +682,21 @@ export default function DistributionCmsClient({
                     <Archive className="w-4 h-4 text-white/40" />
                   </div>
                 </div>
+
+                <div
+                  onClick={() => setActiveTab("test")}
+                  className="p-4 sm:p-5 rounded-2xl border border-amber-500/25 bg-amber-500/[0.05] hover:border-amber-500/50 hover:bg-amber-500/[0.1] transition cursor-pointer space-y-2 group"
+                >
+                  <span className="text-xs font-medium text-amber-300/90 block">
+                    Тестовые анкеты
+                  </span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-3xl sm:text-4xl font-bold tracking-tight text-amber-300">
+                      {stats.test_count ?? testFormsCount}
+                    </span>
+                    <FlaskConical className="w-4 h-4 text-amber-400 group-hover:scale-110 transition" />
+                  </div>
+                </div>
               </div>
 
               {/* Quick Attention & Recent Submissions */}
@@ -716,15 +766,32 @@ export default function DistributionCmsClient({
             </div>
           )}
 
-          {/* TAB: RELEASES LIST (ALL, ON_UPLOAD, MODERATION, NEEDFIX, APPROVED, REJECTED, ARCHIVE) */}
+          {/* TAB: RELEASES LIST (ALL, ON_UPLOAD, MODERATION, NEEDFIX, APPROVED, REJECTED, TEST, ARCHIVE) */}
           {(activeTab === "all" ||
             activeTab === "on_upload" ||
             activeTab === "moderation" ||
             activeTab === "needfix" ||
             activeTab === "approved" ||
             activeTab === "rejected" ||
+            activeTab === "test" ||
             activeTab === "archive") && (
             <div className="space-y-4 animate-fade-in">
+              {activeTab === "test" && (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-amber-200">
+                  <div className="flex items-center gap-2.5">
+                    <FlaskConical className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                    <div>
+                      <p className="font-bold text-amber-300">Тестовые анкеты</p>
+                      <p className="text-white/70 text-xs">
+                        Отображаются все проверочные заявки с короткими именами, тестовыми никами, заглушками или тестовым Telegram ID.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="self-start sm:self-center px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold font-mono text-xs flex-shrink-0 border border-amber-500/30">
+                    Найдено: {filteredForms.length}
+                  </span>
+                </div>
+              )}
               {/* Filter & Search Bar */}
               <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#0c0916]/80 backdrop-blur-md space-y-3">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -773,6 +840,47 @@ export default function DistributionCmsClient({
                       <option value="yes">С UPC</option>
                       <option value="no">Без UPC</option>
                     </select>
+
+                    {/* Test releases filter mode */}
+                    <div className="flex items-center gap-1 bg-black/50 border border-white/10 rounded-xl p-1 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setTestFilterMode("all")}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                          testFilterMode === "all"
+                            ? "bg-white/15 text-white font-semibold"
+                            : "text-white/40 hover:text-white"
+                        }`}
+                        title="Показать все анкеты"
+                      >
+                        Все
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTestFilterMode("exclude_test")}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                          testFilterMode === "exclude_test"
+                            ? "bg-white/15 text-white font-semibold"
+                            : "text-white/40 hover:text-white"
+                        }`}
+                        title="Скрыть тестовые анкеты"
+                      >
+                        Реальные
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTestFilterMode("test_only")}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
+                          testFilterMode === "test_only"
+                            ? "bg-amber-500/30 text-amber-300 border border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]"
+                            : "text-amber-400/70 hover:text-amber-300"
+                        }`}
+                        title="Показать только тестовые анкеты"
+                      >
+                        <FlaskConical className="w-3.5 h-3.5" />
+                        <span>Тестовые ({testFormsCount})</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -809,8 +917,16 @@ export default function DistributionCmsClient({
                               onClick={() => setSelectedRelease(rel)}
                             >
                               <td className="p-3.5 pl-5 min-w-[200px]">
-                                <div className="text-sm font-semibold text-white group-hover:text-[#B46BFF] transition">
-                                  {rel.track_name || "Без названия"}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-white group-hover:text-[#B46BFF] transition">
+                                    {rel.track_name || "Без названия"}
+                                  </span>
+                                  {isTestRelease(rel) && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm flex-shrink-0">
+                                      <FlaskConical className="w-2.5 h-2.5" />
+                                      <span>Тест</span>
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="text-[#9B95AD] text-xs font-medium pt-0.5">
                                   {rel.artist_name || "—"}
@@ -934,9 +1050,17 @@ export default function DistributionCmsClient({
                         </div>
 
                         <div>
-                          <h4 className="text-base font-bold text-white">
-                            {rel.track_name || "Без названия"}
-                          </h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-base font-bold text-white">
+                              {rel.track_name || "Без названия"}
+                            </h4>
+                            {isTestRelease(rel) && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm flex-shrink-0">
+                                <FlaskConical className="w-2.5 h-2.5" />
+                                <span>Тест</span>
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-[#9B95AD] font-medium pt-0.5">
                             {rel.artist_name || "—"}
                           </p>

@@ -6,6 +6,7 @@ import {
   getAllUnifiedReleases,
   computeCmsStats,
 } from "@/lib/telegramReleases";
+import { isTestRelease } from "@/lib/testReleases";
 import { DossierRelease } from "@/components/admin/ReleaseDossierModal";
 
 export function getServiceSupabase() {
@@ -42,7 +43,9 @@ export async function GET(request: Request) {
 
     // Filter by specific tab status
     if (statusFilter && statusFilter !== "all") {
-      if (statusFilter === "pending" || statusFilter === "on_upload") {
+      if (statusFilter === "test") {
+        filtered = allReleases.filter((f) => isTestRelease(f));
+      } else if (statusFilter === "pending" || statusFilter === "on_upload") {
         filtered = filtered.filter((f) => f.status === "on_upload" || f.status === "pending");
       } else if (statusFilter === "moderation" || statusFilter === "on_moderation") {
         filtered = filtered.filter((f) => f.status === "moderation" || f.status === "on_moderation");

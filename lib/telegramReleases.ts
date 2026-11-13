@@ -1,5 +1,6 @@
 import telegramBackupData from "@/data/telegram_releases_backup.json";
 import { DossierRelease } from "@/components/admin/ReleaseDossierModal";
+import { isTestRelease } from "./testReleases";
 
 function normalizeStatus(st: string | null | undefined): string {
   const s = String(st || "").trim().toLowerCase();
@@ -144,6 +145,7 @@ export function computeCmsStats(allReleases: DossierRelease[]) {
     rejected: activeReleases.filter((f) => f.status === "rejected").length,
     archived: allReleases.filter((f) => f.user_deleted || f.status === "deleted").length,
     with_upc: activeReleases.filter((f) => Boolean(f.upc && f.upc.trim())).length,
+    test_count: allReleases.filter((f) => isTestRelease(f)).length,
   };
 }
 
