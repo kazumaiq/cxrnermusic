@@ -171,6 +171,8 @@ export async function PATCH(request: Request) {
     // 2. Build updated action history
     const existingHistory = Array.isArray(currentForm.action_history)
       ? currentForm.action_history
+      : Array.isArray(currentForm.form_payload?.action_history)
+      ? currentForm.form_payload.action_history
       : [];
 
     const historyItem = {
@@ -184,62 +186,159 @@ export async function PATCH(request: Request) {
     };
 
     const updatedHistory = [historyItem, ...existingHistory];
+    const isUserDeleted = targetStatus === "deleted" ? true : restore ? false : Boolean(currentForm.user_deleted || currentForm.form_payload?.user_deleted);
 
-    // 3. Prepare updates
+    // 3. Prepare updated payload (action_history and comments live safely inside JSON)
     const updatedPayload = {
       ...(currentForm.form_payload || {}),
       status: targetStatus,
       upc: targetUpc !== undefined ? targetUpc : currentForm.upc,
       reject_reason: targetReject !== undefined ? targetReject : currentForm.reject_reason,
       moderator_comment: targetComment !== undefined ? targetComment : currentForm.moderator_comment,
+      user_deleted: isUserDeleted,
+      action_history: updatedHistory,
       last_moderated_at: now,
       last_moderator: moderatorName,
     };
 
-    const rowToSave = {
-      id: currentForm.id,
-      telegram_id: currentForm.telegram_id,
-      username: currentForm.username,
-      artist_name: currentForm.artist_name,
-      track_name: currentForm.track_name,
-      genre: currentForm.genre,
-      release_type: currentForm.release_type,
-      submission_key: currentForm.submission_key || currentForm.id,
+    const inMemoryUpdated = {
+      ...currentForm,
       status: targetStatus,
       upc: targetUpc,
       reject_reason: targetReject,
       moderator_comment: targetComment,
-      moderation_message_id: currentForm.moderation_message_id,
-      source: currentForm.source || "telegram_bot",
-      user_deleted: targetStatus === "deleted" ? true : restore ? false : Boolean(currentForm.user_deleted),
+      user_deleted: isUserDeleted,
       action_history: updatedHistory,
       form_payload: updatedPayload,
       updated_at: now,
     };
 
-    if (restore && rowToSave.status === "deleted") {
-      rowToSave.status = "on_upload";
-      rowToSave.user_deleted = false;
-    }
+    let updatedResult = inMemoryUpdated;
 
-    let updatedResult = rowToSave;
-
-    // Upsert into cxrner_forms
+    // 4. Update Supabase cxrner_forms (using only genuine database columns)
     try {
-      const { data: upserted, error: upsertErr } = await supabase
-        .from("cxrner_forms")
-        .upsert(rowToSave, { onConflict: "id" })
-        .select()
-        .single();
+      const dbFields: Record<string, any> = {
+        status: targetStatus,
+        form_payload: updatedPayload,
+        updated_at: now,
+      };
+      if (targetUpc !== undefined && targetUpc !== null) dbFields.upc = targetUpc;
+      if (targetReject !== undefined && targetReject !== null) dbFields.reject_reason = targetReject;
 
-      if (!upsertErr && upserted) {
-        updatedResult = upserted;
+      const { data: updatedDb, error: updateErr } = await supabase
+        .from("cxrner_forms")
+        .update(dbFields)
+        .eq("id", currentForm.id)
+        .select()
+        .maybeSingle();
+
+      if (!updateErr && updatedDb) {
+        updatedResult = {
+          ...inMemoryUpdated,
+          ...updatedDb,
+          action_history: updatedHistory,
+          form_payload: updatedPayload,
+        };
+      } else {
+        // If not found by UUID, attempt upsert by submission_key
+        const insertRow: Record<string, any> = {
+          telegram_id: currentForm.telegram_id,
+          username: currentForm.username,
+          artist_name: currentForm.artist_name,
+          track_name: currentForm.track_name,
+          genre: currentForm.genre,
+          release_type: currentForm.release_type,
+          submission_key: currentForm.submission_key || currentForm.id,
+          status: targetStatus,
+          source: currentForm.source || "telegram_bot",
+          form_payload: updatedPayload,
+          upc: targetUpc || currentForm.upc || null,
+          reject_reason: targetReject || null,
+          moderation_message_id: currentForm.moderation_message_id || null,
+          updated_at: now,
+        };
+        const { data: upsertedDb } = await supabase
+          .from("cxrner_forms")
+          .upsert(insertRow, { onConflict: "submission_key" })
+          .select()
+          .maybeSingle();
+
+        if (upsertedDb) {
+          updatedResult = {
+            ...inMemoryUpdated,
+            ...upsertedDb,
+            action_history: updatedHistory,
+            form_payload: updatedPayload,
+          };
+        }
       }
     } catch (saveErr) {
-      console.warn("[Admin Moderation] cxrner_forms upsert warning:", saveErr);
+      console.warn("[Admin Moderation] cxrner_forms update warning:", saveErr);
     }
 
-    // 4. Synchronize with Telegram group message in real-time
+    // 5. Synchronize with cxrner_public_releases (Approved = upsert, Rejected/Deleted = remove)
+    try {
+      if (targetStatus === "approved") {
+        await supabase
+          .from("cxrner_public_releases")
+          .upsert({
+            form_id: currentForm.id,
+            telegram_id: currentForm.telegram_id,
+            username: currentForm.username,
+            artist_name: currentForm.artist_name,
+            track_name: currentForm.track_name,
+            genre: currentForm.genre,
+            release_type: currentForm.release_type,
+            status: "approved",
+            approved_at: now,
+            release_data: updatedPayload,
+            updated_at: now,
+          }, { onConflict: "form_id" });
+      } else if (targetStatus === "rejected" || targetStatus === "deleted") {
+        await supabase
+          .from("cxrner_public_releases")
+          .delete()
+          .eq("form_id", currentForm.id);
+      }
+    } catch (pubErr) {
+      console.warn("[Admin Moderation] cxrner_public_releases sync notice:", pubErr);
+    }
+
+    // 6. Forward action directly to live Telegram bot on Bothost
+    let botSyncResult: { ok: boolean; error?: string; [key: string]: any } = { ok: false };
+    try {
+      const botUrl = (
+        process.env.BOT_BACKEND_URL ||
+        "https://bot-1787153410-6782-kazumaiq.bothost.tech"
+      ).replace(/\/+$/, "");
+
+      const botRes = await fetch(`${botUrl}/api/moderation/action`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.BOT_BACKEND_SECRET ? { "x-cxrner-secret": process.env.BOT_BACKEND_SECRET } : {}),
+        },
+        body: JSON.stringify({
+          id: currentForm.id,
+          telegram_id: currentForm.telegram_id,
+          track_name: currentForm.track_name,
+          artist_name: currentForm.artist_name,
+          status: targetStatus,
+          action: action || targetStatus,
+          upc: targetUpc,
+          reject_reason: targetReject,
+          moderator_comment: targetComment,
+          moderator_name: moderatorName,
+        }),
+      });
+
+      botSyncResult = await botRes.json().catch(() => ({ ok: false }));
+    } catch (botErr: any) {
+      console.warn("[Admin Moderation] Bot endpoint forward notice:", botErr.message);
+      botSyncResult = { ok: false, error: botErr.message };
+    }
+
+    // 7. Synchronize with Telegram group message in real-time (Direct API fallback)
     let tgSyncResult: { ok: boolean; error?: string } = { ok: false };
     const messageId =
       currentForm.moderation_message_id ||
@@ -267,14 +366,18 @@ export async function PATCH(request: Request) {
         await supabase
           .from("cxrner_forms")
           .update({ moderation_message_id: String((tgSyncResult as any).messageId) })
-          .eq("id", id);
+          .eq("id", currentForm.id);
       } catch {}
     }
+
+    const isTgSynced = botSyncResult.ok || tgSyncResult.ok;
 
     return NextResponse.json({
       ok: true,
       form: updatedResult,
+      bot_sync: botSyncResult,
       telegram_sync: tgSyncResult,
+      tg_sync: { ok: isTgSynced },
       message: "Статус релиза успешно обновлен",
     });
   } catch (err: any) {

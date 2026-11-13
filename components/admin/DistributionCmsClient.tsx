@@ -146,6 +146,60 @@ export default function DistributionCmsClient({
   // Perform Moderation Action
   const handleAction = async (actionData: any) => {
     try {
+      const targetStatus = actionData.status;
+
+      // Optimistic / Immediate UI update so the user instantly sees the status flip
+      setForms((prev) =>
+        prev.map((f) => {
+          if (f.id === actionData.id) {
+            const historyItem = {
+              timestamp: new Date().toISOString(),
+              moderator: initialUser?.email || "cxrner.label@gmail.com",
+              action: actionData.action || targetStatus,
+              prev_status: f.status || undefined,
+              new_status: targetStatus || undefined,
+              comment: actionData.moderator_comment || actionData.reject_reason || null,
+              upc: actionData.upc || f.upc || null,
+            };
+            return {
+              ...f,
+              status: targetStatus,
+              upc: actionData.upc !== undefined ? actionData.upc : f.upc,
+              reject_reason: actionData.reject_reason !== undefined ? actionData.reject_reason : f.reject_reason,
+              moderator_comment: actionData.moderator_comment !== undefined ? actionData.moderator_comment : f.moderator_comment,
+              user_deleted: targetStatus === "deleted" ? true : actionData.restore ? false : f.user_deleted,
+              action_history: [historyItem, ...(f.action_history || [])],
+            };
+          }
+          return f;
+        })
+      );
+
+      if (selectedRelease && selectedRelease.id === actionData.id) {
+        const historyItem = {
+          timestamp: new Date().toISOString(),
+          moderator: initialUser?.email || "cxrner.label@gmail.com",
+          action: actionData.action || targetStatus,
+          prev_status: selectedRelease.status || undefined,
+          new_status: targetStatus || undefined,
+          comment: actionData.moderator_comment || actionData.reject_reason || null,
+          upc: actionData.upc || selectedRelease.upc || null,
+        };
+        setSelectedRelease((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: targetStatus,
+                upc: actionData.upc !== undefined ? actionData.upc : prev.upc,
+                reject_reason: actionData.reject_reason !== undefined ? actionData.reject_reason : prev.reject_reason,
+                moderator_comment: actionData.moderator_comment !== undefined ? actionData.moderator_comment : prev.moderator_comment,
+                user_deleted: targetStatus === "deleted" ? true : actionData.restore ? false : prev.user_deleted,
+                action_history: [historyItem, ...(prev.action_history || [])],
+              }
+            : null
+        );
+      }
+
       const res = await fetch("/api/admin/moderation", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -157,19 +211,29 @@ export default function DistributionCmsClient({
         throw new Error(data.error || "Ошибка сохранения");
       }
 
+      const statusMeta = getStatusMeta(data.form?.status || targetStatus);
+      const isTgOk = data.tg_sync?.ok || data.bot_sync?.ok || data.telegram_sync?.ok;
+
       showToast(
         "success",
-        `Действие выполнено: ${data.form?.track_name || "Релиз"} обновлен` +
-          (data.tg_sync?.ok ? " (Telegram синхронизирован)" : "")
+        `Статус изменён: ${statusMeta.label}` +
+          (isTgOk ? " • Telegram синхронизирован" : "")
       );
 
-      // Refresh list and update modal
-      await fetchForms();
-      if (selectedRelease && selectedRelease.id === actionData.id) {
-        setSelectedRelease(data.form);
+      // Re-sync with server response
+      if (data.form) {
+        setForms((prev) => prev.map((f) => (f.id === actionData.id ? { ...f, ...data.form } : f)));
+        if (selectedRelease && selectedRelease.id === actionData.id) {
+          setSelectedRelease((prev) => (prev ? { ...prev, ...data.form } : null));
+        }
       }
+
+      // Re-fetch in background to update counters and table
+      fetchForms();
     } catch (err: any) {
       showToast("error", err.message || "Ошибка запроса");
+      // Revert from server on error
+      fetchForms();
       throw err;
     }
   };
