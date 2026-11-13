@@ -64,10 +64,18 @@ function LoginForm() {
         return;
       }
 
-      // 2. Direct Supabase OAuth redirect
-      const supabaseClient = getSupabaseBrowserClient();
+      // 2. Direct Supabase OAuth redirect to configured Google provider
+      const targetAuthUrl = checkData?.supabaseUrl || "https://feeudmwytkeuwemnmbwd.supabase.co";
       const redirectUri = `${window.location.origin}/auth/callback`;
 
+      if (targetAuthUrl.includes("feeudmwytkeuwemnmbwd")) {
+        window.location.href = `${targetAuthUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(
+          redirectUri
+        )}`;
+        return;
+      }
+
+      const supabaseClient = getSupabaseBrowserClient();
       const { data, error: oauthError } = await supabaseClient.auth.signInWithOAuth({
         provider: "google",
         options: {

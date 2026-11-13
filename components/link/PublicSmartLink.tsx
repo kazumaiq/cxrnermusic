@@ -235,7 +235,10 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
   const enabledPlatforms = platforms.filter((p) => p.is_enabled !== false);
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center pt-8 pb-16 sm:py-14 px-4 overflow-x-clip selection:bg-[#8737FF] selection:text-white">
+    <div className="relative min-h-screen w-full flex flex-col items-center pt-8 pb-16 sm:py-14 px-4 overflow-x-clip bg-[#050407] selection:bg-[#8737FF] selection:text-white">
+      {/* 0. Full viewport opaque mask to guarantee zero bleedthrough from main site */}
+      <div className="fixed inset-0 bg-[#050407] -z-10 pointer-events-none" aria-hidden="true" />
+
       {/* 1. Immersive Animated Theme Backdrop */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#050407]">
         <ThemeAmbientBackground theme={theme} coverUrl={link.cover_url} />

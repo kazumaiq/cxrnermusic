@@ -154,13 +154,17 @@ const STAR_FRAGMENT_SHADER = /* glsl */ `
 
 export default function CxrnerUniverseCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
   const isHomeRef = useRef<boolean>(pathname === "/");
   const [webglUnsupported, setWebglUnsupported] = useState(false);
 
   useEffect(() => {
     isHomeRef.current = pathname === "/";
   }, [pathname]);
+
+  if (pathname.startsWith("/link") || pathname.startsWith("/admin") || pathname.startsWith("/miniapp")) {
+    return null;
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current;

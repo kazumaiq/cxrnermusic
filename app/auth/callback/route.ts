@@ -40,7 +40,12 @@ export async function GET(request: Request) {
         console.error("[OAuth Callback] exchangeCodeForSession failed:", error.message);
         const targetUrl = new URL("/auth/login", redirectBase);
         targetUrl.searchParams.set("error", "code_exchange_failed");
-        targetUrl.searchParams.set("description", error.message);
+        targetUrl.searchParams.set(
+          "description",
+          error.message.includes("API key")
+            ? "Укажите NEXT_PUBLIC_SUPABASE_ANON_KEY в Vercel для завершения авторизации Google."
+            : error.message
+        );
         return NextResponse.redirect(targetUrl);
       }
 

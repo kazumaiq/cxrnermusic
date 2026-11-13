@@ -5,10 +5,11 @@ import CxrnerUniverseCanvas from "./3d/CxrnerUniverseCanvas";
 
 export default function BackgroundFX() {
   const pathname = usePathname() || "";
-  const isStandaloneSmartLink = /^\/link\/[^/]+/.test(pathname);
+  const isLinkPage = pathname.startsWith("/link");
   const isMiniApp = pathname.startsWith("/miniapp");
+  const isAdmin = pathname.startsWith("/admin");
 
-  if (isStandaloneSmartLink || isMiniApp) {
+  if (isLinkPage || isMiniApp || isAdmin) {
     return null;
   }
 

@@ -3,12 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyAdminRequest, getAdminUser } from "@/lib/admin";
 import { syncTelegramMessage } from "@/lib/telegramSync";
 import {
-  loadBackupTelegramReleases,
-  transformPublicReleaseToDossier,
+  getAllUnifiedReleases,
+  computeCmsStats,
 } from "@/lib/telegramReleases";
 import { DossierRelease } from "@/components/admin/ReleaseDossierModal";
 
-function getServiceSupabase() {
+export function getServiceSupabase() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "https://wjhqtrfsuudiogpwwzgx.supabase.co";
   const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -17,77 +17,6 @@ function getServiceSupabase() {
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqaHF0cmZzdXVkaW9ncHd3emd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTE3OTYsImV4cCI6MjEwMTY4Nzc5Nn0.fNVIC3dZuz7LLUTE0aOnF4ILVKBYXcftdU1ZjXyMZmo";
 
   return createClient(url, key, { auth: { persistSession: false } });
-}
-
-async function getAllUnifiedReleases(supabase: any): Promise<DossierRelease[]> {
-  const map = new Map<string, DossierRelease>();
-
-  // 1. Initial Telegram bot backlog (contains real pending, on_upload, moderation, needfix, rejected)
-  try {
-    const backupReleases = loadBackupTelegramReleases();
-    for (const b of backupReleases) {
-      map.set(b.id, b);
-    }
-  } catch (err) {
-    console.warn("[Admin Moderation] Backup releases load notice:", err);
-  }
-
-  // 2. Load public releases from Supabase (160 approved releases synced from Telegram)
-  try {
-    const { data: pubData, error: pubErr } = await supabase
-      .from("cxrner_public_releases")
-      .select("*")
-      .limit(1000);
-
-    if (!pubErr && Array.isArray(pubData)) {
-      for (const row of pubData) {
-        const item = transformPublicReleaseToDossier(row);
-        map.set(item.id, item);
-      }
-    }
-  } catch (err) {
-    console.warn("[Admin Moderation] cxrner_public_releases load notice:", err);
-  }
-
-  // 3. Load cxrner_forms from Supabase (primary overrides for web actions & new submissions)
-  try {
-    const { data: formsData, error: formsErr } = await supabase
-      .from("cxrner_forms")
-      .select("*")
-      .limit(1000);
-
-    if (!formsErr && Array.isArray(formsData)) {
-      for (const f of formsData) {
-        map.set(f.id, {
-          id: f.id,
-          telegram_id: f.telegram_id,
-          username: f.username,
-          artist_name: f.artist_name,
-          track_name: f.track_name,
-          genre: f.genre,
-          release_type: f.release_type,
-          submission_key: f.submission_key,
-          status: f.status,
-          upc: f.upc,
-          reject_reason: f.reject_reason,
-          moderator_comment: f.moderator_comment,
-          moderation_message_id: f.moderation_message_id,
-          created_at: f.created_at,
-          updated_at: f.updated_at,
-          source: f.source,
-          user_deleted: f.user_deleted,
-          action_history: f.action_history,
-          form_payload: f.form_payload,
-        });
-      }
-    }
-  } catch (err) {
-    console.warn("[Admin Moderation] cxrner_forms load notice:", err);
-  }
-
-  return Array.from(map.values()).sort(
-    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-  );
 }
 
 export async function GET(request: Request) {
@@ -154,19 +83,7 @@ export async function GET(request: Request) {
     }
 
     // Compute comprehensive statistics across the entire dataset
-    const activeReleases = allReleases.filter((f) => !f.user_deleted && f.status !== "deleted");
-
-    const stats = {
-      total: activeReleases.length,
-      all_count: allReleases.length,
-      on_upload: activeReleases.filter((f) => f.status === "on_upload" || f.status === "pending").length,
-      moderation: activeReleases.filter((f) => f.status === "moderation" || f.status === "on_moderation").length,
-      needfix: activeReleases.filter((f) => f.status === "needfix" || f.status === "fix_required").length,
-      approved: activeReleases.filter((f) => f.status === "approved" || f.status === "published").length,
-      rejected: activeReleases.filter((f) => f.status === "rejected").length,
-      archived: allReleases.filter((f) => f.user_deleted || f.status === "deleted").length,
-      with_upc: activeReleases.filter((f) => Boolean(f.upc && f.upc.trim())).length,
-    };
+    const stats = computeCmsStats(allReleases);
 
     return NextResponse.json({ ok: true, forms: filtered, stats });
   } catch (err: any) {

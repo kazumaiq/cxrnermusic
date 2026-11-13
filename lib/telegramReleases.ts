@@ -130,3 +130,92 @@ export function transformPublicReleaseToDossier(row: any): DossierRelease {
     form_payload: payload,
   };
 }
+
+export function computeCmsStats(allReleases: DossierRelease[]) {
+  const activeReleases = allReleases.filter((f) => !f.user_deleted && f.status !== "deleted");
+
+  return {
+    total: activeReleases.length,
+    all_count: allReleases.length,
+    on_upload: activeReleases.filter((f) => f.status === "on_upload" || f.status === "pending").length,
+    moderation: activeReleases.filter((f) => f.status === "moderation" || f.status === "on_moderation").length,
+    needfix: activeReleases.filter((f) => f.status === "needfix" || f.status === "fix_required").length,
+    approved: activeReleases.filter((f) => f.status === "approved" || f.status === "published").length,
+    rejected: activeReleases.filter((f) => f.status === "rejected").length,
+    archived: allReleases.filter((f) => f.user_deleted || f.status === "deleted").length,
+    with_upc: activeReleases.filter((f) => Boolean(f.upc && f.upc.trim())).length,
+  };
+}
+
+export async function getAllUnifiedReleases(supabase?: any): Promise<DossierRelease[]> {
+  const map = new Map<string, DossierRelease>();
+
+  // 1. Initial Telegram bot backlog (contains real pending, on_upload, moderation, needfix, rejected)
+  try {
+    const backupReleases = loadBackupTelegramReleases();
+    for (const b of backupReleases) {
+      map.set(b.id, b);
+    }
+  } catch (err) {
+    console.warn("[Unified Releases] Backup load notice:", err);
+  }
+
+  // 2. Load public releases from Supabase (160 approved releases synced from Telegram)
+  if (supabase) {
+    try {
+      const { data: pubData, error: pubErr } = await supabase
+        .from("cxrner_public_releases")
+        .select("*")
+        .limit(1000);
+
+      if (!pubErr && Array.isArray(pubData)) {
+        for (const row of pubData) {
+          const item = transformPublicReleaseToDossier(row);
+          map.set(item.id, item);
+        }
+      }
+    } catch (err) {
+      console.warn("[Unified Releases] cxrner_public_releases load notice:", err);
+    }
+
+    // 3. Load cxrner_forms from Supabase
+    try {
+      const { data: formsData, error: formsErr } = await supabase
+        .from("cxrner_forms")
+        .select("*")
+        .limit(1000);
+
+      if (!formsErr && Array.isArray(formsData)) {
+        for (const f of formsData) {
+          map.set(f.id, {
+            id: f.id,
+            telegram_id: f.telegram_id,
+            username: f.username,
+            artist_name: f.artist_name,
+            track_name: f.track_name,
+            genre: f.genre,
+            release_type: f.release_type,
+            submission_key: f.submission_key,
+            status: f.status,
+            upc: f.upc,
+            reject_reason: f.reject_reason,
+            moderator_comment: f.moderator_comment,
+            moderation_message_id: f.moderation_message_id,
+            created_at: f.created_at,
+            updated_at: f.updated_at,
+            source: f.source,
+            user_deleted: f.user_deleted,
+            action_history: f.action_history,
+            form_payload: f.form_payload,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[Unified Releases] cxrner_forms load notice:", err);
+    }
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  );
+}

@@ -61,23 +61,29 @@ interface CmsStats {
 
 export default function DistributionCmsClient({
   initialUser,
+  initialForms = [],
+  initialStats,
 }: {
   initialUser?: { email?: string; id?: string } | null;
+  initialForms?: DossierRelease[];
+  initialStats?: CmsStats;
 }) {
   const [activeTab, setActiveTab] = useState<CmsTab>("overview");
-  const [forms, setForms] = useState<DossierRelease[]>([]);
-  const [stats, setStats] = useState<CmsStats>({
-    total: 0,
-    all_count: 0,
-    on_upload: 0,
-    moderation: 0,
-    needfix: 0,
-    approved: 0,
-    rejected: 0,
-    archived: 0,
-    with_upc: 0,
-  });
-  const [loading, setLoading] = useState(true);
+  const [forms, setForms] = useState<DossierRelease[]>(initialForms);
+  const [stats, setStats] = useState<CmsStats>(
+    initialStats || {
+      total: 0,
+      all_count: 0,
+      on_upload: 0,
+      moderation: 0,
+      needfix: 0,
+      approved: 0,
+      rejected: 0,
+      archived: 0,
+      with_upc: 0,
+    }
+  );
+  const [loading, setLoading] = useState(initialForms.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [genreFilter, setGenreFilter] = useState("all");
