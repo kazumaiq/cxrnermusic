@@ -18,14 +18,14 @@ export default function ChromeShell({
 
   if (isStandaloneSmartLink || isMiniApp) {
     return (
-      <div className="relative min-h-screen flex flex-col justify-between overflow-x-hidden">
-        <main className="flex-1">{children}</main>
+      <div className="relative min-h-screen w-full overflow-x-clip">
+        <main className="w-full">{children}</main>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-between overflow-x-hidden">
+    <div className="relative min-h-screen flex flex-col justify-between overflow-x-clip">
       {header}
       <main className="flex-1">{children}</main>
       {footer}

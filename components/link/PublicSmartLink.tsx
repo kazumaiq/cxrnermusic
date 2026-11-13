@@ -235,14 +235,14 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
   const enabledPlatforms = platforms.filter((p) => p.is_enabled !== false);
 
   return (
-    <div className="relative min-h-[100svh] w-full flex flex-col justify-between items-center py-8 sm:py-14 px-4 overflow-x-hidden selection:bg-[#8737FF] selection:text-white">
+    <div className="relative min-h-[100dvh] w-full flex flex-col items-center pt-12 pb-12 sm:py-14 px-4 overflow-x-clip selection:bg-[#8737FF] selection:text-white">
       {/* 1. Immersive Animated Theme Backdrop */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#050407]">
         <ThemeAmbientBackground theme={theme} coverUrl={link.cover_url} />
       </div>
 
       {/* 2. Top Navigation Bar */}
-      <header className="relative z-10 w-full max-w-md flex items-center justify-between pb-6">
+      <header className="relative z-10 w-full max-w-md flex items-center justify-between pb-5">
         <Link
           href="/"
           className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.22em] text-[#D9D9E2]/70 hover:text-white transition"
@@ -270,7 +270,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
       </header>
 
       {/* 3. Main Smart Link Card Container */}
-      <main className={`relative z-10 w-full max-w-md rounded-3xl p-4 sm:p-8 ${theme.cardClass} space-y-5 sm:space-y-6 my-auto`}>
+      <main className={`relative z-10 w-full max-w-md rounded-3xl p-4 sm:p-8 ${theme.cardClass} space-y-5 sm:space-y-6`}>
         {/* Cover Art Presentation */}
         <div className={`relative group/cover w-full aspect-square overflow-hidden bg-black/40 select-none ${theme.coverFrameClass}`}>
           <img

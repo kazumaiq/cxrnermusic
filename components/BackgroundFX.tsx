@@ -1,8 +1,17 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import CxrnerUniverseCanvas from "./3d/CxrnerUniverseCanvas";
 
 export default function BackgroundFX() {
+  const pathname = usePathname() || "";
+  const isStandaloneSmartLink = /^\/link\/[^/]+/.test(pathname);
+  const isMiniApp = pathname.startsWith("/miniapp");
+
+  if (isStandaloneSmartLink || isMiniApp) {
+    return null;
+  }
+
   return (
     <div
       className="pointer-events-none fixed inset-0 overflow-hidden select-none bg-[#050407]"
