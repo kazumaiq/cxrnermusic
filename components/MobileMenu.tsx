@@ -177,23 +177,44 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
           </Link>
 
           {isLoggedIn ? (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/dashboard"
-                onClick={() => setIsOpen(false)}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 border border-white/20 font-mono text-xs uppercase tracking-wider text-white transition"
-              >
-                <User className="w-4 h-4 text-[#B46BFF]" />
-                Кабинет артиста
-              </Link>
-              <form action="/auth/logout" method="post">
-                <button
-                  type="submit"
-                  className="px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs uppercase tracking-wider text-[#D9D9E2]/65 hover:text-red-400 transition"
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                <Link
+                  href="/cabinet/profile"
+                  onClick={() => setIsOpen(false)}
+                  className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white flex items-center justify-center gap-1.5 hover:bg-white/10 transition"
                 >
-                  Выйти
-                </button>
-              </form>
+                  <User className="w-3.5 h-3.5 text-[#B46BFF]" />
+                  <span>CXRNER ID</span>
+                </Link>
+                <Link
+                  href="/cabinet/drop/inventory"
+                  onClick={() => setIsOpen(false)}
+                  className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white flex items-center justify-center gap-1.5 hover:bg-white/10 transition"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#00F0FF]" />
+                  <span>DROP Игра</span>
+                </Link>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 border border-white/20 font-mono text-xs uppercase tracking-wider text-white transition"
+                >
+                  <User className="w-4 h-4 text-[#B46BFF]" />
+                  Кабинет артиста
+                </Link>
+                <form action="/auth/logout" method="post">
+                  <button
+                    type="submit"
+                    className="px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs uppercase tracking-wider text-[#D9D9E2]/65 hover:text-red-400 transition"
+                  >
+                    Выйти
+                  </button>
+                </form>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">

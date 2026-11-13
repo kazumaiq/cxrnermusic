@@ -4,6 +4,7 @@ import GlowButton from "../../components/GlowButton";
 import DashboardReleasesTable from "../../components/DashboardReleasesTable";
 import TelegramSyncCard from "../../components/TelegramSyncCard";
 import CxrnerLinkHeroCard from "../../components/link/CxrnerLinkHeroCard";
+import CabinetNav from "../../components/CabinetNav";
 import { getSupabaseServerClient } from "../../lib/supabaseServer";
 import { getUserSmartLinks } from "../../lib/smartLinksDb";
 import { redirect } from "next/navigation";
@@ -132,8 +133,10 @@ export default async function DashboardPage() {
   const userSmartLinks = await getUserSmartLinks(user.id);
 
   return (
-    <div className="section-padding pt-28 sm:pt-36">
-      <Container>
+    <div className="min-h-screen pt-16 pb-24">
+      <CabinetNav />
+      <div className="pt-8">
+        <Container>
         {/* Welcome Header */}
         <div className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-8 border-b border-white/10">
           <div className="flex items-start gap-4">
@@ -269,6 +272,7 @@ export default async function DashboardPage() {
           </div>
         )}
       </Container>
+      </div>
     </div>
   );
 }

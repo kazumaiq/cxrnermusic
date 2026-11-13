@@ -8,6 +8,7 @@ import { User, ArrowUpRight, Radio } from "lucide-react";
 const navItems = [
   { label: "Главная", href: "/" },
   { label: "CXRNER LINK", href: "/link" },
+  { label: "DROP", href: "/cabinet/drop/inventory" },
   { label: "О лейбле", href: "/#about" },
   { label: "Релизы", href: "/#releases" },
   { label: "Артисты", href: "/#artists" },
