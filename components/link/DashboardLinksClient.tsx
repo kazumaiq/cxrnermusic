@@ -135,38 +135,38 @@ export default function DashboardLinksClient({ initialLinks }: DashboardLinksCli
       {/* 1. Metric Overview Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
         <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/60 mb-1">
+          <p className="font-sans text-xs font-medium text-[#D9D9E2]/70 mb-1">
             Всего ссылок
           </p>
-          <p className="font-heavy text-2xl sm:text-3xl text-white">{totalLinks}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-white">{totalLinks}</p>
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-[#00F0FF] mb-1">
+          <p className="font-sans text-xs font-medium text-[#00F0FF] mb-1">
             Активных
           </p>
-          <p className="font-heavy text-2xl sm:text-3xl text-[#00F0FF]">{activeLinks}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-[#00F0FF]">{activeLinks}</p>
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-[#B46BFF] mb-1">
+          <p className="font-sans text-xs font-medium text-[#B46BFF] mb-1">
             Просмотров
           </p>
-          <p className="font-heavy text-2xl sm:text-3xl text-white">{totalViews.toLocaleString("ru-RU")}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-white">{totalViews.toLocaleString("ru-RU")}</p>
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-[#8737FF] mb-1">
+          <p className="font-sans text-xs font-medium text-[#8737FF] mb-1">
             Переходов
           </p>
-          <p className="font-heavy text-2xl sm:text-3xl text-[#B46BFF]">{totalClicks.toLocaleString("ru-RU")}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-[#B46BFF]">{totalClicks.toLocaleString("ru-RU")}</p>
         </div>
 
         <div className="col-span-2 md:col-span-1 p-4 sm:p-5 rounded-2xl border border-[#B46BFF]/30 bg-[#8737FF]/15 backdrop-blur-md">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2] mb-1">
+          <p className="font-sans text-xs font-medium text-[#D9D9E2] mb-1">
             Pre-save заявок
           </p>
-          <p className="font-heavy text-2xl sm:text-3xl text-white">{totalPresaves.toLocaleString("ru-RU")}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-white">{totalPresaves.toLocaleString("ru-RU")}</p>
         </div>
       </div>
 
@@ -238,25 +238,25 @@ export default function DashboardLinksClient({ initialLinks }: DashboardLinksCli
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-heavy text-base text-white uppercase truncate">
+                      <h4 className="font-display font-bold text-base text-white truncate">
                         {link.title}
                       </h4>
                       {link.status === "archived" ? (
-                        <span className="px-2 py-0.5 rounded bg-white/10 font-mono text-[9px] uppercase tracking-wider text-[#D9D9E2]/60">
+                        <span className="px-2 py-0.5 rounded bg-white/10 font-sans text-xs uppercase tracking-wider text-[#D9D9E2]/60 font-semibold">
                           В архиве
                         </span>
                       ) : link.is_out_now ? (
-                        <span className="px-2 py-0.5 rounded bg-[#00F0FF]/15 border border-[#00F0FF]/40 font-mono text-[9px] uppercase tracking-wider text-[#00F0FF]">
+                        <span className="px-2 py-0.5 rounded bg-[#00F0FF]/15 border border-[#00F0FF]/40 font-sans text-xs uppercase tracking-wider text-[#00F0FF] font-bold">
                           OUT NOW
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded bg-[#B46BFF]/15 border border-[#B46BFF]/40 font-mono text-[9px] uppercase tracking-wider text-[#B46BFF]">
+                        <span className="px-2 py-0.5 rounded bg-[#B46BFF]/15 border border-[#B46BFF]/40 font-sans text-xs uppercase tracking-wider text-[#B46BFF] font-bold">
                           PRE-SAVE
                         </span>
                       )}
                     </div>
 
-                    <p className="font-mono text-xs text-[#D9D9E2]/70 truncate mt-0.5">
+                    <p className="font-sans text-xs text-[#D9D9E2]/75 font-medium truncate mt-0.5">
                       {link.artist}
                     </p>
 

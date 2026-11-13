@@ -63,10 +63,10 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-heavy font-bold text-sm tracking-[0.24em] text-white">
+              <span className="font-display font-black text-sm tracking-wider text-white">
                 CXRNER MUSIC
               </span>
-              <span className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#B46BFF]">
+              <span className="font-sans text-[8px] font-semibold uppercase tracking-wider text-[#B46BFF]">
                 RECORD LABEL & DISTRIBUTION
               </span>
             </div>
@@ -94,18 +94,18 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
             className="p-4 rounded-2xl bg-gradient-to-r from-[#8737FF]/25 via-[#160B28]/90 to-[#090611] border border-[#B46BFF]/50 shadow-[0_0_24px_rgba(135,55,255,0.25)] flex items-center justify-between gap-3 group active:scale-[0.98] transition"
           >
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-[#00F0FF] font-bold">
+              <div className="inline-flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-[#00F0FF] font-bold">
                 <Radio className="w-3 h-3 text-[#00F0FF] animate-pulse" />
-                <span>НОВЫЙ СЕРВИС · NEW</span>
+                <span>СМАРТ-ССЫЛКИ · NEW</span>
               </div>
-              <h4 className="font-heavy text-lg uppercase text-white tracking-wide flex items-center gap-2">
+              <h4 className="font-display font-black text-base uppercase text-white tracking-wide flex items-center gap-2">
                 <span>CXRNER LINK</span>
-                <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-[#8737FF] text-white">
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-sans font-bold bg-[#8737FF] text-white">
                   LIVE
                 </span>
               </h4>
-              <p className="font-sans text-[11px] text-[#D9D9E2]/80 leading-tight">
-                Умные смарт-страницы релизов и Pre-save для артистов
+              <p className="font-sans text-xs text-[#D9D9E2]/80 leading-tight">
+                Умные страницы релизов и Pre-save для артистов
               </p>
             </div>
             <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0 group-hover:bg-[#8737FF] transition">
@@ -113,8 +113,8 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
             </div>
           </Link>
 
-          <p className="font-mono text-[9px] uppercase tracking-[0.28em] text-[#D9D9E2]/45 px-2 mt-2">
-            // МЕНЮ НАВИГАЦИИ
+          <p className="font-sans text-xs uppercase tracking-wider font-semibold text-[#D9D9E2]/50 px-2 mt-2">
+            НАВИГАЦИЯ
           </p>
 
           <div className="flex flex-col gap-1">
@@ -126,7 +126,7 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl font-heavy text-xl tracking-wide uppercase transition ${
+                  className={`flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl font-display font-bold text-base tracking-normal uppercase transition ${
                     isActive
                       ? "bg-[#8737FF]/20 text-white border border-[#B46BFF]/45"
                       : isLink

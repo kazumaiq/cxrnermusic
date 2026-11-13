@@ -366,11 +366,11 @@ export default function SubmitReleasePage() {
               priority
             />
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full tech-badge font-mono text-[10px] uppercase tracking-widest text-purple-300 mb-3 border border-purple-500/30 bg-purple-500/10">
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            [CXR::DIGITAL_DISTRIBUTION]
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full font-sans text-xs uppercase tracking-wider text-[#B46BFF] mb-3 border border-[#B46BFF]/30 bg-[#8737FF]/10 font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-[#B46BFF]" />
+            ДИСТРИБУЦИЯ РЕЛИЗОВ
           </span>
-          <h1 className="font-gothic text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase tracking-tight">
+          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase tracking-tight">
             Отправить релиз
           </h1>
           <p className="mt-2 text-sm text-neutral-400 max-w-lg mx-auto font-sans">
@@ -399,10 +399,10 @@ export default function SubmitReleasePage() {
             </div>
 
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white font-gothic uppercase tracking-wide">
+              <h2 className="text-2xl sm:text-3xl font-black text-white font-display uppercase tracking-tight">
                 Релиз принят на модерацию
               </h2>
-              <p className="mt-2 text-sm text-neutral-400 max-w-md mx-auto font-sans">
+              <p className="mt-2 text-sm text-[#D9D9E2]/80 max-w-md mx-auto font-sans">
                 Ваша анкета на трек <strong className="text-white">«{trackName}»</strong> успешно зарегистрирована в системе CXRNER MUSIC.
               </p>
             </div>
@@ -414,7 +414,7 @@ export default function SubmitReleasePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">Статус:</span>
-                <span className="text-neutral-300 font-semibold">[PENDING // МОДЕРАЦИЯ]</span>
+                <span className="text-[#00F0FF] font-semibold">На модерации</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">Сроки проверки:</span>

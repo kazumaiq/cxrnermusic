@@ -37,11 +37,11 @@ export default function FaqAccordion({ items }: FaqAccordionProps) {
               className="w-full px-3 sm:px-6 py-5 sm:py-6 flex items-center justify-between gap-4 text-left focus:outline-none group"
               aria-expanded={isOpen}
             >
-              <div className="flex items-baseline gap-4 sm:gap-6">
-                <span className="font-mono text-xs font-bold tracking-widest text-[#B46BFF]">
-                  [{indexStr}]
+              <div className="flex items-baseline gap-3.5 sm:gap-5">
+                <span className="font-mono text-xs font-semibold tracking-wider text-[#B46BFF] select-none">
+                  {indexStr}
                 </span>
-                <span className="font-heavy text-lg sm:text-2xl text-white uppercase tracking-wide group-hover:text-[#B46BFF] transition">
+                <span className="font-sans font-semibold text-base sm:text-lg md:text-xl text-white group-hover:text-[#B46BFF] transition leading-snug">
                   {item.question}
                 </span>
               </div>

@@ -8,10 +8,10 @@ export type FaqItem = {
 export type StatItem = { label: string; value: number; suffix?: string; display?: string };
 
 export const stats: StatItem[] = [
-  { label: "Стримов", value: 900, suffix: "к+" },
+  { label: "Стримов", value: 900, suffix: "K+" },
   { label: "Артистов", value: 280, suffix: "+" },
-  { label: "Релизов", value: 350 },
-  { label: "Стран мира", value: 256 },
+  { label: "Релизов", value: 350, suffix: "+" },
+  { label: "DSP-платформ", value: 150, suffix: "+" },
 ];
 
 export type WhyItem = { title: string; description: string };
@@ -64,7 +64,7 @@ export const faqItems: FaqItem[] = [
   { question: "Какой процент роялти?", answer: "Работаем по системе 70/30 в пользу артиста." },
   { question: "С какими жанрами вы работаете?", answer: "Работаем с артистами всех жанров." },
   { question: "Можно ли выпускаться через другой лейбл?", answer: "Да. Наш контракт не запрещает выпускать треки через другие лейблы." },
-  { question: "Как выпустить трек через CXRNER MUSIC?", answer: "Отправьте релиз через Telegram-бота — команда проверит материалы и вернётся с ответом.", links: [{ label: "Открыть Telegram-бота", href: "https://t.me/moder_cxrner_bot" }] },
+  { question: "Как выпустить трек через CXRNER MUSIC?", answer: "Отправьте заявку прямо на сайте или через официального Telegram-бота. A&R-команда проверит материалы в течение 24–72 часов.", links: [{ label: "Отправить заявку онлайн", href: "/submit-release" }, { label: "Telegram-бот", href: "https://t.me/moder_cxrner_bot" }] },
   { question: "Сколько длится модерация и отгрузка?", answer: "Модерация обычных релизов — до 3 дней. Отгрузка релиза — от 12 часов." },
   { question: "За сколько дней отправлять релиз?", answer: "Минимум за 3 дня до даты выхода. Для промо рекомендуем планировать релиз за 3–4 недели." },
   { question: "Требования к отгрузке", answer: "Перед отправкой убедитесь, что:", bullets: ["трек полностью завершён", "есть скриншот проекта (DAW)", "анкета заполнена корректно"] },
@@ -73,5 +73,5 @@ export const faqItems: FaqItem[] = [
   { question: "Какие есть дополнительные возможности?", answer: "Для артистов доступны статистика по трекам, усиленное промо, редактирование релизов и оформление карточек." },
   { question: "YouTube и TikTok", answer: "Помогаем с Official Artist Channel на YouTube и верификацией в TikTok. По вопросам пишите @kazumaiq." },
   { question: "Когда выплачиваются роялти?", answer: "Выплаты происходят по квартальному графику: 15 марта, 15 июня, 15 сентября и 15 декабря." },
-  { question: "Личный кабинет артиста", answer: "Для создания личного кабинета напишите @kazumaiq." },
+  { question: "Как войти в личный кабинет?", answer: "Войдите на сайте через Google или Telegram. В кабинете доступны статусы ваших релизов, коды UPC и генератор смарт-ссылок CXRNER LINK.", links: [{ label: "Войти в кабинет", href: "/auth/login" }] },
 ];

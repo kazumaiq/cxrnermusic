@@ -27,7 +27,7 @@ export default function CxrnerLinkSection() {
         <div className="mb-14 max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 font-mono text-xs uppercase tracking-[0.24em] text-[#D9D9E2]">
             <Sparkles className="w-3.5 h-3.5 text-[#B46BFF]" />
-            <span>[03] SMART LINKS &amp; PRE-SAVE PLATFORM</span>
+            <span>СМАРТ-ССЫЛКИ · PRE-SAVE · 150+ ПЛОЩАДОК</span>
             <span className="px-1.5 py-0.2 rounded bg-[#00F0FF] text-black text-[9px] font-bold">
               NEW
             </span>
@@ -43,7 +43,7 @@ export default function CxrnerLinkSection() {
           </h2>
 
           <p className="text-sm sm:text-base text-[#D9D9E2]/75 max-w-2xl leading-relaxed">
-            Собственный аналог BandLink и Feature.fm внутри экосистемы CXRNER MUSIC. Создавайте страницы релизов за 30 секунд по коду UPC, настраивайте дизайн в реальном времени, запускайте Pre-save кампании и отслеживайте реальные переходы на 150+ стримингов.
+            Собственная платформа смарт-ссылок нового поколения внутри экосистемы CXRNER MUSIC. Создавайте персональные страницы релизов за 30 секунд по коду UPC, настраивайте дизайн в реальном времени, запускайте Pre-save кампании и отслеживайте переходы фанатов на 150+ музыкальных площадок.
           </p>
         </div>
 
@@ -136,7 +136,7 @@ export default function CxrnerLinkSection() {
                   Автопоиск по UPC / EAN
                 </h3>
                 <p className="text-xs text-[#D9D9E2]/75 leading-relaxed font-sans">
-                  Вставьте штрихкод релиза — система с контрольной суммой Modulo-10 мгновенно подтянет официальную обложку, метаданные и прямые ссылки на Apple Music и Deezer.
+                  Вставьте UPC код релиза — официальная обложка, метаданные и ссылки на музыкальные площадки подтянутся автоматически за считанные секунды.
                 </p>
               </div>
 
@@ -162,7 +162,7 @@ export default function CxrnerLinkSection() {
                   Живой Page Builder
                 </h3>
                 <p className="text-xs text-[#D9D9E2]/75 leading-relaxed font-sans">
-                  Визуальный конструктор с мобильным предпросмотром: 4 дизайн-темы (CYBER, CINEMATIC, MINIMAL, BRUTAL), слайдер размытия фона и стили кнопок.
+                  Визуальный конструктор с мгновенным мобильным предпросмотром: 5 эстетичных тем оформления, кастомизация обложки, фона и кнопок под стиль вашего релиза.
                 </p>
               </div>
 
@@ -175,7 +175,7 @@ export default function CxrnerLinkSection() {
                   Честная аналитика
                 </h3>
                 <p className="text-xs text-[#D9D9E2]/75 leading-relaxed font-sans">
-                  Автоматическая фильтрация ботов, клики по каждой площадке (Spotify, Яндекс, VK), географическая карта посетителей и отслеживание конверсии (CTR).
+                  Умная фильтрация ботов, клики по каждой конкретной площадке (Яндекс, Spotify, Apple Music, VK), география слушателей и конверсия в прослушивания.
                 </p>
               </div>
             </div>

@@ -105,7 +105,7 @@ export const SMART_LINK_THEMES: SmartLinkThemeSpec[] = [
       "border border-amber-400/25 bg-[#190b05]/75 backdrop-blur-2xl shadow-[0_20px_80px_rgba(234,88,12,0.22)]",
     coverFrameClass:
       "rounded-2xl border border-amber-300/30 shadow-[0_14px_40px_rgba(245,158,11,0.25)]",
-    titleClass: "font-serif tracking-normal text-amber-50 font-bold",
+    titleClass: "font-sans font-extrabold tracking-tight text-amber-50",
     artistClass: "font-sans text-amber-200/80 tracking-[0.14em] uppercase",
     buttonClass:
       "rounded-2xl border border-amber-400/20 bg-[#2a1308]/75 hover:bg-[#3f1c0b]/90 hover:border-amber-400/55 hover:shadow-[0_0_20px_rgba(245,158,11,0.18)]",

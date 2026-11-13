@@ -338,14 +338,14 @@ export default function InteractiveAudioPreview({ track }: AudioPreviewProps) {
                 {isPlaying ? "LIVE AUDIO -> 3D CORE" : "FEATURED RELEASE"}
               </span>
             </div>
-            <h4 className="font-heavy text-sm sm:text-base tracking-wide text-white uppercase truncate leading-tight mt-0.5">
+            <h4 className="font-display font-bold text-sm sm:text-base tracking-tight text-white uppercase truncate leading-tight mt-0.5">
               {track.title}
             </h4>
             <a
               href={yandexArtistUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono text-[11px] text-[#B46BFF] hover:text-white transition truncate block"
+              className="font-sans text-xs text-[#B46BFF] hover:text-white transition truncate block font-medium"
             >
               {track.artist}
             </a>

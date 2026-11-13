@@ -149,16 +149,16 @@ export default async function DashboardPage() {
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                <p className="font-mono text-xs uppercase tracking-[0.25em] text-purple-400 font-semibold">
-                  // ЛИЧНЫЙ КАБИНЕТ АРТИСТА
+                <span className="w-2 h-2 rounded-full bg-[#B46BFF] animate-pulse" />
+                <p className="font-sans text-xs uppercase tracking-wider text-[#B46BFF] font-semibold">
+                  ЛИЧНЫЙ КАБИНЕТ АРТИСТА
                 </p>
               </div>
-              <h1 className="font-gothic text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase">
+              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight">
                 {artistName}
               </h1>
-              <p className="mt-1 text-xs sm:text-sm text-neutral-400 font-sans">
-                Управление вашими релизами, отслеживание модерации и официальных кодов UPC/ISRC.
+              <p className="mt-1 text-xs sm:text-sm text-[#D9D9E2]/75 font-sans">
+                Управление релизами, отслеживание статуса модерации и создание смарт-ссылок CXRNER LINK.
               </p>
             </div>
           </div>
@@ -166,7 +166,7 @@ export default async function DashboardPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/submit-release"
-              className="btn-void-primary inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono text-xs uppercase tracking-widest font-bold shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-95 transition"
+              className="btn-energy inline-flex items-center gap-2 px-6 py-3 rounded-full font-sans text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(135,55,255,0.35)] active:scale-95 transition"
             >
               <span>Отправить новый релиз</span>
               <ArrowUpRight className="w-4 h-4" />
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
               href="https://t.me/moder_cxrner_bot"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-void-ghost inline-flex items-center gap-1.5 px-4 py-3 rounded-full border border-white/15 font-mono text-xs uppercase tracking-wider text-neutral-300 hover:text-white transition"
+              className="btn-void-ghost inline-flex items-center gap-1.5 px-4 py-3 rounded-full border border-white/15 font-sans text-xs uppercase tracking-wider text-neutral-300 hover:text-white transition"
             >
               <Send className="w-3.5 h-3.5 text-neutral-400" />
               <span>Бот модерации</span>

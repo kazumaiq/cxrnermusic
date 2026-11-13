@@ -30,7 +30,7 @@ const PIPELINE = [
     title: "Отгрузка на 150+ DSP",
     metric: "от 12 часов",
     detail:
-      "Присваиваем официальные коды UPC и ISRC. Трек доставляется в Яндекс Музыку, VK Музыку, Spotify, Apple Music, TikTok, YouTube Music и 256 территорий.",
+      "Присваиваем официальные коды UPC и ISRC. Трек доставляется в Яндекс Музыку, VK Музыку, Spotify, Apple Music, TikTok, YouTube Music и на все мировые площадки.",
   },
   {
     code: "04",

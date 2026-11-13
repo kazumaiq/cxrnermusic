@@ -46,15 +46,15 @@ export default async function DashboardLinksPage() {
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-[#B46BFF]">
-              <Radio className="w-3 h-3 animate-pulse" />
-              <span>MUSIC SMART LINKS PLATFORM</span>
+            <div className="inline-flex items-center gap-2 font-sans text-xs font-semibold uppercase tracking-wider text-[#B46BFF]">
+              <Radio className="w-3 h-3 animate-pulse text-[#00F0FF]" />
+              <span>CXRNER LINK PLATFORM</span>
             </div>
-            <h1 className="font-heavy text-3xl sm:text-4xl uppercase tracking-tight text-white">
+            <h1 className="font-display font-black text-2xl sm:text-3xl md:text-4xl uppercase tracking-tight text-white">
               Мои смарт-ссылки
             </h1>
-            <p className="text-xs sm:text-sm text-[#D9D9E2]/70">
-              Создавайте, настраивайте и анализируйте страницы релизов и Pre-save кампании.
+            <p className="text-xs sm:text-sm text-[#D9D9E2]/80 font-sans">
+              Управление смарт-страницами релизов, настройка дизайна и раздельная аналитика переходов.
             </p>
           </div>
         </div>

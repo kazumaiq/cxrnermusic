@@ -51,7 +51,7 @@ export default function ArtistsShowcase({ artists }: ArtistsShowcaseProps) {
               ))}
             </div>
 
-            <h3 className="font-heavy text-4xl lg:text-6xl text-white uppercase tracking-tight leading-none">
+            <h3 className="font-display font-black text-3xl lg:text-5xl text-white uppercase tracking-tight leading-none">
               {activeArtist.name}
             </h3>
 
@@ -124,12 +124,12 @@ export default function ArtistsShowcase({ artists }: ArtistsShowcaseProps) {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#050407] via-[#050407]/20 to-transparent opacity-80" />
 
-                  <div className="absolute top-2.5 left-2.5 font-mono text-[9px] uppercase tracking-[0.22em] px-2.5 py-0.5 rounded-full bg-black/75 border border-white/15 text-[#D9D9E2]">
-                    [{indexStr}]
+                  <div className="absolute top-2.5 left-2.5 font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/75 border border-white/15 text-[#D9D9E2]">
+                    {indexStr}
                   </div>
 
                   <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-[#B46BFF] font-bold">
+                    <span className="font-sans text-[11px] text-[#B46BFF] font-semibold">
                       {artist.listeners} слушателей
                     </span>
                     <ArrowUpRight className="w-4 h-4 text-white/70 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
@@ -137,7 +137,7 @@ export default function ArtistsShowcase({ artists }: ArtistsShowcaseProps) {
                 </Link>
 
                 <Link href={`/artists/${artist.id}`} className="block">
-                  <h4 className="font-heavy text-2xl text-white group-hover:text-[#B46BFF] transition uppercase tracking-wide truncate">
+                  <h4 className="font-display font-bold text-xl text-white group-hover:text-[#B46BFF] transition uppercase tracking-tight truncate">
                     {artist.name}
                   </h4>
                 </Link>

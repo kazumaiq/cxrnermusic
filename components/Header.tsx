@@ -47,17 +47,17 @@ export default async function Header() {
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-heavy font-bold text-sm sm:text-base tracking-[0.24em] text-white group-hover:text-[#B46BFF] transition">
+              <span className="font-display font-black text-sm sm:text-base tracking-wider text-white group-hover:text-[#B46BFF] transition">
                 CXRNER
               </span>
-              <span className="font-mono text-[8px] tracking-[0.28em] uppercase text-[#D9D9E2]/60 -mt-0.5 hidden sm:block">
+              <span className="font-sans text-[8px] tracking-[0.2em] font-semibold uppercase text-[#D9D9E2]/60 -mt-0.5 hidden sm:block">
                 MUSIC UNIVERSE
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-[11px] font-mono uppercase tracking-[0.16em] text-[#D9D9E2]/75">
+          <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-xs font-sans font-medium text-[#D9D9E2]/80">
             {navItems.map((item) => {
               const isLink = item.href === "/link";
               return (
@@ -125,7 +125,7 @@ export default async function Header() {
           <div className="flex md:hidden items-center gap-2">
             <Link
               href="/link"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#B46BFF]/50 bg-gradient-to-r from-[#8737FF]/35 to-[#160B28] font-mono text-[11px] uppercase font-bold text-white tracking-wider shadow-[0_0_15px_rgba(135,55,255,0.4)] active:scale-95 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#B46BFF]/50 bg-gradient-to-r from-[#8737FF]/35 to-[#160B28] font-sans text-xs uppercase font-bold text-white tracking-wider shadow-[0_0_15px_rgba(135,55,255,0.4)] active:scale-95 transition"
             >
               <Radio className="w-3 h-3 text-[#00F0FF] animate-pulse" />
               <span>LINK</span>

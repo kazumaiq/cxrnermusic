@@ -52,18 +52,18 @@ export default function CxrnerLinkHeroCard({ activeCount = 0 }: CxrnerLinkHeroCa
 
           {/* Heavy Headline */}
           <div>
-            <h2 className="font-heavy text-3xl sm:text-4xl md:text-5xl uppercase tracking-tight text-white leading-none">
+            <h2 className="font-display font-black text-2xl sm:text-3xl md:text-4xl uppercase tracking-tight text-white leading-tight">
               <span className="bg-gradient-to-r from-white via-[#EAD5FF] to-[#B46BFF] bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(180,107,255,0.4)]">
                 CXRNER LINK™
               </span>
             </h2>
-            <p className="mt-2 text-xs sm:text-sm md:text-base text-[#D9D9E2]/80 font-sans leading-relaxed">
-              Музыкальные смарт-страницы в стиле <span className="text-white font-semibold">STMPD RCRDS</span> и <span className="text-white font-semibold">Narvent</span>. Автопоиск по UPC, динамический обратный отсчёт до секунды выхода и раздельная аналитика нажатия каждой кнопки для артиста.
+            <p className="mt-2 text-xs sm:text-sm md:text-base text-[#D9D9E2]/85 font-sans leading-relaxed">
+              Умные страницы релизов за 30 секунд. Автопоиск по UPC, динамический таймер Pre-save до секунды премьеры и раздельная аналитика кликов по всем музыкальным площадкам.
             </p>
           </div>
 
           {/* Feature Pills */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/70">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-sans text-xs font-semibold text-[#D9D9E2]/80">
             <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10">
               <Zap className="w-3.5 h-3.5 text-[#00F0FF]" />
               <span>UPC Автопоиск</span>
@@ -86,7 +86,7 @@ export default function CxrnerLinkHeroCard({ activeCount = 0 }: CxrnerLinkHeroCa
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <Link
               href="/dashboard/links/new"
-              className="btn-energy group relative inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-mono text-xs uppercase font-bold tracking-wider text-white shadow-[0_0_30px_rgba(135,55,255,0.45)] hover:shadow-[0_0_45px_rgba(135,55,255,0.65)] active:scale-95 transition"
+              className="btn-energy group relative inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-sans text-xs uppercase font-bold tracking-wider text-white shadow-[0_0_30px_rgba(135,55,255,0.45)] hover:shadow-[0_0_45px_rgba(135,55,255,0.65)] active:scale-95 transition"
             >
               <Zap className="w-4 h-4 text-[#00F0FF] group-hover:rotate-12 transition-transform" />
               <span>Создать Smart Link</span>

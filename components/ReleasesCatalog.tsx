@@ -292,11 +292,11 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
                   <span>SELECTED RELEASE // CXRNER CATALOG</span>
                 </div>
 
-                <h3 className="font-heavy text-4xl sm:text-5xl md:text-6xl text-white uppercase tracking-tight leading-[0.95] transition-all duration-300">
+                <h3 className="font-display font-black text-3xl sm:text-4xl md:text-5xl text-white uppercase tracking-tight leading-[0.95] transition-all duration-300">
                   {spotlight.title}
                 </h3>
 
-                <p className="mt-2 font-mono text-sm sm:text-base uppercase tracking-[0.2em] text-[#D9D9E2]/80">
+                <p className="mt-2 font-sans text-base sm:text-lg font-semibold text-[#00F0FF]">
                   {spotlight.artist}
                 </p>
               </div>
@@ -417,14 +417,14 @@ export default function ReleasesCatalog({ initialReleases }: ReleasesCatalogProp
                     cover={release.cover}
                     alt={`${release.title} — ${release.artist}`}
                     active={isActive}
-                    indexLabel={`// ${num}`}
+                    indexLabel={num}
                   />
 
                   <div className="mt-3 px-0.5">
-                    <h4 className="font-heavy text-lg sm:text-xl text-white group-hover:text-[#B46BFF] transition uppercase tracking-wide truncate">
+                    <h4 className="font-display font-bold text-base sm:text-lg text-white group-hover:text-[#B46BFF] transition uppercase tracking-tight truncate">
                       {release.title}
                     </h4>
-                    <p className="font-mono text-[11px] text-[#D9D9E2]/65 truncate mt-0.5">
+                    <p className="font-sans text-xs text-[#D9D9E2]/75 truncate mt-0.5">
                       {release.artist}
                     </p>
                   </div>

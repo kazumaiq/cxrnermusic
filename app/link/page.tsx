@@ -20,24 +20,24 @@ export default function LinkLandingPage() {
       <Container className="relative z-10 space-y-20">
         {/* Hero Banner */}
         <div className="text-center max-w-3xl mx-auto space-y-6 pt-8">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 font-mono text-xs uppercase tracking-[0.24em] text-[#D9D9E2]">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 font-sans text-xs uppercase tracking-wider text-[#D9D9E2] font-semibold">
             <Sparkles className="w-3.5 h-3.5 text-[#B46BFF]" />
-            <span>MUSIC SMART LINKS &amp; PRE-SAVE PLATFORM</span>
+            <span>МУЗЫКАЛЬНЫЕ СМАРТ-ССЫЛКИ И PRE-SAVE</span>
           </div>
 
-          <h1 className="font-heavy text-5xl sm:text-7xl lg:text-8xl uppercase tracking-tight leading-[0.9]">
+          <h1 className="font-display font-black text-5xl sm:text-7xl lg:text-8xl uppercase tracking-tight leading-[0.9]">
             <span className="block text-white">CXRNER</span>
             <span className="block text-violet-energy">LINK</span>
           </h1>
 
-          <p className="text-base sm:text-lg text-[#D9D9E2]/80 max-w-xl mx-auto leading-relaxed">
-            Собственная платформа смарт-ссылок нового поколения. Собирайте переходы на 150+ музыкальных витрин, запускайте автоматические Pre-save кампании и отслеживайте конверсию фанатов.
+          <p className="text-base sm:text-lg text-[#D9D9E2]/85 max-w-xl mx-auto leading-relaxed font-sans">
+            Собственная платформа умных страниц релизов. Собирайте переходы на 150+ музыкальных витрин, запускайте Pre-save перед премьерой и анализируйте каждый клик фанатов.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/dashboard/links/new"
-              className="btn-energy px-8 py-4 rounded-full font-mono text-xs uppercase tracking-[0.2em] font-bold inline-flex items-center gap-2.5 shadow-[0_0_30px_rgba(135,55,255,0.4)]"
+              className="btn-energy px-8 py-4 rounded-full font-sans text-xs sm:text-sm uppercase tracking-wider font-bold inline-flex items-center gap-2.5 shadow-[0_0_30px_rgba(135,55,255,0.4)]"
             >
               <span>Создать Smart Link</span>
               <ArrowRight className="w-4 h-4" />
@@ -45,7 +45,7 @@ export default function LinkLandingPage() {
 
             <Link
               href="/dashboard/links"
-              className="btn-void-ghost px-8 py-4 font-mono text-xs uppercase tracking-[0.18em]"
+              className="btn-void-ghost px-8 py-4 font-sans text-xs sm:text-sm uppercase tracking-wider border border-white/15 hover:border-white/30 text-white"
             >
               <span>Мои ссылки</span>
             </Link>
@@ -58,10 +58,10 @@ export default function LinkLandingPage() {
             <div className="w-10 h-10 rounded-xl bg-[#8737FF]/20 border border-[#8737FF]/40 flex items-center justify-center text-[#B46BFF]">
               <Link2 className="w-5 h-5" />
             </div>
-            <h3 className="font-heavy text-xl uppercase tracking-tight text-white">
+            <h3 className="font-display font-bold text-lg sm:text-xl uppercase tracking-tight text-white">
               Автопоиск по UPC / EAN
             </h3>
-            <p className="text-xs sm:text-sm text-[#D9D9E2]/70 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#D9D9E2]/75 leading-relaxed font-sans">
               Введите штрихкод релиза — система мгновенно подтянет официальную обложку, метаданные и прямые ссылки на стриминги.
             </p>
           </div>
@@ -70,10 +70,10 @@ export default function LinkLandingPage() {
             <div className="w-10 h-10 rounded-xl bg-[#00F0FF]/15 border border-[#00F0FF]/40 flex items-center justify-center text-[#00F0FF]">
               <Clock className="w-5 h-5" />
             </div>
-            <h3 className="font-heavy text-xl uppercase tracking-tight text-white">
+            <h3 className="font-display font-bold text-lg sm:text-xl uppercase tracking-tight text-white">
               Автоматический Out Now
             </h3>
-            <p className="text-xs sm:text-sm text-[#D9D9E2]/70 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#D9D9E2]/75 leading-relaxed font-sans">
               Страница сама отсчитывает время до даты премьеры, собирает подписчиков в Pre-save и ровно в полночь превращается в Out Now.
             </p>
           </div>
@@ -82,10 +82,10 @@ export default function LinkLandingPage() {
             <div className="w-10 h-10 rounded-xl bg-[#FF2E93]/15 border border-[#FF2E93]/40 flex items-center justify-center text-[#FF2E93]">
               <BarChart3 className="w-5 h-5" />
             </div>
-            <h3 className="font-heavy text-xl uppercase tracking-tight text-white">
+            <h3 className="font-display font-bold text-lg sm:text-xl uppercase tracking-tight text-white">
               Детальная аналитика
             </h3>
-            <p className="text-xs sm:text-sm text-[#D9D9E2]/70 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#D9D9E2]/75 leading-relaxed font-sans">
               Просматривайте реальные переходы по площадкам (Spotify, Apple, Яндекс, VK), географию слушателей и конверсию в прослушивания.
             </p>
           </div>

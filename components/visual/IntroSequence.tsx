@@ -75,11 +75,11 @@ export default function IntroSequence() {
       <div className="absolute w-[340px] h-[340px] rounded-full bg-[#8737FF]/25 blur-[110px] pointer-events-none animate-pulse" />
 
       <div className="relative z-10 text-center px-6">
-        <p className="font-mono text-[10px] sm:text-xs uppercase tracking-[0.4em] text-[#B46BFF] mb-4 animate-fadeIn">
-          [ UNIVERSE // INIT_SEQUENCE ]
+        <p className="font-sans text-[11px] sm:text-xs uppercase tracking-[0.3em] font-semibold text-[#B46BFF] mb-4 animate-fadeIn">
+          CXRNER MUSIC UNIVERSE
         </p>
 
-        <h2 className="font-heavy text-5xl sm:text-7xl md:text-8xl tracking-[0.12em] uppercase text-white leading-none select-none">
+        <h2 className="font-display font-black text-5xl sm:text-7xl md:text-8xl tracking-tight uppercase text-white leading-none select-none">
           <span className="inline-block animate-fadeIn">CXRNER</span>{" "}
           <span className="inline-block text-violet-energy animate-fadeIn">MUSIC</span>
         </h2>

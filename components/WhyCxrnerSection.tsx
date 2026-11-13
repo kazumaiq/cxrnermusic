@@ -70,12 +70,12 @@ export default function WhyCxrnerSection() {
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-center">
                 {/* Index & Massive Metric */}
-                <div className="lg:col-span-4 flex items-baseline gap-4">
-                  <span className="font-mono text-xs text-[#B46BFF] tracking-widest">
-                    [{item.code}]
+                <div className="lg:col-span-4 flex items-baseline gap-3.5">
+                  <span className="font-mono text-xs font-semibold text-[#B46BFF] tracking-wider select-none">
+                    {item.code}
                   </span>
                   <span
-                    className={`font-heavy text-4xl sm:text-6xl lg:text-7xl uppercase tracking-tight leading-none transition-all duration-300 ${
+                    className={`font-display font-black text-3xl sm:text-5xl lg:text-6xl uppercase tracking-tight leading-none transition-all duration-300 ${
                       isOpen ? "text-violet-energy" : "text-outline-chrome group-hover:text-white"
                     }`}
                   >
@@ -85,10 +85,10 @@ export default function WhyCxrnerSection() {
 
                 {/* Headline & Spec */}
                 <div className="lg:col-span-5">
-                  <h3 className="font-heavy text-2xl sm:text-4xl text-white uppercase tracking-wide">
+                  <h3 className="font-display font-bold text-lg sm:text-2xl text-white uppercase tracking-tight">
                     {item.headline}
                   </h3>
-                  <p className="mt-1 font-mono text-[10px] sm:text-xs uppercase tracking-[0.18em] text-[#B46BFF]">
+                  <p className="mt-1 font-sans text-xs uppercase tracking-wider text-[#B46BFF] font-semibold">
                     {item.sub}
                   </p>
                 </div>

@@ -214,15 +214,15 @@ export default function BeatLaunchpad() {
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <span className="w-2 h-2 rounded-full bg-[#B46BFF] animate-pulse" />
-            <span className="font-mono text-xs uppercase tracking-[0.26em] text-[#B46BFF]">
-              [CXRNER SOUND ENGINE]
+            <span className="font-sans text-xs uppercase tracking-wider font-semibold text-[#B46BFF]">
+              ЗВУКОВОЙ ДВИЖОК CXRNER
             </span>
           </div>
-          <h3 className="font-heavy text-2xl sm:text-3xl uppercase tracking-tight text-white">
+          <h3 className="font-display font-black text-xl sm:text-2xl uppercase tracking-tight text-white">
             Интерактивная бит-станция
           </h3>
-          <p className="text-xs sm:text-sm text-[#D9D9E2]/70 font-mono">
-            Кликайте по пэдам или жмите клавиши <span className="text-[#B46BFF]">1–6 / Q-W-E-A-S-D</span> на клавиатуре.
+          <p className="text-xs sm:text-sm text-[#D9D9E2]/80 font-sans">
+            Кликайте по пэдам или используйте клавиши <span className="text-[#B46BFF] font-semibold">1–6 / Q-W-E-A-S-D</span> на клавиатуре.
           </p>
         </div>
 

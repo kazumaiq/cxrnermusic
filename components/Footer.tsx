@@ -26,18 +26,18 @@ export default function Footer() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-heavy text-xl tracking-[0.25em] text-white uppercase">
+                <span className="font-display font-black text-lg tracking-wider text-white uppercase">
                   CXRNER MUSIC
                 </span>
-                <span className="font-mono text-[9px] tracking-[0.26em] uppercase text-[#B46BFF]">
+                <span className="font-sans text-[9px] tracking-[0.2em] font-semibold uppercase text-[#B46BFF]">
                   GLOBAL INDEPENDENT RECORD LABEL
                 </span>
               </div>
             </Link>
 
-            <p className="max-w-sm text-xs sm:text-sm leading-relaxed text-[#D9D9E2]/70">
+            <p className="max-w-sm text-xs sm:text-sm leading-relaxed text-[#D9D9E2]/75 font-sans">
               Международный независимый музыкальный лейбл и цифровая дистрибуция.
-              150+ стриминговых платформ, 256 стран и территорий, модель роялти 70/30.
+              150+ стриминговых платформ, глобальный охват и честная модель роялти 70/30.
             </p>
 
             <div className="flex flex-wrap gap-2">
@@ -45,24 +45,24 @@ export default function Footer() {
                 href="https://music.yandex.ru/label/5978511"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#B46BFF]/35 bg-[#8737FF]/12 font-mono text-[10px] uppercase tracking-wider text-white hover:bg-[#8737FF]/25 transition"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#B46BFF]/35 bg-[#8737FF]/12 font-sans text-xs uppercase font-semibold tracking-wider text-white hover:bg-[#8737FF]/25 transition"
               >
                 <Music className="w-3.5 h-3.5 text-[#B46BFF]" />
                 <span>Яндекс Музыка</span>
                 <ArrowUpRight className="w-3 h-3 opacity-60" />
               </a>
 
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/75">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 font-sans text-xs uppercase font-medium tracking-wider text-[#D9D9E2]/85">
                 <Globe className="w-3.5 h-3.5 text-[#D9D9E2]" />
-                <span>150+ DSP · 256 стран</span>
+                <span>150+ DSP · Global</span>
               </span>
             </div>
           </div>
 
           {/* Navigation */}
           <div className="lg:col-span-2">
-            <h4 className="font-mono text-[10px] font-bold uppercase tracking-[0.26em] text-[#B46BFF] mb-4">
-              // РАЗДЕЛЫ
+            <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-[#B46BFF] mb-4">
+              РАЗДЕЛЫ
             </h4>
             <ul className="space-y-2.5 text-xs font-mono text-[#D9D9E2]/65">
               <li>

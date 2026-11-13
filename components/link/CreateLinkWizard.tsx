@@ -433,10 +433,10 @@ export default function CreateLinkWizard() {
         </div>
 
         <div className="space-y-2">
-          <span className="font-mono text-xs uppercase tracking-widest text-[#00F0FF] font-bold">
+          <span className="font-sans text-xs uppercase tracking-wider text-[#00F0FF] font-bold">
             УСПЕШНО ОПУБЛИКОВАНО
           </span>
-          <h2 className="font-heavy text-3xl sm:text-4xl uppercase text-white tracking-tight">
+          <h2 className="font-display font-black text-2xl sm:text-4xl uppercase text-white tracking-tight">
             CXRNER LINK ГОТОВА
           </h2>
           <p className="text-sm text-[#D9D9E2]/80 max-w-md mx-auto">
@@ -517,11 +517,11 @@ export default function CreateLinkWizard() {
       {step === 1 && (
         <div className="space-y-6">
           <div className="space-y-1.5">
-            <h2 className="font-heavy text-xl sm:text-2xl uppercase tracking-tight text-white">
+            <h2 className="font-display font-bold text-lg sm:text-2xl uppercase tracking-tight text-white">
               Выберите способ создания Smart Link
             </h2>
-            <p className="text-xs sm:text-sm text-[#D9D9E2]/75 font-sans leading-relaxed">
-              Укажите UPC — мы сами подтянем ник, название, обложку, дату выхода и ссылки на все площадки. Либо выберите трек из вашего каталога CXRNER.
+            <p className="text-xs sm:text-sm text-[#D9D9E2]/80 font-sans leading-relaxed">
+              Укажите UPC код трека — обложка, артист, дата выхода и ссылки на стриминги подтянутся автоматически. Либо выберите релиз из вашего личного кабинета.
             </p>
           </div>
 
@@ -858,11 +858,11 @@ export default function CreateLinkWizard() {
       {step === 2 && (
         <div className="space-y-6">
           <div className="space-y-1">
-            <h2 className="font-heavy text-2xl uppercase tracking-tight text-white">
+            <h2 className="font-display font-bold text-xl sm:text-2xl uppercase tracking-tight text-white">
               Метаданные и Стриминги
             </h2>
-            <p className="text-xs sm:text-sm text-[#D9D9E2]/70">
-              Проверьте корректность информации, обложку и включите нужные площадки.
+            <p className="text-xs sm:text-sm text-[#D9D9E2]/80 font-sans">
+              Проверьте информацию о треке, обложку и настройте ссылки на музыкальные площадки.
             </p>
           </div>
 
@@ -1242,11 +1242,11 @@ export default function CreateLinkWizard() {
       {step === 3 && (
         <div className="space-y-8">
           <div className="space-y-1">
-            <h2 className="font-heavy text-2xl uppercase tracking-tight text-white">
-              Выберите стиль страницы смарт-ссылки
+            <h2 className="font-display font-bold text-xl sm:text-2xl uppercase tracking-tight text-white">
+              Выберите стиль смарт-ссылки
             </h2>
-            <p className="text-xs sm:text-sm text-[#D9D9E2]/70">
-              Каждый стиль разработан с учётом эстетики топовых лейблов и EDM артистов. Выберите подходящий вайб.
+            <p className="text-xs sm:text-sm text-[#D9D9E2]/80 font-sans">
+              Каждый стиль создан под атмосферу современной музыки. Выберите оформление под настроение вашего трека.
             </p>
           </div>
 

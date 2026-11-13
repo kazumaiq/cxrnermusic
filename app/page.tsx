@@ -81,11 +81,11 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              <h1 className="font-heavy uppercase tracking-tight leading-[1.04] select-none -space-y-2 sm:-space-y-3 lg:-space-y-4">
+              <h1 className="font-display font-black uppercase tracking-tight leading-[0.92] select-none">
                 <span className="block overflow-hidden py-1">
                   <span
                     data-reveal="mask-line"
-                    className="block text-[13vw] sm:text-[11vw] lg:text-[8.5rem] text-chrome-gradient"
+                    className="block text-[12vw] sm:text-[10vw] lg:text-[7.2rem] text-chrome-gradient"
                   >
                     CXRNER
                   </span>
@@ -93,66 +93,39 @@ export default async function HomePage() {
                 <span className="block overflow-hidden py-1">
                   <span
                     data-reveal="mask-line"
-                    className="block text-[13vw] sm:text-[11vw] lg:text-[8.5rem] text-violet-energy"
+                    className="block text-[12vw] sm:text-[10vw] lg:text-[7.2rem] text-violet-energy"
                   >
                     MUSIC
                   </span>
                 </span>
               </h1>
 
-              <p className="max-w-lg text-[13px] sm:text-base text-[#D9D9E2]/85 leading-relaxed">
-                Выпускаем релизы на Яндекс Музыке, VK Музыке, Spotify, Apple Music и
-                ещё 150+ площадках. Прозрачные роялти 70/30, питчинг в плейлисты и
-                личный кабинет артиста.
+              <p className="max-w-xl text-sm sm:text-base md:text-lg text-[#D9D9E2]/85 leading-relaxed font-sans">
+                Независимый лейбл и глобальная цифровая дистрибуция на 150+ музыкальных витрин. Прозрачные роялти 70/30, редакторский питчинг и личный кабинет артиста.
               </p>
 
-              {/* High-Impact CXRNER LINK Spotlight Card */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#8737FF]/20 via-[#160B28]/85 to-[#090611] border border-[#B46BFF]/45 shadow-[0_0_30px_rgba(135,55,255,0.25)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#00F0FF] font-bold">
-                    <Radio className="w-3 h-3 text-[#00F0FF] animate-pulse" />
-                    <span>НОВЫЙ СЕРВИС · CXRNER LINK</span>
-                    <span className="px-1.5 py-0.2 rounded bg-[#8737FF] text-white text-[8px] font-bold">NEW</span>
-                  </div>
-                  <h3 className="font-heavy text-base sm:text-lg uppercase text-white tracking-wide">
-                    Музыкальные смарт-ссылки и Pre-save
-                  </h3>
-                  <p className="font-sans text-xs text-[#D9D9E2]/80 max-w-md leading-relaxed">
-                    Создавайте умные страницы релизов за 30 секунд по UPC штрихкоду, собирайте пресейвы фанатов и объединяйте 150+ площадок в одну красивую ссылку.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                  <Link
-                    href="/dashboard/links/new"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[#8737FF] to-[#B46BFF] text-white font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(135,55,255,0.35)] active:scale-95 transition"
-                  >
-                    <span>Создать ссылку</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                  <Link
-                    href="/link"
-                    className="hidden sm:inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/20 hover:border-white/40 text-white font-mono text-xs uppercase tracking-wider transition"
-                  >
-                    Обзор
-                  </Link>
-                </div>
+              {/* Key Highlights Bar */}
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 font-sans text-xs sm:text-sm font-semibold text-[#D9D9E2]/90 pt-1">
+                <span className="px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-white flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                  70/30 Роялти
+                </span>
+                <span className="px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-white flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF]" />
+                  150+ Платформ
+                </span>
+                <span className="px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-white flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#B46BFF]" />
+                  Модерация 24–72ч
+                </span>
               </div>
 
-              {/* Key Label Metrics Pills on Mobile/Tablet */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#B46BFF] lg:hidden">
-                <span>70/30 РОЯЛТИ</span>
-                <span className="text-white/25">•</span>
-                <span>150+ ПЛАТФОРМ</span>
-                <span className="text-white/25">•</span>
-                <span>24–72Ч РЕЛИЗ</span>
-              </div>
-
-              {/* Magnetic CTAs */}
-              <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 flex-wrap">
+              {/* High-Impact Actions */}
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 flex-wrap">
                 <MagneticButton
                   href="/submit-release"
                   cursorLabel="SUBMIT"
-                  className="btn-energy px-7 py-3.5 sm:px-8 sm:py-4 rounded-full font-mono text-xs uppercase tracking-[0.18em] font-bold"
+                  className="btn-energy px-8 py-4 sm:px-9 sm:py-4.5 rounded-full font-sans text-xs sm:text-sm uppercase tracking-wider font-bold shadow-[0_0_30px_rgba(135,55,255,0.4)]"
                 >
                   <span>Отправить релиз</span>
                   <ArrowRight className="w-4 h-4" />
@@ -161,11 +134,11 @@ export default async function HomePage() {
                 <MagneticButton
                   href="/link"
                   cursorLabel="LINK"
-                  className="btn-void-ghost px-6 py-3.5 sm:px-7 sm:py-4 font-mono text-xs uppercase tracking-[0.18em] border border-[#B46BFF]/40 bg-[#8737FF]/10 hover:bg-[#8737FF]/25 text-[#D9D9E2] flex items-center gap-2 shadow-[0_0_20px_rgba(135,55,255,0.2)]"
+                  className="btn-void-ghost px-7 py-4 sm:px-8 sm:py-4.5 font-sans text-xs sm:text-sm uppercase tracking-wider border border-[#B46BFF]/50 bg-[#8737FF]/15 hover:bg-[#8737FF]/30 text-white font-bold flex items-center gap-2.5 shadow-[0_0_24px_rgba(135,55,255,0.25)]"
                 >
-                  <Radio className="w-4 h-4 text-[#B46BFF]" />
+                  <Radio className="w-4 h-4 text-[#00F0FF] animate-pulse" />
                   <span>CXRNER LINK</span>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#8737FF] text-white font-bold tracking-wider shadow-[0_0_10px_#8737FF]">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] bg-gradient-to-r from-[#8737FF] to-[#00F0FF] text-white font-black tracking-wider shadow-[0_0_10px_#8737FF]">
                     NEW
                   </span>
                 </MagneticButton>
@@ -173,7 +146,7 @@ export default async function HomePage() {
                 <MagneticButton
                   href="#releases"
                   cursorLabel="CATALOG"
-                  className="btn-void-ghost px-7 py-3.5 sm:px-8 sm:py-4 font-mono text-xs uppercase tracking-[0.18em]"
+                  className="btn-void-ghost px-6 py-4 font-sans text-xs sm:text-sm uppercase tracking-wider text-[#D9D9E2]/70 hover:text-white"
                 >
                   <Disc3 className="w-4 h-4 text-[#B46BFF]" />
                   <span>Слушать релизы</span>
@@ -223,7 +196,7 @@ export default async function HomePage() {
           data-scrub-x="1"
           className="whitespace-nowrap font-heavy text-4xl sm:text-6xl uppercase tracking-[0.12em] text-outline-chrome opacity-55"
         >
-          CXRNER MUSIC — 150+ STREAMING PLATFORMS — 70/30 ROYALTY — 256 TERRITORIES —
+          CXRNER MUSIC — 150+ STREAMING PLATFORMS — 70/30 ROYALTY — GLOBAL DISTRIBUTION —
           MUSIC WITHOUT BOUNDARIES — CXRNER MUSIC —
         </div>
       </div>
@@ -245,12 +218,12 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
             {/* Left Side: Open for 3D Core & Sweeping Chrome Ring */}
             <div className="lg:col-span-5 space-y-4">
-              <span className="font-mono text-xs uppercase tracking-[0.28em] text-[#B46BFF] block">
-                [02] ABOUT CXRNER
+              <span className="font-sans text-xs uppercase tracking-[0.2em] font-semibold text-[#B46BFF] block">
+                О лейбле CXRNER MUSIC
               </span>
               <div className="p-6 rounded-3xl border border-white/10 bg-[#090611]/55 backdrop-blur-xl space-y-4">
                 <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-[#D9D9E2]/55">
-                  LABEL PHILOSOPHY
+                  ФИЛОСОФИЯ ЛЕЙБЛА
                 </p>
                 <p className="text-sm sm:text-base text-[#D9D9E2]/85 leading-relaxed">
                   CXRNER MUSIC — это не потоковый агрегатор, а цифровая экосистема
@@ -289,7 +262,7 @@ export default async function HomePage() {
                   className="p-6 rounded-2xl border border-white/10 bg-[#090611]/50 backdrop-blur-md"
                 >
                   <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#B46BFF] mb-2">
-                    // SOUND & IDENTITY
+                    АКТУАЛЬНЫЙ ЗВУК
                   </p>
                   <p className="text-sm text-[#D9D9E2]/80 leading-relaxed">
                     Работаем со всеми актуальными жанрами — от фонка, трэпа и
@@ -302,7 +275,7 @@ export default async function HomePage() {
                   className="p-6 rounded-2xl border border-white/10 bg-[#090611]/50 backdrop-blur-md"
                 >
                   <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#B46BFF] mb-2">
-                    // DIRECT CONTROL
+                    ПОЛНЫЙ КОНТРОЛЬ
                   </p>
                   <p className="text-sm text-[#D9D9E2]/80 leading-relaxed">
                     Отслеживайте статус модерации, коды UPC/ISRC и синхронизацию с
@@ -324,9 +297,10 @@ export default async function HomePage() {
                 data-stagger-item
                 className="p-5 sm:p-6 rounded-2xl border border-white/10 bg-[#090611]/60 backdrop-blur-md hover:border-[#B46BFF]/45 transition duration-300"
               >
-                <span className="font-mono text-[10px] text-[#B46BFF] tracking-widest block mb-2">
-                  // 0{idx + 1}
-                </span>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#B46BFF] shadow-[0_0_8px_#B46BFF]" />
+                  <span className="font-mono text-[10px] text-[#B46BFF] tracking-widest uppercase">0{idx + 1}</span>
+                </div>
                 <p className="font-heavy text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-none">
                   {stat.display ?? <Counter to={stat.value} suffix={stat.suffix} />}
                 </p>
