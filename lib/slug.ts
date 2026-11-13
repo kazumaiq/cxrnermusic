@@ -91,6 +91,56 @@ export function validateCustomSlug(slug: string): { isValid: boolean; error?: st
   return { isValid: true };
 }
 
+/** Normalizes DD.MM.YYYY, YYYY-MM-DD, or ISO timestamp into YYYY-MM-DD for <input type="date"> */
+export function normalizeReleaseDate(raw?: string | null): string {
+  if (!raw) return "";
+  const trimmed = String(raw).trim();
+  if (!trimmed) return "";
+
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    return trimmed.slice(0, 10);
+  }
+
+  // DD.MM.YYYY or DD/MM/YYYY
+  const ruMatch = /^(\d{2})[./](\d{2})[./](\d{4})$/.exec(trimmed);
+  if (ruMatch) {
+    return `${ruMatch[3]}-${ruMatch[2]}-${ruMatch[1]}`;
+  }
+
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().split("T")[0];
+  }
+  return "";
+}
+
+/** Generates a smart release search URL for any streaming platform when direct link is absent */
+export function buildPlatformSearchUrl(platformKey: string, artist: string, title: string): string {
+  const q = `${artist.trim()} ${title.trim()}`.trim();
+  if (!q) return "";
+  const encoded = encodeURIComponent(q);
+
+  switch (platformKey) {
+    case "yandex":
+      return `https://music.yandex.ru/search?text=${encoded}`;
+    case "vk":
+      return `https://vk.com/audio?q=${encodeURIComponent(`${artist.trim()} - ${title.trim()}`)}`;
+    case "spotify":
+      return `https://open.spotify.com/search/${encoded}`;
+    case "apple":
+      return `https://music.apple.com/search?term=${encoded}`;
+    case "youtube":
+      return `https://music.youtube.com/search?q=${encoded}`;
+    case "deezer":
+      return `https://www.deezer.com/search/${encoded}`;
+    case "zvuk":
+      return `https://zvuk.com/search?query=${encoded}`;
+    default:
+      return "";
+  }
+}
+
 /**
  * Returns the fully qualified public URL for a smart link, dynamically adapting to
  * whether the site is running on Vercel preview (cxrnermusic.vercel.app),

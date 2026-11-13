@@ -21,8 +21,20 @@ import {
   Zap,
   Camera,
   Image as ImageIcon,
+  Barcode,
+  SlidersHorizontal,
+  Wand2,
+  Calendar,
+  Link2,
 } from "lucide-react";
-import { generateSlug, validateCustomSlug, getSmartLinkDisplayPrefix, validateUpcChecksum } from "@/lib/slug";
+import {
+  generateSlug,
+  validateCustomSlug,
+  getSmartLinkDisplayPrefix,
+  validateUpcChecksum,
+  normalizeReleaseDate,
+  buildPlatformSearchUrl,
+} from "@/lib/slug";
 
 interface PlatformEntry {
   platform_key: string;
@@ -30,7 +42,18 @@ interface PlatformEntry {
   url: string;
   button_text: string;
   is_enabled: boolean;
+  is_direct?: boolean;
 }
+
+const PLATFORM_BRAND_COLORS: Record<string, string> = {
+  yandex: "#FFCC00",
+  vk: "#0077FF",
+  spotify: "#1DB954",
+  apple: "#FA243C",
+  youtube: "#FF0000",
+  deezer: "#A238FF",
+  zvuk: "#6C43E8",
+};
 
 const DEFAULT_PLATFORMS: PlatformEntry[] = [
   { platform_key: "yandex", platform_name: "Яндекс Музыка", url: "", button_text: "Слушать", is_enabled: true },
@@ -263,55 +286,74 @@ export default function CreateLinkWizard() {
     }
   };
 
-  // Apply Found / Selected Release Data
+  // Apply Found / Selected Release Data (auto-fills artist, title, date, cover, and ALL platforms)
   const applyFoundRelease = (item: any, isUnreleasedOverride?: boolean) => {
-    setTitle(item.title || "");
-    setArtist(item.artist || "");
+    const nextTitle = item.title || "";
+    const nextArtist = item.artist || "";
+    const normalizedDate = normalizeReleaseDate(item.release_date);
+
+    setTitle(nextTitle);
+    setArtist(nextArtist);
     setCoverUrl(item.cover_url || "");
     setUpc(item.upc || upcInput.trim());
-    if (item.release_date) setReleaseDate(item.release_date);
+    if (normalizedDate) setReleaseDate(normalizedDate);
     if (item.genre) setGenre(item.genre);
     if (item.release_type) setReleaseType(item.release_type);
     if (item.label_name) setLabelName(item.label_name);
 
-    const generated = generateSlug(item.artist || "artist", item.title || "release");
+    const generated = generateSlug(nextArtist || "artist", nextTitle || "release");
     setCustomSlug(generated);
 
     // Determine out now vs pre-save
     let computedOutNow = true;
     if (isUnreleasedOverride !== undefined) {
       computedOutNow = !isUnreleasedOverride;
-    } else if (item.release_date) {
-      computedOutNow = new Date(item.release_date) <= new Date();
+    } else if (normalizedDate) {
+      computedOutNow = new Date(normalizedDate) <= new Date();
     }
     setIsOutNow(computedOutNow);
 
-    // Merge platforms with appropriate button text
+    // Merge direct links + auto-populate remaining platforms so nothing is left empty
     const defaultBtnText = computedOutNow ? "Слушать" : "Pre-save";
-    if (Array.isArray(item.platforms) && item.platforms.length > 0) {
-      const updated = DEFAULT_PLATFORMS.map((def) => {
-        const found = item.platforms.find((p: any) => p.platform_key === def.platform_key);
-        if (found) {
-          return {
-            ...def,
-            url: found.url || "",
-            button_text: computedOutNow ? "Слушать" : "Pre-save",
-            is_enabled: true,
-          };
-        }
-        return {
-          ...def,
-          button_text: defaultBtnText,
-        };
-      });
-      setPlatforms(updated);
-    } else {
-      setPlatforms((prev) =>
-        prev.map((p) => ({ ...p, button_text: defaultBtnText }))
-      );
-    }
+    const incoming = Array.isArray(item.platforms) ? item.platforms : [];
+
+    const updated: PlatformEntry[] = DEFAULT_PLATFORMS.map((def) => {
+      const found = incoming.find((p: any) => p.platform_key === def.platform_key);
+      const directUrl = found?.url?.trim() || "";
+      const fallbackUrl =
+        nextArtist && nextTitle ? buildPlatformSearchUrl(def.platform_key, nextArtist, nextTitle) : "";
+      const finalUrl = directUrl || fallbackUrl;
+
+      return {
+        ...def,
+        url: finalUrl,
+        button_text: defaultBtnText,
+        is_enabled: Boolean(finalUrl) && (def.is_enabled || Boolean(directUrl)),
+        is_direct: Boolean(found?.is_direct ?? (directUrl && !directUrl.includes("search"))),
+      };
+    });
+    setPlatforms(updated);
 
     setStep(2);
+  };
+
+  // Auto-fill all platform links in Step 2 from current Artist + Title
+  const handleAutoFillPlatforms = () => {
+    if (!title.trim() || !artist.trim()) return;
+    const defaultBtnText = isOutNow ? "Слушать" : "Pre-save";
+    setPlatforms((prev) =>
+      prev.map((p) => {
+        if (p.url.trim() && p.is_direct) return p;
+        const autoUrl = buildPlatformSearchUrl(p.platform_key, artist, title);
+        return {
+          ...p,
+          url: p.url.trim() || autoUrl,
+          button_text: defaultBtnText,
+          is_enabled: Boolean(p.url.trim() || autoUrl),
+          is_direct: p.is_direct || false,
+        };
+      })
+    );
   };
 
   // Update Platform Entry
@@ -418,49 +460,42 @@ export default function CreateLinkWizard() {
   return (
     <div className="relative max-w-4xl mx-auto rounded-3xl border border-white/10 bg-[#07050d]/90 backdrop-blur-2xl p-6 sm:p-10 shadow-2xl space-y-8">
       {/* Wizard Progress Stepper */}
-      <div className="flex items-center justify-between pb-6 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold transition ${
-              step >= 1 ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]" : "bg-white/10 text-white/40"
-            }`}
-          >
-            1
-          </div>
-          <span className={`font-mono text-xs uppercase tracking-wider ${step >= 1 ? "text-white" : "text-white/40"}`}>
-            Поиск релиза
-          </span>
-        </div>
-
-        <div className="w-8 sm:w-16 h-0.5 bg-white/10" />
-
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold transition ${
-              step >= 2 ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]" : "bg-white/10 text-white/40"
-            }`}
-          >
-            2
-          </div>
-          <span className={`font-mono text-xs uppercase tracking-wider ${step >= 2 ? "text-white" : "text-white/40"}`}>
-            Метаданные
-          </span>
-        </div>
-
-        <div className="w-8 sm:w-16 h-0.5 bg-white/10" />
-
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold transition ${
-              step >= 3 ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]" : "bg-white/10 text-white/40"
-            }`}
-          >
-            3
-          </div>
-          <span className={`font-mono text-xs uppercase tracking-wider ${step >= 3 ? "text-white" : "text-white/40"}`}>
-            Дизайн и Старт
-          </span>
-        </div>
+      <div className="grid grid-cols-3 gap-2 pb-5 border-b border-white/10">
+        {[
+          { num: 1, label: "Поиск" },
+          { num: 2, label: "Контент" },
+          { num: 3, label: "Дизайн" },
+        ].map((item) => {
+          const isActive = step === item.num;
+          const isDone = step > item.num;
+          return (
+            <div
+              key={item.num}
+              className={`flex items-center justify-center sm:justify-start gap-2 px-2.5 py-2 rounded-xl border transition ${
+                isActive
+                  ? "bg-[#8737FF]/15 border-[#B46BFF]/50 text-white"
+                  : isDone
+                    ? "bg-[#00F0FF]/10 border-[#00F0FF]/30 text-[#00F0FF]"
+                    : "bg-white/[0.02] border-white/5 text-white/40"
+              }`}
+            >
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center font-mono text-[11px] font-bold flex-shrink-0 transition ${
+                  isActive
+                    ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
+                    : isDone
+                      ? "bg-[#00F0FF] text-black"
+                      : "bg-white/10 text-white/40"
+                }`}
+              >
+                {isDone ? "✓" : item.num}
+              </div>
+              <span className="font-mono text-[11px] sm:text-xs uppercase tracking-wider truncate font-bold">
+                {item.label}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       {/* ===================================================================
@@ -468,17 +503,21 @@ export default function CreateLinkWizard() {
           =================================================================== */}
       {step === 1 && (
         <div className="space-y-6">
-          <div className="space-y-1">
-            <h2 className="font-heavy text-2xl uppercase tracking-tight text-white">
+          <div className="space-y-1.5">
+            <h2 className="font-heavy text-xl sm:text-2xl uppercase tracking-tight text-white">
               Выберите способ создания Smart Link
             </h2>
-            <p className="text-xs sm:text-sm text-[#D9D9E2]/70">
-              Выберите готовый трек из вашего кабинета CXRNER, укажите UPC для автоматического распознавания или настройте всё вручную.
+            <p className="text-xs sm:text-sm text-[#D9D9E2]/75 font-sans leading-relaxed">
+              Укажите UPC — мы сами подтянем ник, название, обложку, дату выхода и ссылки на все площадки. Либо выберите трек из вашего каталога CXRNER.
             </p>
           </div>
 
           {/* Mode Switcher Tabs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1 rounded-2xl bg-black/40 border border-white/10 font-mono text-xs">
+          <div
+            className={`grid gap-1.5 p-1.5 rounded-2xl bg-black/50 border border-white/10 font-mono text-[11px] sm:text-xs ${
+              myReleases.length > 0 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
+            }`}
+          >
             {myReleases.length > 0 && (
               <button
                 type="button"
@@ -486,11 +525,14 @@ export default function CreateLinkWizard() {
                   setSearchMode("my_releases");
                   setSearchError("");
                 }}
-                className={`py-2.5 rounded-xl transition font-medium uppercase tracking-wider ${
-                  searchMode === "my_releases" ? "bg-[#8737FF] text-white shadow-md font-bold" : "text-[#D9D9E2]/70 hover:text-white"
+                className={`py-2.5 px-2 rounded-xl transition font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 whitespace-nowrap ${
+                  searchMode === "my_releases"
+                    ? "bg-[#8737FF] text-white shadow-[0_0_16px_rgba(135,55,255,0.45)]"
+                    : "text-[#D9D9E2]/70 hover:text-white hover:bg-white/5"
                 }`}
               >
-                Мои релизы ({myReleases.length})
+                <Disc className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Мои ({myReleases.length})</span>
               </button>
             )}
             <button
@@ -499,11 +541,14 @@ export default function CreateLinkWizard() {
                 setSearchMode("upc");
                 setSearchError("");
               }}
-              className={`py-2.5 rounded-xl transition font-medium uppercase tracking-wider ${
-                searchMode === "upc" ? "bg-[#8737FF] text-white shadow-md font-bold" : "text-[#D9D9E2]/70 hover:text-white"
+              className={`py-2.5 px-2 rounded-xl transition font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 whitespace-nowrap ${
+                searchMode === "upc"
+                  ? "bg-[#8737FF] text-white shadow-[0_0_16px_rgba(135,55,255,0.45)]"
+                  : "text-[#D9D9E2]/70 hover:text-white hover:bg-white/5"
               }`}
             >
-              UPC / Pre-save
+              <Barcode className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>По UPC</span>
             </button>
             <button
               type="button"
@@ -511,11 +556,14 @@ export default function CreateLinkWizard() {
                 setSearchMode("query");
                 setSearchError("");
               }}
-              className={`py-2.5 rounded-xl transition font-medium uppercase tracking-wider ${
-                searchMode === "query" ? "bg-[#8737FF] text-white shadow-md font-bold" : "text-[#D9D9E2]/70 hover:text-white"
+              className={`py-2.5 px-2 rounded-xl transition font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 whitespace-nowrap ${
+                searchMode === "query"
+                  ? "bg-[#8737FF] text-white shadow-[0_0_16px_rgba(135,55,255,0.45)]"
+                  : "text-[#D9D9E2]/70 hover:text-white hover:bg-white/5"
               }`}
             >
-              Поиск по каталогу
+              <Search className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Поиск</span>
             </button>
             <button
               type="button"
@@ -523,11 +571,14 @@ export default function CreateLinkWizard() {
                 setSearchMode("manual");
                 setStep(2);
               }}
-              className={`py-2.5 rounded-xl transition font-medium uppercase tracking-wider ${
-                searchMode === "manual" ? "bg-[#8737FF] text-white shadow-md font-bold" : "text-[#D9D9E2]/70 hover:text-white"
+              className={`py-2.5 px-2 rounded-xl transition font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 whitespace-nowrap ${
+                searchMode === "manual"
+                  ? "bg-[#8737FF] text-white shadow-[0_0_16px_rgba(135,55,255,0.45)]"
+                  : "text-[#D9D9E2]/70 hover:text-white hover:bg-white/5"
               }`}
             >
-              Вручную
+              <SlidersHorizontal className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Вручную</span>
             </button>
           </div>
 
@@ -629,7 +680,7 @@ export default function CreateLinkWizard() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                     <div>
                       <label className="font-mono text-[11px] uppercase tracking-wider text-white/80 block mb-1">
                         Название трека / альбома:
@@ -654,6 +705,17 @@ export default function CreateLinkWizard() {
                         className="w-full bg-black/60 border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:border-[#00F0FF] focus:outline-none"
                       />
                     </div>
+                    <div>
+                      <label className="font-mono text-[11px] uppercase tracking-wider text-white/80 block mb-1">
+                        Дата выхода (опц.):
+                      </label>
+                      <input
+                        type="date"
+                        value={releaseDate}
+                        onChange={(e) => setReleaseDate(e.target.value)}
+                        className="w-full bg-black/60 border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-[#00F0FF] focus:outline-none"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -668,14 +730,21 @@ export default function CreateLinkWizard() {
                         setIsOutNow(false);
                         const generated = generateSlug(artist, title);
                         setCustomSlug(generated);
-                        setPlatforms((prev) => prev.map((p) => ({ ...p, button_text: "Pre-save" })));
+                        setPlatforms((prev) =>
+                          prev.map((p) => ({
+                            ...p,
+                            url: p.url.trim() || buildPlatformSearchUrl(p.platform_key, artist, title),
+                            is_direct: Boolean(p.url.trim() && p.is_direct),
+                            button_text: "Pre-save",
+                          }))
+                        );
                         setSearchError("");
                         setStep(2);
                       }}
                       className="btn-energy px-6 py-3 rounded-xl font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2 shadow-[0_0_20px_rgba(0,240,255,0.3)]"
                     >
                       <Zap className="w-4 h-4 text-[#00F0FF]" />
-                      <span>⚡ Настроить страницу Pre-save →</span>
+                      <span>Настроить страницу Pre-save →</span>
                     </button>
 
                     {myReleases.length > 0 && (
@@ -785,6 +854,47 @@ export default function CreateLinkWizard() {
           </div>
 
           {/* Pre-save Mode Alert */}
+          {/* Band.link-style Live Mini Header */}
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#8737FF]/15 via-white/[0.03] to-transparent border border-white/10 flex items-center gap-3.5">
+            <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/60 border border-white/15 flex-shrink-0 flex items-center justify-center">
+              {coverUrl ? (
+                <img src={coverUrl} alt={title || "Cover"} className="w-full h-full object-cover" />
+              ) : (
+                <Disc className="w-5 h-5 text-white/30" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                <span
+                  className={`font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
+                    isOutNow
+                      ? "bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30"
+                      : "bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30"
+                  }`}
+                >
+                  {isOutNow ? "OUT NOW" : "PRE-SAVE"}
+                </span>
+                {upc && (
+                  <span className="font-mono text-[10px] text-[#D9D9E2]/60">
+                    UPC: {upc}
+                  </span>
+                )}
+                {releaseDate && (
+                  <span className="font-mono text-[10px] text-[#D9D9E2]/60 inline-flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-[#B46BFF]" />
+                    {releaseDate}
+                  </span>
+                )}
+              </div>
+              <p className="font-heavy text-sm sm:text-base text-white truncate">
+                {title || "Название релиза"}
+              </p>
+              <p className="font-sans text-xs text-[#D9D9E2]/70 truncate">
+                {artist || "Имя артиста"}
+              </p>
+            </div>
+          </div>
+
           {!isOutNow && (
             <div className="p-4 rounded-2xl bg-gradient-to-r from-[#8737FF]/15 via-[#00F0FF]/10 to-transparent border border-[#00F0FF]/40 flex items-start gap-3">
               <div className="p-2 rounded-xl bg-[#00F0FF]/20 text-[#00F0FF] flex-shrink-0 mt-0.5">
@@ -797,7 +907,7 @@ export default function CreateLinkWizard() {
                   </span>
                 </div>
                 <p className="text-xs text-[#D9D9E2]/85 leading-relaxed font-sans">
-                  Страница будет собирать слушателей до официальной премьеры с живым таймером обратного отсчёта. Ссылки на стриминги можно добавить позже, когда трек появится на витринах.
+                  Страница будет собирать слушателей до официальной премьеры с живым таймером обратного отсчёта. Ссылки на стриминги уже предзаполнены и обновятся автоматически.
                 </p>
               </div>
             </div>
@@ -980,39 +1090,98 @@ export default function CreateLinkWizard() {
 
           {/* Streaming Platforms List */}
           <div className="space-y-3 pt-4 border-t border-white/10">
-            <label className="font-mono text-xs uppercase tracking-wider text-[#D9D9E2]/70 block">
-              Площадки и ссылки для слушателей:
-            </label>
-            <div className="space-y-2">
-              {platforms.map((p) => (
-                <div
-                  key={p.platform_key}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.03]"
-                >
-                  <input
-                    type="checkbox"
-                    checked={p.is_enabled}
-                    onChange={(e) => updatePlatform(p.platform_key, { is_enabled: e.target.checked })}
-                    className="accent-[#B46BFF] w-4 h-4 rounded"
-                  />
-                  <span className="font-mono text-xs uppercase tracking-wider text-white w-28 sm:w-36 truncate font-bold">
-                    {p.platform_name}
-                  </span>
-                  <input
-                    type="url"
-                    placeholder={`Ссылка на ${p.platform_name}`}
-                    value={p.url}
-                    onChange={(e) => updatePlatform(p.platform_key, { url: e.target.value })}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={p.button_text}
-                    onChange={(e) => updatePlatform(p.platform_key, { button_text: e.target.value })}
-                    className="w-24 sm:w-28 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center font-mono"
-                  />
-                </div>
-              ))}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <label className="font-mono text-xs uppercase tracking-wider text-white font-bold block">
+                  Площадки и ссылки для слушателей
+                </label>
+                <p className="text-[11px] text-[#D9D9E2]/60 font-sans">
+                  Все ссылки подтягиваются автоматически — при желании вставьте точный URL вручную.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAutoFillPlatforms}
+                className="px-3 py-1.5 rounded-xl border border-[#00F0FF]/35 bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 text-[#00F0FF] font-mono text-[11px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 transition"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                <span>Автозаполнить все</span>
+              </button>
+            </div>
+            <div className="space-y-2.5">
+              {platforms.map((p) => {
+                const brandColor = PLATFORM_BRAND_COLORS[p.platform_key] || "#B46BFF";
+                return (
+                  <div
+                    key={p.platform_key}
+                    className={`p-3 rounded-xl border transition space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-3 ${
+                      p.is_enabled
+                        ? "border-white/15 bg-white/[0.04]"
+                        : "border-white/5 bg-white/[0.015] opacity-60"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:w-44 flex-shrink-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={p.is_enabled}
+                          onChange={(e) => updatePlatform(p.platform_key, { is_enabled: e.target.checked })}
+                          className="accent-[#B46BFF] w-4 h-4 rounded flex-shrink-0"
+                        />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: brandColor, boxShadow: `0 0 8px ${brandColor}` }}
+                        />
+                        <span className="font-mono text-xs uppercase tracking-wider text-white truncate font-bold">
+                          {p.platform_name}
+                        </span>
+                      </div>
+                      {p.url.trim() && (
+                        <span
+                          className={`sm:hidden font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-full border ${
+                            p.is_direct
+                              ? "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"
+                              : "border-[#B46BFF]/40 bg-[#8737FF]/15 text-[#D9D9E2]"
+                          }`}
+                        >
+                          {p.is_direct ? "Прямая" : "Авто"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="relative flex-1 min-w-0">
+                        <input
+                          type="url"
+                          placeholder={`Ссылка на ${p.platform_name}`}
+                          value={p.url}
+                          onChange={(e) =>
+                            updatePlatform(p.platform_key, { url: e.target.value, is_direct: true })
+                          }
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none pr-16"
+                        />
+                        {p.url.trim() && (
+                          <span
+                            className={`hidden sm:inline-flex items-center gap-1 absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-full border pointer-events-none ${
+                              p.is_direct
+                                ? "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"
+                                : "border-[#B46BFF]/40 bg-[#8737FF]/15 text-[#D9D9E2]"
+                            }`}
+                          >
+                            {p.is_direct ? "Прямая" : "Авто"}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={p.button_text}
+                        onChange={(e) => updatePlatform(p.platform_key, { button_text: e.target.value })}
+                        className="w-24 sm:w-28 bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-xs text-white text-center font-mono flex-shrink-0"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

@@ -1,6 +1,7 @@
-// Music Metadata & UPC/EAN Release Lookup Adapters for CXRNER LINK
+// Music Metadata & UPC/EAN Release Lookup Adapters for CXRNER LINK (Band.link-grade Auto-Enrichment)
+import { createClient } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "./supabaseServer";
-import { validateUpcChecksum } from "./slug";
+import { validateUpcChecksum, normalizeReleaseDate, buildPlatformSearchUrl } from "./slug";
 
 export { validateUpcChecksum };
 
@@ -9,6 +10,7 @@ export interface PlatformLinkCandidate {
   platform_name: string;
   url: string;
   button_text: string;
+  is_direct?: boolean;
 }
 
 export interface ReleaseLookupResult {
@@ -26,23 +28,73 @@ export interface ReleaseLookupResult {
   is_unreleased?: boolean;
 }
 
+const CORE_PLATFORMS: Array<{ key: string; name: string }> = [
+  { key: "yandex", name: "Яндекс Музыка" },
+  { key: "vk", name: "VK Музыка" },
+  { key: "spotify", name: "Spotify" },
+  { key: "apple", name: "Apple Music" },
+  { key: "youtube", name: "YouTube Music" },
+  { key: "deezer", name: "Deezer" },
+  { key: "zvuk", name: "Звук" },
+];
+
+async function getAdminOrServerSupabase() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (url && key) {
+    return createClient(url, key, { auth: { persistSession: false } });
+  }
+  return getSupabaseServerClient();
+}
+
+/** Merge direct URLs and auto-fill remaining platforms with smart search URLs */
+function buildFullPlatformList(
+  artist: string,
+  title: string,
+  directCandidates: PlatformLinkCandidate[],
+  isOutNow: boolean
+): PlatformLinkCandidate[] {
+  const btnText = isOutNow ? "Слушать" : "Pre-save";
+  const directMap = new Map<string, PlatformLinkCandidate>();
+
+  for (const c of directCandidates) {
+    if (c.platform_key && c.url && c.url.startsWith("http")) {
+      directMap.set(c.platform_key, { ...c, button_text: btnText, is_direct: true });
+    }
+  }
+
+  return CORE_PLATFORMS.map((def) => {
+    const direct = directMap.get(def.key);
+    if (direct) return direct;
+
+    const autoUrl = artist && title ? buildPlatformSearchUrl(def.key, artist, title) : "";
+    return {
+      platform_key: def.key,
+      platform_name: def.name,
+      url: autoUrl,
+      button_text: btnText,
+      is_direct: false,
+    };
+  });
+}
+
 /** 1. Lookup in internal CXRNER database (cxrner_forms & cxrner_releases) */
 async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | null> {
   try {
-    const supabase = await getSupabaseServerClient();
+    const supabase = await getAdminOrServerSupabase();
     const cleanUpc = upc.trim().replace(/\D/g, "");
 
-    // Check cxrner_forms
+    // Check cxrner_forms (by column upc or JSON form_payload->>upc)
     try {
       const { data: rows } = await supabase
         .from("cxrner_forms")
         .select("id, artist_name, track_name, genre, status, upc, created_at, form_payload")
-        .eq("upc", cleanUpc)
+        .or(`upc.eq.${cleanUpc},form_payload->>upc.eq.${cleanUpc}`)
         .limit(1);
 
       if (rows && rows.length > 0) {
         const form = rows[0];
-        const payload = form.form_payload || {};
+        const payload = (form.form_payload as Record<string, any>) || {};
         const cover =
           payload.cover_url ||
           payload.artwork_url ||
@@ -50,27 +102,38 @@ async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | n
           payload.image_url ||
           payload.media_url ||
           "";
-        const relDate = payload.release_date || form.created_at?.split("T")[0] || null;
+        const relDate =
+          normalizeReleaseDate(payload.release_date || payload.date || form.created_at) || undefined;
         const isPast = relDate ? new Date(relDate) <= new Date() : false;
+        const artist = form.artist_name || payload.nick || payload.artist || "";
+        const title = form.track_name || payload.name || payload.title || "";
+
+        const direct: PlatformLinkCandidate[] = [];
+        if (payload.yandex && String(payload.yandex).startsWith("http")) {
+          direct.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: payload.yandex, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+        }
+        if (payload.spotify && String(payload.spotify).startsWith("http")) {
+          direct.push({ platform_key: "spotify", platform_name: "Spotify", url: payload.spotify, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+        }
+        if (payload.apple && String(payload.apple).startsWith("http")) {
+          direct.push({ platform_key: "apple", platform_name: "Apple Music", url: payload.apple, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+        }
+        if (payload.vk && String(payload.vk).startsWith("http")) {
+          direct.push({ platform_key: "vk", platform_name: "VK Музыка", url: payload.vk, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+        }
 
         return {
           source: "cxrner",
-          title: form.track_name || "Без названия",
-          artist: form.artist_name || "Артист",
+          title,
+          artist,
           cover_url: cover,
           upc: cleanUpc,
-          release_date: relDate || undefined,
-          genre: form.genre || "Electronic",
-          release_type: "single",
+          release_date: relDate,
+          genre: form.genre || payload.genre || "Electronic",
+          release_type: payload.type === "альбом" || payload.type === "album" ? "album" : "single",
           label_name: "CXRNER MUSIC",
           is_unreleased: !isPast,
-          platforms: [
-            { platform_key: "yandex", platform_name: "Яндекс Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-            { platform_key: "vk", platform_name: "VK Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-            { platform_key: "spotify", platform_name: "Spotify", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-            { platform_key: "apple", platform_name: "Apple Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-            { platform_key: "youtube", platform_name: "YouTube Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-          ],
+          platforms: direct,
         };
       }
     } catch {}
@@ -87,26 +150,30 @@ async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | n
         const rel = relRows[0];
         const payload = rel.form_payload || rel.data || {};
         const cover = rel.cover_url || payload.cover_url || payload.artwork_url || "";
-        const relDate = rel.release_date || payload.release_date || null;
+        const relDate =
+          normalizeReleaseDate(rel.release_date || rel.date || payload.release_date || payload.date) || undefined;
         const isPast = relDate ? new Date(relDate) <= new Date() : false;
+        const artist = rel.nick || rel.artist_name || payload.nick || "";
+        const title = rel.name || rel.track_name || payload.name || "";
+
+        const direct: PlatformLinkCandidate[] = [];
+        const yandexUrl = rel.yandex || payload.yandex;
+        if (yandexUrl && String(yandexUrl).startsWith("http")) {
+          direct.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: yandexUrl, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+        }
 
         return {
           source: "cxrner",
-          title: rel.name || rel.track_name || "Без названия",
-          artist: rel.nick || rel.artist_name || "Артист",
+          title,
+          artist,
           cover_url: cover,
           upc: cleanUpc,
-          release_date: relDate || undefined,
+          release_date: relDate,
           genre: rel.genre || "Electronic",
           release_type: "single",
           label_name: "CXRNER MUSIC",
           is_unreleased: !isPast,
-          platforms: [
-            { platform_key: "yandex", platform_name: "Яндекс Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-            { platform_key: "vk", platform_name: "VK Музыка", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-            { platform_key: "spotify", platform_name: "Spotify", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-            { platform_key: "apple", platform_name: "Apple Music", url: "", button_text: isPast ? "Слушать" : "Pre-save" },
-          ],
+          platforms: direct,
         };
       }
     } catch {}
@@ -117,7 +184,7 @@ async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | n
   }
 }
 
-/** 2. Lookup via Apple iTunes Search/Lookup API */
+/** 2. Lookup via Apple iTunes Lookup API */
 async function lookupItunesByUpc(upc: string): Promise<ReleaseLookupResult | null> {
   try {
     const url = `https://itunes.apple.com/lookup?upc=${encodeURIComponent(upc)}&entity=album`;
@@ -128,6 +195,8 @@ async function lookupItunesByUpc(upc: string): Promise<ReleaseLookupResult | nul
 
     const item = data.results[0];
     const cover = (item.artworkUrl100 || "").replace("100x100bb", "1000x1000bb");
+    const relDate = normalizeReleaseDate(item.releaseDate) || undefined;
+    const isPast = relDate ? new Date(relDate) <= new Date() : true;
 
     const trackCount = item.trackCount || 1;
     let relType: "single" | "ep" | "album" = "single";
@@ -140,7 +209,8 @@ async function lookupItunesByUpc(upc: string): Promise<ReleaseLookupResult | nul
         platform_key: "apple",
         platform_name: "Apple Music",
         url: item.collectionViewUrl,
-        button_text: "Слушать",
+        button_text: isPast ? "Слушать" : "Pre-save",
+        is_direct: true,
       });
     }
 
@@ -150,12 +220,12 @@ async function lookupItunesByUpc(upc: string): Promise<ReleaseLookupResult | nul
       artist: item.artistName || "",
       cover_url: cover,
       upc,
-      release_date: item.releaseDate ? item.releaseDate.split("T")[0] : undefined,
+      release_date: relDate,
       genre: item.primaryGenreName || "Electronic",
       release_type: relType,
       label_name: item.copyright ? item.copyright.replace(/^©\s*\d+\s*/, "").replace(/^℗\s*\d+\s*/, "") : "CXRNER MUSIC",
       platforms,
-      is_unreleased: false,
+      is_unreleased: !isPast,
     };
   } catch {
     return null;
@@ -171,7 +241,9 @@ async function lookupDeezerByUpc(upc: string): Promise<ReleaseLookupResult | nul
     const item = await res.json();
     if (!item || item.error || !item.title) return null;
 
-    const cover = item.cover_xl || item.cover_big || item.cover_medium;
+    const cover = item.cover_xl || item.cover_big || item.cover_medium || "";
+    const relDate = normalizeReleaseDate(item.release_date) || undefined;
+    const isPast = relDate ? new Date(relDate) <= new Date() : true;
     const trackCount = item.nb_tracks || 1;
     let relType: "single" | "ep" | "album" = "single";
     if (trackCount > 6) relType = "album";
@@ -183,7 +255,8 @@ async function lookupDeezerByUpc(upc: string): Promise<ReleaseLookupResult | nul
         platform_key: "deezer",
         platform_name: "Deezer",
         url: item.link,
-        button_text: "Слушать",
+        button_text: isPast ? "Слушать" : "Pre-save",
+        is_direct: true,
       });
     }
 
@@ -193,22 +266,22 @@ async function lookupDeezerByUpc(upc: string): Promise<ReleaseLookupResult | nul
       artist: item.artist?.name || "",
       cover_url: cover,
       upc,
-      release_date: item.release_date,
+      release_date: relDate,
       genre: item.genres?.data?.[0]?.name || "Electronic",
       release_type: relType,
       label_name: item.label || "CXRNER MUSIC",
       platforms,
-      is_unreleased: false,
+      is_unreleased: !isPast,
     };
   } catch {
     return null;
   }
 }
 
-/** 4. Lookup via MusicBrainz API */
+/** 4. Lookup via MusicBrainz API (with url-rels for Spotify/YouTube/SoundCloud/etc.) */
 async function lookupMusicBrainzByUpc(upc: string): Promise<ReleaseLookupResult | null> {
   try {
-    const url = `https://musicbrainz.org/ws/2/release/?query=barcode:${encodeURIComponent(upc)}&fmt=json`;
+    const url = `https://musicbrainz.org/ws/2/release/?query=barcode:${encodeURIComponent(upc)}&inc=url-rels&fmt=json`;
     const res = await fetch(url, { headers: { "User-Agent": "CXRNER-LINK/1.0 (info@cxrnermusic.com)" }, next: { revalidate: 86400 } });
     if (!res.ok) return null;
     const data = await res.json();
@@ -217,7 +290,26 @@ async function lookupMusicBrainzByUpc(upc: string): Promise<ReleaseLookupResult 
     const item = data.releases[0];
     const artist = item["artist-credit"]?.[0]?.name || "";
     const title = item.title || "";
-    const releaseDate = item.date;
+    const releaseDate = normalizeReleaseDate(item.date) || undefined;
+    const isPast = releaseDate ? new Date(releaseDate) <= new Date() : true;
+
+    const platforms: PlatformLinkCandidate[] = [];
+    const rels = Array.isArray(item.relations) ? item.relations : [];
+    for (const rel of rels) {
+      const href = rel?.url?.resource;
+      if (!href || typeof href !== "string") continue;
+      if (href.includes("open.spotify.com")) {
+        platforms.push({ platform_key: "spotify", platform_name: "Spotify", url: href, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+      } else if (href.includes("music.apple.com")) {
+        platforms.push({ platform_key: "apple", platform_name: "Apple Music", url: href, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+      } else if (href.includes("music.yandex.")) {
+        platforms.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: href, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+      } else if (href.includes("youtube.com") || href.includes("youtu.be")) {
+        platforms.push({ platform_key: "youtube", platform_name: "YouTube Music", url: href, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+      } else if (href.includes("deezer.com")) {
+        platforms.push({ platform_key: "deezer", platform_name: "Deezer", url: href, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+      }
+    }
 
     return {
       source: "musicbrainz",
@@ -229,53 +321,128 @@ async function lookupMusicBrainzByUpc(upc: string): Promise<ReleaseLookupResult 
       genre: "Electronic",
       release_type: "single",
       label_name: item["label-info-list"]?.[0]?.label?.name || "CXRNER MUSIC",
-      platforms: [],
-      is_unreleased: false,
+      platforms,
+      is_unreleased: !isPast,
     };
   } catch {
     return null;
   }
 }
 
-/** Primary Orchestrator: UPC / EAN Lookup with Pre-save Fallback */
+/** 5. Cross-Enrich by Artist + Title via iTunes & Deezer to get direct links & missing cover/date */
+async function enrichByArtistTitle(
+  artist: string,
+  title: string
+): Promise<{ cover?: string; release_date?: string; platforms: PlatformLinkCandidate[] }> {
+  const q = `${artist} ${title}`.trim();
+  if (!q) return { platforms: [] };
+
+  const platforms: PlatformLinkCandidate[] = [];
+  let cover = "";
+  let release_date = "";
+
+  const [itRes, dzRes] = await Promise.all([
+    fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=album&limit=1`, {
+      headers: { "User-Agent": "CXRNER-LINK/1.0" },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null),
+    fetch(`https://api.deezer.com/search/album?q=${encodeURIComponent(q)}&limit=1`, {
+      headers: { "User-Agent": "CXRNER-LINK/1.0" },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null),
+  ]);
+
+  const itItem = itRes?.results?.[0];
+  if (itItem) {
+    if (itItem.collectionViewUrl) {
+      platforms.push({
+        platform_key: "apple",
+        platform_name: "Apple Music",
+        url: itItem.collectionViewUrl,
+        button_text: "Слушать",
+        is_direct: true,
+      });
+    }
+    cover = (itItem.artworkUrl100 || "").replace("100x100bb", "1000x1000bb");
+    release_date = normalizeReleaseDate(itItem.releaseDate);
+  }
+
+  const dzItem = dzRes?.data?.[0];
+  if (dzItem) {
+    if (dzItem.link) {
+      platforms.push({
+        platform_key: "deezer",
+        platform_name: "Deezer",
+        url: dzItem.link,
+        button_text: "Слушать",
+        is_direct: true,
+      });
+    }
+    if (!cover) cover = dzItem.cover_xl || dzItem.cover_big || "";
+  }
+
+  return { cover, release_date, platforms };
+}
+
+/** Primary Orchestrator: UPC / EAN Lookup with Full Platform Auto-Population */
 export async function lookupReleaseByUpc(upc: string): Promise<ReleaseLookupResult> {
   const cleanUpc = upc.trim().replace(/\D/g, "");
 
-  // 1. Check internal CXRNER database
-  const cxrnerDbResult = await lookupCxrnerDbByUpc(cleanUpc);
-  if (cxrnerDbResult) {
-    return cxrnerDbResult;
-  }
-
-  // 2. Run Apple iTunes and Deezer concurrently
-  const [itunesResult, deezerResult] = await Promise.all([
+  // Run CXRNER DB, iTunes, and Deezer concurrently for maximum speed & coverage
+  const [cxrnerDbResult, itunesResult, deezerResult] = await Promise.all([
+    lookupCxrnerDbByUpc(cleanUpc),
     lookupItunesByUpc(cleanUpc),
     lookupDeezerByUpc(cleanUpc),
   ]);
 
-  if (itunesResult && deezerResult) {
-    const platforms = [...itunesResult.platforms];
-    deezerResult.platforms.forEach((dp) => {
-      if (!platforms.some((p) => p.platform_key === dp.platform_key)) {
-        platforms.push(dp);
-      }
-    });
+  // Combine whichever sources returned metadata
+  let base = cxrnerDbResult || itunesResult || deezerResult;
+
+  if (!base) {
+    base = await lookupMusicBrainzByUpc(cleanUpc);
+  }
+
+  if (base && (base.title || base.artist)) {
+    const mergedDirect: PlatformLinkCandidate[] = [
+      ...(cxrnerDbResult?.platforms || []),
+      ...(itunesResult?.platforms || []),
+      ...(deezerResult?.platforms || []),
+      ...(base.platforms || []),
+    ];
+
+    let coverUrl = cxrnerDbResult?.cover_url || itunesResult?.cover_url || deezerResult?.cover_url || base.cover_url || "";
+    let relDate = cxrnerDbResult?.release_date || itunesResult?.release_date || deezerResult?.release_date || base.release_date || "";
+
+    // If we found the track in CXRNER DB or MusicBrainz, enrich missing direct Apple/Deezer/cover/date
+    if (base.artist && base.title && (!coverUrl || !mergedDirect.some((p) => p.platform_key === "apple"))) {
+      const enriched = await enrichByArtistTitle(base.artist, base.title);
+      mergedDirect.push(...enriched.platforms);
+      if (!coverUrl && enriched.cover) coverUrl = enriched.cover;
+      if (!relDate && enriched.release_date) relDate = enriched.release_date;
+    }
+
+    const normalizedDate = normalizeReleaseDate(relDate) || undefined;
+    const isOutNow = normalizedDate ? new Date(normalizedDate) <= new Date() : !base.is_unreleased;
 
     return {
-      ...itunesResult,
-      cover_url: itunesResult.cover_url || deezerResult.cover_url,
-      platforms,
+      ...base,
+      title: base.title || itunesResult?.title || deezerResult?.title || "",
+      artist: base.artist || itunesResult?.artist || deezerResult?.artist || "",
+      cover_url: coverUrl,
+      release_date: normalizedDate,
+      is_unreleased: !isOutNow,
+      platforms: buildFullPlatformList(
+        base.artist || itunesResult?.artist || "",
+        base.title || itunesResult?.title || "",
+        mergedDirect,
+        isOutNow
+      ),
     };
   }
 
-  if (itunesResult) return itunesResult;
-  if (deezerResult) return deezerResult;
-
-  // 3. Fallback to MusicBrainz
-  const mbResult = await lookupMusicBrainzByUpc(cleanUpc);
-  if (mbResult) return mbResult;
-
-  // 4. If not found in public stores, it is an UNRELEASED track ready for Pre-save!
+  // Not found in any public or internal database yet -> Unreleased Pre-save mode
   const defaultFutureDate = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
   return {
     source: "unreleased_presave",
@@ -288,17 +455,11 @@ export async function lookupReleaseByUpc(upc: string): Promise<ReleaseLookupResu
     release_type: "single",
     label_name: "CXRNER MUSIC",
     is_unreleased: true,
-    platforms: [
-      { platform_key: "yandex", platform_name: "Яндекс Музыка", url: "", button_text: "Pre-save" },
-      { platform_key: "vk", platform_name: "VK Музыка", url: "", button_text: "Pre-save" },
-      { platform_key: "spotify", platform_name: "Spotify", url: "", button_text: "Pre-save" },
-      { platform_key: "apple", platform_name: "Apple Music", url: "", button_text: "Pre-save" },
-      { platform_key: "youtube", platform_name: "YouTube Music", url: "", button_text: "Pre-save" },
-    ],
+    platforms: buildFullPlatformList("", "", [], false),
   };
 }
 
-/** Search Releases by Text Query (Artist / Title) across catalogs */
+/** Search Releases by Text Query (Artist / Title) across catalogs with Full Platform Enrichment */
 export async function searchReleasesByQuery(query: string): Promise<ReleaseLookupResult[]> {
   const q = query.trim();
   if (!q) return [];
@@ -313,27 +474,27 @@ export async function searchReleasesByQuery(query: string): Promise<ReleaseLooku
       if (data.results && Array.isArray(data.results)) {
         data.results.forEach((item: any) => {
           const cover = (item.artworkUrl100 || "").replace("100x100bb", "1000x1000bb");
+          const artist = item.artistName || "";
+          const title = item.collectionName || "";
+          const relDate = normalizeReleaseDate(item.releaseDate) || undefined;
+          const isPast = relDate ? new Date(relDate) <= new Date() : true;
+
+          const direct: PlatformLinkCandidate[] = item.collectionViewUrl
+            ? [{ platform_key: "apple", platform_name: "Apple Music", url: item.collectionViewUrl, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true }]
+            : [];
+
           results.push({
             source: "itunes",
-            title: item.collectionName || "",
-            artist: item.artistName || "",
+            title,
+            artist,
             cover_url: cover,
             upc: item.upc || "",
-            release_date: item.releaseDate ? item.releaseDate.split("T")[0] : undefined,
+            release_date: relDate,
             genre: item.primaryGenreName || "Electronic",
             release_type: (item.trackCount || 1) > 6 ? "album" : (item.trackCount || 1) > 1 ? "ep" : "single",
-            label_name: item.copyright || "CXRNER MUSIC",
-            is_unreleased: false,
-            platforms: item.collectionViewUrl
-              ? [
-                  {
-                    platform_key: "apple",
-                    platform_name: "Apple Music",
-                    url: item.collectionViewUrl,
-                    button_text: "Слушать",
-                  },
-                ]
-              : [],
+            label_name: item.copyright ? item.copyright.replace(/^©\s*\d+\s*/, "").replace(/^℗\s*\d+\s*/, "") : "CXRNER MUSIC",
+            is_unreleased: !isPast,
+            platforms: buildFullPlatformList(artist, title, direct, isPast),
           });
         });
       }
