@@ -19,7 +19,7 @@ export interface SmartLinkRecord {
   status: "published" | "draft" | "archived";
   is_out_now: boolean;
   auto_out_now: boolean;
-  template: "CYBER" | "CINEMATIC" | "MINIMAL" | "BRUTAL";
+  template: "CYBER" | "CINEMATIC" | "AUTUMN" | "WINTER" | "MINIMAL" | "SAKURA" | "BRUTAL" | string;
   design_config: Record<string, any>;
   social_links: Array<{ platform: string; url: string }>;
   views_count: number;
@@ -71,7 +71,7 @@ export async function createSmartLink(params: {
   label_name?: string;
   description?: string | null;
   status?: "published" | "draft" | "archived";
-  template?: "CYBER" | "CINEMATIC" | "MINIMAL" | "BRUTAL";
+  template?: "CYBER" | "CINEMATIC" | "AUTUMN" | "WINTER" | "MINIMAL" | "SAKURA" | "BRUTAL" | string;
   design_config?: Record<string, any>;
   social_links?: Array<{ platform: string; url: string }>;
   platforms?: Array<{

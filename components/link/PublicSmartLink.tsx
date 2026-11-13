@@ -21,6 +21,9 @@ import {
   Pause,
   X,
 } from "lucide-react";
+import { getSmartLinkTheme } from "@/lib/smartLinkThemes";
+import { ThemeAmbientBackground } from "./ThemeAmbientBackground";
+import { PlatformLogo, getPlatformVisualMeta } from "./PlatformLogo";
 
 export interface PlatformItem {
   id?: string;
@@ -227,55 +230,15 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
     ctx.fillText("CXR", width / 2, height / 2);
   }, [showQrModal, link.slug]);
 
-  // Platform Branded Icons & Colors
-  const getPlatformDetails = (key: string) => {
-    switch (key.toLowerCase()) {
-      case "yandex":
-        return { name: "Яндекс Музыка", color: "#FFCC00", textColor: "#000000", tag: "Я" };
-      case "vk":
-        return { name: "VK Музыка", color: "#0077FF", textColor: "#FFFFFF", tag: "VK" };
-      case "spotify":
-        return { name: "Spotify", color: "#1DB954", textColor: "#000000", tag: "SP" };
-      case "apple":
-        return { name: "Apple Music", color: "#FA243C", textColor: "#FFFFFF", tag: "AP" };
-      case "youtube":
-        return { name: "YouTube Music", color: "#FF0000", textColor: "#FFFFFF", tag: "YT" };
-      case "deezer":
-        return { name: "Deezer", color: "#FEAA2D", textColor: "#000000", tag: "DZ" };
-      case "zvuk":
-        return { name: "Звук", color: "#16E49E", textColor: "#000000", tag: "ZV" };
-      case "tidal":
-        return { name: "Tidal", color: "#00FFFF", textColor: "#000000", tag: "TD" };
-      case "soundcloud":
-        return { name: "SoundCloud", color: "#FF5500", textColor: "#FFFFFF", tag: "SC" };
-      default:
-        return { name: key, color: "#8737FF", textColor: "#FFFFFF", tag: "CX" };
-    }
-  };
-
-  // Visual Theme Classes
-  const templateTheme = link.template || "CYBER";
-  let themeCardClass = "border border-white/10 bg-[#090611]/80 backdrop-blur-2xl shadow-[0_0_80px_rgba(0,0,0,0.8)]";
-  if (templateTheme === "MINIMAL") {
-    themeCardClass = "border border-white/5 bg-[#050407]/90 backdrop-blur-xl shadow-2xl";
-  } else if (templateTheme === "CINEMATIC") {
-    themeCardClass = "border border-[#8737FF]/30 bg-[#090611]/60 backdrop-blur-3xl shadow-[0_0_100px_rgba(135,55,255,0.25)]";
-  } else if (templateTheme === "BRUTAL") {
-    themeCardClass = "border-2 border-white bg-black shadow-[8px_8px_0px_#8737FF]";
-  }
-
+  // Visual Theme Specs
+  const theme = getSmartLinkTheme(link.template);
   const enabledPlatforms = platforms.filter((p) => p.is_enabled !== false);
 
   return (
     <div className="relative min-h-[100svh] w-full flex flex-col justify-between items-center py-8 sm:py-14 px-4 overflow-x-hidden selection:bg-[#8737FF] selection:text-white">
-      {/* 1. Immersive Blurred Backdrop */}
+      {/* 1. Immersive Animated Theme Backdrop */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center scale-125 filter blur-[84px] opacity-35 transition-all duration-1000"
-          style={{ backgroundImage: `url(${link.cover_url})` }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-[#050407]/90 to-[#050407]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(135,55,255,0.2),transparent_75%)]" />
+        <ThemeAmbientBackground theme={theme} coverUrl={link.cover_url} />
       </div>
 
       {/* 2. Top Navigation Bar */}
@@ -307,9 +270,9 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
       </header>
 
       {/* 3. Main Smart Link Card Container */}
-      <main className={`relative z-10 w-full max-w-md rounded-3xl p-6 sm:p-8 ${themeCardClass} space-y-6 my-auto`}>
+      <main className={`relative z-10 w-full max-w-md rounded-3xl p-5 sm:p-8 ${theme.cardClass} space-y-6 my-auto`}>
         {/* Cover Art Presentation */}
-        <div className="relative group/cover w-full aspect-square rounded-2xl overflow-hidden bg-black/40 border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.65)] select-none">
+        <div className={`relative group/cover w-full aspect-square overflow-hidden bg-black/40 select-none ${theme.coverFrameClass}`}>
           <img
             src={link.cover_url}
             alt={`${link.artist} — ${link.title}`}
@@ -319,13 +282,22 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
           {/* Out Now or Pre-save Badge */}
           <div className="absolute top-3 left-3 flex items-center gap-2">
             {link.is_out_now ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-[#00F0FF]/50 font-mono text-[10px] font-bold uppercase tracking-widest text-[#00F0FF] shadow-[0_0_15px_rgba(0,240,255,0.4)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border font-mono text-[10px] font-bold uppercase tracking-widest shadow-lg"
+                style={{ borderColor: `${theme.accentHex}70`, color: theme.secondaryHex }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full animate-pulse"
+                  style={{ backgroundColor: theme.secondaryHex }}
+                />
                 OUT NOW
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-[#B46BFF]/50 font-mono text-[10px] font-bold uppercase tracking-widest text-[#B46BFF] shadow-[0_0_15px_rgba(180,107,255,0.4)]">
-                <Clock className="w-3 h-3 text-[#B46BFF]" />
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border font-mono text-[10px] font-bold uppercase tracking-widest shadow-lg"
+                style={{ borderColor: `${theme.accentHex}70`, color: theme.accentHex }}
+              >
+                <Clock className="w-3 h-3" style={{ color: theme.accentHex }} />
                 PRE-SAVE
               </span>
             )}
@@ -359,15 +331,15 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
 
         {/* Release Metadata */}
         <div className="text-center space-y-1.5 pt-1">
-          <h1 className="font-heavy text-2xl sm:text-3xl uppercase tracking-tight text-white leading-tight">
+          <h1 className={`text-2xl sm:text-3xl leading-tight ${theme.titleClass}`}>
             {link.title}
           </h1>
 
-          <div className="flex items-center justify-center gap-1.5 font-mono text-xs sm:text-sm text-[#D9D9E2]/85 uppercase tracking-wider">
+          <div className={`flex items-center justify-center gap-1.5 text-xs sm:text-sm ${theme.artistClass}`}>
             <span>{link.artist}</span>
             {link.is_verified_artist && (
               <span title="Verified Artist" className="inline-flex items-center">
-                <ShieldCheck className="w-4 h-4 text-[#00F0FF]" />
+                <ShieldCheck className="w-4 h-4" style={{ color: theme.accentHex }} />
               </span>
             )}
           </div>
@@ -379,7 +351,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
           )}
 
           {link.description && (
-            <p className="text-xs text-[#D9D9E2]/70 pt-2 leading-relaxed max-w-sm mx-auto">
+            <p className="text-xs text-[#D9D9E2]/75 pt-2 leading-relaxed max-w-sm mx-auto font-sans">
               {link.description}
             </p>
           )}
@@ -387,8 +359,8 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
 
         {/* Pre-save Live Countdown (if not out now) */}
         {!link.is_out_now && timeLeft && (
-          <div className="p-3.5 rounded-2xl border border-[#B46BFF]/30 bg-[#8737FF]/10 backdrop-blur-md text-center space-y-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#B46BFF] block">
+          <div className={`p-3.5 rounded-2xl border backdrop-blur-md text-center space-y-2 ${theme.countdownCardClass}`}>
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] block" style={{ color: theme.accentHex }}>
               // ДО РЕЛИЗА ОСТАЛОСЬ
             </span>
             <div className="grid grid-cols-4 gap-2 font-mono text-center">
@@ -412,7 +384,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
 
             <button
               onClick={() => setShowPresaveModal(true)}
-              className="w-full mt-2 py-2 px-4 rounded-xl bg-[#8737FF] hover:bg-[#B46BFF] text-white font-mono text-[11px] font-bold uppercase tracking-widest transition shadow-[0_0_20px_rgba(135,55,255,0.4)] flex items-center justify-center gap-2"
+              className={`w-full mt-2 py-2.5 px-4 rounded-xl font-mono text-[11px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-2 ${theme.presaveBtnClass}`}
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Оформить Pre-save</span>
@@ -428,7 +400,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
             </div>
           ) : (
             enabledPlatforms.map((platform) => {
-              const details = getPlatformDetails(platform.platform_key);
+              const meta = getPlatformVisualMeta(platform.platform_key);
               const actionLabel = platform.button_text || (link.is_out_now ? "Слушать" : "Pre-save");
 
               return (
@@ -438,21 +410,25 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => handlePlatformClick(platform)}
-                  className="group flex items-center justify-between p-3.5 rounded-2xl border border-white/10 bg-[#050407]/70 hover:bg-[#160B28]/80 hover:border-[#B46BFF]/60 transition-all duration-200 select-none cursor-pointer"
+                  className={`group flex items-center justify-between gap-2.5 p-3 sm:p-3.5 transition-all duration-200 select-none cursor-pointer ${theme.buttonClass}`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center font-mono font-bold text-xs shadow-md flex-shrink-0"
-                      style={{ backgroundColor: details.color, color: details.textColor }}
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+                      style={{
+                        backgroundColor: meta.bgColor,
+                        color: meta.fgColor,
+                        boxShadow: `0 4px 16px ${meta.glowColor}`,
+                      }}
                     >
-                      {details.tag}
+                      <PlatformLogo platformKey={platform.platform_key} className="w-5 h-5" />
                     </div>
-                    <span className="font-mono text-xs sm:text-sm uppercase tracking-wider text-white font-medium truncate">
-                      {details.name}
+                    <span className="font-sans text-xs sm:text-sm tracking-wide text-white font-semibold truncate">
+                      {meta.name}
                     </span>
                   </div>
 
-                  <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 group-hover:bg-[#8737FF] group-hover:text-white text-[#D9D9E2] font-mono text-[11px] font-bold uppercase tracking-wider transition-all duration-200 shadow-sm flex-shrink-0">
+                  <div className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-200 shadow-sm flex-shrink-0 ${theme.actionPillClass}`}>
                     <span>{actionLabel}</span>
                     <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
                   </div>

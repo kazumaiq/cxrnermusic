@@ -126,7 +126,8 @@ async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | n
           source: "cxrner",
           title,
           artist,
-          cover_url: cover,
+          // Do not pull cover_url from CXRNER DB — covers are fetched exclusively from external bases (iTunes / Deezer / Cover Art Archive)
+          cover_url: "",
           upc: cleanUpc,
           release_date: relDate,
           genre: form.genre || payload.genre || "Electronic",
@@ -166,7 +167,8 @@ async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | n
           source: "cxrner",
           title,
           artist,
-          cover_url: cover,
+          // Do not pull cover_url from CXRNER DB — covers are fetched exclusively from external bases
+          cover_url: "",
           upc: cleanUpc,
           release_date: relDate,
           genre: rel.genre || "Electronic",
@@ -311,11 +313,21 @@ async function lookupMusicBrainzByUpc(upc: string): Promise<ReleaseLookupResult 
       }
     }
 
+    let mbCover = "";
+    if (item.id && item["cover-art-archive"]?.front) {
+      try {
+        const caaRes = await fetch(`https://coverartarchive.org/release/${item.id}/front-500`, { method: "HEAD" });
+        if (caaRes.ok) {
+          mbCover = caaRes.url || `https://coverartarchive.org/release/${item.id}/front-500`;
+        }
+      } catch {}
+    }
+
     return {
       source: "musicbrainz",
       title,
       artist,
-      cover_url: "",
+      cover_url: mbCover,
       upc,
       release_date: releaseDate,
       genre: "Electronic",
@@ -341,8 +353,13 @@ async function enrichByArtistTitle(
   let cover = "";
   let release_date = "";
 
-  const [itRes, dzRes] = await Promise.all([
+  const [itAlbumRes, itSongRes, dzAlbumRes, dzTrackRes] = await Promise.all([
     fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=album&limit=1`, {
+      headers: { "User-Agent": "CXRNER-LINK/1.0" },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null),
+    fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=1`, {
       headers: { "User-Agent": "CXRNER-LINK/1.0" },
     })
       .then((r) => (r.ok ? r.json() : null))
@@ -352,15 +369,21 @@ async function enrichByArtistTitle(
     })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
+    fetch(`https://api.deezer.com/search/track?q=${encodeURIComponent(q)}&limit=1`, {
+      headers: { "User-Agent": "CXRNER-LINK/1.0" },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null),
   ]);
 
-  const itItem = itRes?.results?.[0];
+  const itItem = itAlbumRes?.results?.[0] || itSongRes?.results?.[0];
   if (itItem) {
-    if (itItem.collectionViewUrl) {
+    const viewUrl = itItem.collectionViewUrl || itItem.trackViewUrl;
+    if (viewUrl) {
       platforms.push({
         platform_key: "apple",
         platform_name: "Apple Music",
-        url: itItem.collectionViewUrl,
+        url: viewUrl,
         button_text: "Слушать",
         is_direct: true,
       });
@@ -369,7 +392,8 @@ async function enrichByArtistTitle(
     release_date = normalizeReleaseDate(itItem.releaseDate);
   }
 
-  const dzItem = dzRes?.data?.[0];
+  const dzItem = dzAlbumRes?.data?.[0];
+  const dzTrack = dzTrackRes?.data?.[0];
   if (dzItem) {
     if (dzItem.link) {
       platforms.push({
@@ -381,6 +405,17 @@ async function enrichByArtistTitle(
       });
     }
     if (!cover) cover = dzItem.cover_xl || dzItem.cover_big || "";
+  } else if (dzTrack) {
+    if (dzTrack.link) {
+      platforms.push({
+        platform_key: "deezer",
+        platform_name: "Deezer",
+        url: dzTrack.link,
+        button_text: "Слушать",
+        is_direct: true,
+      });
+    }
+    if (!cover) cover = dzTrack.album?.cover_xl || dzTrack.album?.cover_big || "";
   }
 
   return { cover, release_date, platforms };
@@ -412,7 +447,8 @@ export async function lookupReleaseByUpc(upc: string): Promise<ReleaseLookupResu
       ...(base.platforms || []),
     ];
 
-    let coverUrl = cxrnerDbResult?.cover_url || itunesResult?.cover_url || deezerResult?.cover_url || base.cover_url || "";
+    // Always prioritize covers from external databases (iTunes, Deezer, Cover Art Archive), never CXRNER DB
+    let coverUrl = itunesResult?.cover_url || deezerResult?.cover_url || (base.source !== "cxrner" ? base.cover_url : "") || "";
     let relDate = cxrnerDbResult?.release_date || itunesResult?.release_date || deezerResult?.release_date || base.release_date || "";
 
     // If we found the track in CXRNER DB or MusicBrainz, enrich missing direct Apple/Deezer/cover/date

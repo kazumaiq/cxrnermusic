@@ -35,6 +35,9 @@ import {
   normalizeReleaseDate,
   buildPlatformSearchUrl,
 } from "@/lib/slug";
+import { SMART_LINK_THEMES, getSmartLinkTheme, SmartLinkTemplateId } from "@/lib/smartLinkThemes";
+import { ThemeAmbientBackground } from "./ThemeAmbientBackground";
+import { PlatformLogo, getPlatformVisualMeta } from "./PlatformLogo";
 
 interface PlatformEntry {
   platform_key: string;
@@ -109,7 +112,7 @@ export default function CreateLinkWizard() {
   const [labelName, setLabelName] = useState("CXRNER MUSIC");
   const [description, setDescription] = useState("");
   const [isOutNow, setIsOutNow] = useState(false);
-  const [template, setTemplate] = useState<"CYBER" | "MINIMAL" | "CINEMATIC" | "BRUTAL">("CYBER");
+  const [template, setTemplate] = useState<SmartLinkTemplateId>("CYBER");
   const [platforms, setPlatforms] = useState<PlatformEntry[]>(DEFAULT_PLATFORMS);
 
   // Unreleased barcode state (smooth Pre-save prompt without jarring empty redirect)
@@ -294,7 +297,17 @@ export default function CreateLinkWizard() {
 
     setTitle(nextTitle);
     setArtist(nextArtist);
-    setCoverUrl(item.cover_url || "");
+    // Only use external cover URLs directly; for CXRNER internal releases, fetch cover from external databases (iTunes / Deezer)
+    const isExternalSource = item.source && item.source !== "cxrner";
+    setCoverUrl(isExternalSource ? item.cover_url || "" : "");
+    if (!isExternalSource && nextArtist && nextTitle) {
+      fetch(`/api/cover-lookup?artist=${encodeURIComponent(nextArtist)}&title=${encodeURIComponent(nextTitle)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.cover) setCoverUrl(d.cover);
+        })
+        .catch(() => {});
+    }
     setUpc(item.upc || upcInput.trim());
     if (normalizedDate) setReleaseDate(normalizedDate);
     if (item.genre) setGenre(item.genre);
@@ -1223,79 +1236,53 @@ export default function CreateLinkWizard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left: 4 Visual Theme Selection Cards */}
-            <div className="lg:col-span-7 space-y-3.5">
-              {[
-                {
-                  id: "CYBER",
-                  name: "CYBER // STMPD EDM",
-                  tag: "ELECTRIC NEON & CYBERPUNK",
-                  desc: "Фирменный стиль STMPD RCRDS: неоновые фиолетовые и бирюзовые лучи, стеклянные кнопки с живой пульсацией.",
-                  border: "border-[#8737FF]",
-                  accent: "#00F0FF",
-                  bg: "from-[#120826] via-[#090611] to-black",
-                  previewBadge: "NEON PILLS · GLOW",
-                },
-                {
-                  id: "CINEMATIC",
-                  name: "CINEMATIC // NARVENT PHONK",
-                  tag: "DEEP ARTWORK BLUR & ATMOSPHERE",
-                  desc: "Атмосферный стиль в духе Narvent: глубокое кинематографичное размытие обложки на весь экран, матовое стекло, мягкий виньетинг.",
-                  border: "border-[#B46BFF]",
-                  accent: "#B46BFF",
-                  bg: "from-[#1c0d38] via-[#0b0617] to-black",
-                  previewBadge: "FULL-BLEED BLUR · GLASS",
-                },
-                {
-                  id: "MINIMAL",
-                  name: "MINIMAL // SWISS OBSIDIAN",
-                  tag: "MONOCHROME & CRISP LINES",
-                  desc: "Строгий швейцарский минимализм: чистая белая окантовка, глубокий черный обсидиан, акцент на типографику и обложку.",
-                  border: "border-white/60",
-                  accent: "#FFFFFF",
-                  bg: "from-white/10 via-[#07050d] to-black",
-                  previewBadge: "HAIRLINE BORDERS · SWISS",
-                },
-                {
-                  id: "BRUTAL",
-                  name: "BRUTAL // UNDERGROUND RAVE",
-                  tag: "HIGH CONTRAST & SOLID BLOCKS",
-                  desc: "Энергия подпольных рейв-афиш: массивные монолитные кнопки, контрастные тени и плотный индустриальный контур.",
-                  border: "border-[#00F0FF]",
-                  accent: "#00F0FF",
-                  bg: "from-[#00F0FF]/15 via-[#07050d] to-black",
-                  previewBadge: "INDUSTRIAL SOLID · RAW",
-                },
-              ].map((t) => {
+            {/* Left: 7 Atmospheric Theme Selection Cards */}
+            <div className="lg:col-span-7 space-y-3">
+              {SMART_LINK_THEMES.map((t) => {
                 const isSelected = template === t.id;
                 return (
                   <div
                     key={t.id}
-                    onClick={() => setTemplate(t.id as any)}
-                    className={`p-5 rounded-2xl border transition-all duration-300 cursor-pointer space-y-2 relative overflow-hidden bg-gradient-to-r ${
-                      t.bg
-                    } ${
+                    onClick={() => setTemplate(t.id)}
+                    className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 cursor-pointer space-y-2 relative overflow-hidden bg-gradient-to-r ${t.previewGradient} ${
                       isSelected
-                        ? `${t.border} ring-2 ring-[#8737FF] shadow-[0_0_35px_rgba(135,55,255,0.35)] scale-[1.01]`
+                        ? "border-white/50 ring-2 ring-[#8737FF] shadow-[0_0_35px_rgba(135,55,255,0.35)] scale-[1.01]"
                         : "border-white/10 hover:border-white/30"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <span className="font-heavy text-base sm:text-lg uppercase tracking-wider text-white">
-                          {t.name}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-white/10 font-mono text-[9px] uppercase tracking-wider text-[#00F0FF]">
-                          {t.previewBadge}
-                        </span>
+                    <div className="flex items-start sm:items-center justify-between gap-3">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-heavy text-sm sm:text-base uppercase tracking-wider text-white">
+                            {t.name}
+                          </span>
+                          <span
+                            className="px-2 py-0.5 rounded-full bg-black/40 border border-white/10 font-mono text-[9px] uppercase tracking-wider"
+                            style={{ color: t.accentHex }}
+                          >
+                            {t.vibeTag}
+                          </span>
+                        </div>
                       </div>
-                      {isSelected ? (
-                        <span className="w-6 h-6 rounded-full bg-[#8737FF] flex items-center justify-center text-white shadow-md">
-                          <Check className="w-3.5 h-3.5" />
-                        </span>
-                      ) : (
-                        <span className="w-5 h-5 rounded-full border border-white/20" />
-                      )}
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center -space-x-1">
+                          {t.swatchColors.map((hex, i) => (
+                            <span
+                              key={i}
+                              className="w-3.5 h-3.5 rounded-full border border-white/30"
+                              style={{ backgroundColor: hex }}
+                            />
+                          ))}
+                        </div>
+                        {isSelected ? (
+                          <span className="w-6 h-6 rounded-full bg-[#8737FF] flex items-center justify-center text-white shadow-md">
+                            <Check className="w-3.5 h-3.5" />
+                          </span>
+                        ) : (
+                          <span className="w-5 h-5 rounded-full border border-white/20" />
+                        )}
+                      </div>
                     </div>
                     <p className="text-xs text-[#D9D9E2]/80 leading-relaxed font-sans">{t.desc}</p>
                   </div>
@@ -1304,100 +1291,96 @@ export default function CreateLinkWizard() {
             </div>
 
             {/* Right: Live Interactive Smartphone Mockup */}
-            <div className="lg:col-span-5 flex flex-col items-center">
+            <div className="lg:col-span-5 flex flex-col items-center lg:sticky lg:top-24">
               <div className="font-mono text-[10px] uppercase tracking-widest text-[#00F0FF] mb-2 flex items-center gap-1.5">
                 <Sparkles className="w-3 h-3 text-[#00F0FF]" />
                 <span>ЖИВОЙ ПРЕДПРОСМОТР СМАРТФОНА</span>
               </div>
 
-              {/* iPhone Frame */}
-              <div className="w-64 sm:w-72 rounded-[40px] border-4 border-neutral-800 bg-[#07050d] p-3 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
-                {/* Dynamic island notch */}
-                <div className="w-20 h-4 bg-black rounded-full mx-auto mb-3" />
+              {(() => {
+                const activeTheme = getSmartLinkTheme(template);
+                return (
+                  <div className="w-68 sm:w-72 rounded-[40px] border-4 border-neutral-800 bg-[#07050d] p-3 shadow-[0_0_55px_rgba(0,0,0,0.85)] relative overflow-hidden">
+                    {/* Dynamic island notch */}
+                    <div className="w-20 h-4 bg-black rounded-full mx-auto mb-3 relative z-20" />
 
-                {/* Inner Screen */}
-                <div
-                  className={`rounded-[30px] p-4 text-center space-y-3 min-h-[380px] flex flex-col justify-between relative overflow-hidden transition-all duration-500 ${
-                    template === "CYBER"
-                      ? "bg-gradient-to-b from-[#1b0838] to-[#07050d]"
-                      : template === "CINEMATIC"
-                      ? "bg-[#0b0518]"
-                      : template === "MINIMAL"
-                      ? "bg-[#050407]"
-                      : "bg-[#050407]"
-                  }`}
-                >
-                  {/* Backdrop blur if cinematic */}
-                  {template === "CINEMATIC" && coverUrl && (
+                    {/* Inner Screen */}
                     <div
-                      className="absolute inset-0 bg-cover bg-center blur-2xl opacity-40 scale-125 pointer-events-none"
-                      style={{ backgroundImage: `url(${coverUrl})` }}
-                    />
-                  )}
+                      className={`rounded-[30px] p-4 text-center space-y-3 min-h-[410px] flex flex-col justify-between relative overflow-hidden transition-all duration-500 ${activeTheme.mockupBgClass}`}
+                    >
+                      <ThemeAmbientBackground theme={activeTheme} coverUrl={coverUrl} compact />
 
-                  <div className="relative z-10 space-y-3">
-                    {/* Cover Art in Mockup */}
-                    <div className="w-24 h-24 mx-auto rounded-2xl overflow-hidden border border-white/20 shadow-xl relative bg-black/60">
-                      {coverUrl ? (
-                        <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/40">
-                          <Music2 className="w-8 h-8" />
+                      <div className="relative z-10 space-y-3">
+                        {/* Cover Art in Mockup */}
+                        <div className={`w-24 h-24 mx-auto overflow-hidden relative bg-black/60 ${activeTheme.coverFrameClass}`}>
+                          {coverUrl ? (
+                            <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-white/40">
+                              <Music2 className="w-8 h-8" />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {/* Title & Artist */}
-                    <div>
-                      <p className="font-heavy text-xs uppercase text-white truncate px-2">
-                        {title || "Название релиза"}
-                      </p>
-                      <p className="font-mono text-[10px] text-[#B46BFF] truncate mt-0.5">
-                        {artist || "Исполнитель"}
-                      </p>
-                    </div>
+                        {/* Title & Artist */}
+                        <div className="px-1">
+                          <p className={`text-sm truncate ${activeTheme.titleClass}`}>
+                            {title || "Название релиза"}
+                          </p>
+                          <p className={`text-[10px] truncate mt-0.5 ${activeTheme.artistClass}`}>
+                            {artist || "Исполнитель"}
+                          </p>
+                        </div>
 
-                    {/* Pre-save countdown mock */}
-                    {!isOutNow && (
-                      <div className="p-1.5 rounded-xl bg-black/50 border border-white/10 font-mono text-[8px] text-[#00F0FF] uppercase">
-                        <span>⏳ PRE-SAVE: 14 ДНЕЙ 08:24:12</span>
+                        {/* Pre-save countdown mock */}
+                        {!isOutNow && (
+                          <div
+                            className="p-1.5 rounded-xl bg-black/50 border font-mono text-[8px] uppercase"
+                            style={{ borderColor: `${activeTheme.accentHex}45`, color: activeTheme.accentHex }}
+                          >
+                            <span>⏳ PRE-SAVE: 14 ДНЕЙ 08:24:12</span>
+                          </div>
+                        )}
+
+                        {/* Buttons Mockup with Real Platform Logos */}
+                        <div className="space-y-1.5 pt-1">
+                          {["yandex", "spotify", "apple", "vk"].map((pKey) => {
+                            const meta = getPlatformVisualMeta(pKey);
+                            return (
+                              <div
+                                key={pKey}
+                                className={`px-2.5 py-2 text-[10px] flex items-center justify-between gap-2 transition-all duration-300 ${activeTheme.mockupButtonClass}`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span
+                                    className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+                                    style={{ backgroundColor: meta.bgColor, color: meta.fgColor }}
+                                  >
+                                    <PlatformLogo platformKey={pKey} className="w-3.5 h-3.5" />
+                                  </span>
+                                  <span className="font-sans font-semibold text-white truncate">
+                                    {meta.shortName}
+                                  </span>
+                                </div>
+                                <span
+                                  className="font-mono text-[9px] font-bold uppercase flex-shrink-0"
+                                  style={{ color: activeTheme.accentHex }}
+                                >
+                                  {isOutNow ? "Слушать" : "Pre-save"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    )}
 
-                    {/* Buttons Mockup */}
-                    <div className="space-y-1.5 pt-1">
-                      {[
-                        { name: "Яндекс Музыка", key: "yandex" },
-                        { name: "Spotify", key: "spotify" },
-                        { name: "Apple Music", key: "apple" },
-                        { name: "VK Музыка", key: "vk" },
-                      ].map((p) => (
-                        <div
-                          key={p.key}
-                          className={`p-2 rounded-xl text-[9px] font-mono uppercase tracking-wider flex items-center justify-between transition-all duration-300 ${
-                            template === "CYBER"
-                              ? "bg-[#8737FF]/20 border border-[#8737FF]/60 text-white shadow-[0_0_10px_rgba(135,55,255,0.2)]"
-                              : template === "CINEMATIC"
-                              ? "bg-white/10 backdrop-blur-md border border-white/20 text-white"
-                              : template === "MINIMAL"
-                              ? "bg-transparent border border-white/30 text-white"
-                              : "bg-white/15 border-2 border-white/40 text-white font-bold"
-                          }`}
-                        >
-                          <span className="font-bold truncate">{p.name}</span>
-                          <span className="text-[#00F0FF] font-bold">
-                            {isOutNow ? "Слушать" : "Pre-save"}
-                          </span>
-                        </div>
-                      ))}
+                      <div className="relative z-10 pt-2 font-mono text-[7px] text-white/45 uppercase tracking-widest">
+                        CXRNER LINK • 2026
+                      </div>
                     </div>
                   </div>
-
-                  <div className="relative z-10 pt-2 font-mono text-[7px] text-[#D9D9E2]/40 uppercase tracking-widest">
-                    CXRNER LINK • 2026
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
           </div>
 
