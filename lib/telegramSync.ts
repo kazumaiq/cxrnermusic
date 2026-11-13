@@ -219,3 +219,35 @@ export async function sendTelegramNewMessage(opts: SyncMessageOptions): Promise<
     return { ok: false, error: err.message };
   }
 }
+
+/** Send plain or HTML notification message into Telegram moderation chat or DM */
+export async function sendTelegramTextMessage(
+  chatId: string | number,
+  text: string,
+  replyToMessageId?: number | null
+): Promise<{ ok: boolean; messageId?: number; error?: string }> {
+  const token = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
+  if (!token) return { ok: false, error: "TELEGRAM_BOT_TOKEN not configured" };
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+        reply_to_message_id: replyToMessageId || undefined,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (data.ok && data.result?.message_id) {
+      return { ok: true, messageId: data.result.message_id };
+    }
+    return { ok: false, error: data.description || "Send text failed" };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}

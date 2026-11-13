@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyAdminRequest, getAdminUser } from "@/lib/admin";
-import { syncTelegramMessage } from "@/lib/telegramSync";
+import { syncTelegramMessage, sendTelegramTextMessage } from "@/lib/telegramSync";
 import {
   getAllUnifiedReleases,
   computeCmsStats,
@@ -368,6 +368,45 @@ export async function PATCH(request: Request) {
           .update({ moderation_message_id: String((tgSyncResult as any).messageId) })
           .eq("id", currentForm.id);
       } catch {}
+    }
+
+    const activeMsgId = (tgSyncResult as any).messageId || (messageId ? Number(messageId) : null);
+    const modChat = process.env.MODERATION_CHAT_ID || "-1002117586464";
+
+    // Post reply message into moderation group if action is assign_upc or upc provided
+    if (targetUpc) {
+      await sendTelegramTextMessage(
+        modChat,
+        `✅ UPC присвоен: <code>${targetUpc}</code>`,
+        activeMsgId
+      ).catch(() => null);
+
+      if (currentForm.telegram_id && /^\d{4,20}$/.test(String(currentForm.telegram_id))) {
+        await sendTelegramTextMessage(
+          currentForm.telegram_id,
+          `📦 <b>UPC присвоен</b>\n\n🎵 <b>${currentForm.track_name || "Релиз"}</b>\nUPC: <code>${targetUpc}</code>`
+        ).catch(() => null);
+      }
+    }
+
+    if (action === "approve" || status === "approved") {
+      await sendTelegramTextMessage(
+        modChat,
+        `✅ <b>Релиз одобрен модератором</b> (${moderatorName})`,
+        activeMsgId
+      ).catch(() => null);
+    } else if (action === "reject" || status === "rejected") {
+      await sendTelegramTextMessage(
+        modChat,
+        `❌ <b>Релиз отклонен:</b> ${targetReject || "Без указания причины"}`,
+        activeMsgId
+      ).catch(() => null);
+    } else if (action === "needfix" || status === "needfix") {
+      await sendTelegramTextMessage(
+        modChat,
+        `✏️ <b>Отправлено на исправления:</b> ${targetComment || "Требуются правки"}`,
+        activeMsgId
+      ).catch(() => null);
     }
 
     const isTgSynced = botSyncResult.ok || tgSyncResult.ok;
