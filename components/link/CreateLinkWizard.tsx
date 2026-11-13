@@ -1354,7 +1354,7 @@ export default function CreateLinkWizard() {
                                 <div className="flex items-center gap-2 min-w-0">
                                   <span
                                     className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
-                                    style={{ backgroundColor: meta.bgColor, color: meta.fgColor }}
+                                    style={{ background: meta.bgGradient, color: meta.fgColor }}
                                   >
                                     <PlatformLogo platformKey={pKey} className="w-3.5 h-3.5" />
                                   </span>

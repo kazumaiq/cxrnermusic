@@ -414,14 +414,14 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
                 >
                   <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                     <div
-                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
                       style={{
-                        backgroundColor: meta.bgColor,
+                        background: meta.bgGradient,
                         color: meta.fgColor,
-                        boxShadow: `0 4px 16px ${meta.glowColor}`,
+                        boxShadow: `0 4px 18px ${meta.glowColor}`,
                       }}
                     >
-                      <PlatformLogo platformKey={platform.platform_key} className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <PlatformLogo platformKey={platform.platform_key} className="w-5 h-5 sm:w-[22px] sm:h-[22px]" />
                     </div>
                     <span className="font-sans text-[13px] sm:text-sm tracking-tight text-white font-semibold truncate">
                       {meta.name}
