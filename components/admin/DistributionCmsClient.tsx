@@ -230,15 +230,15 @@ export default function DistributionCmsClient({
   };
 
   return (
-    <div className="min-h-screen bg-[#050407] text-white flex flex-col selection:bg-[#8737FF] selection:text-white">
+    <div className="min-h-screen bg-[#050407] text-white flex flex-col font-sans selection:bg-[#8737FF] selection:text-white">
       {/* Toast Notification */}
       {notification && (
         <div className="fixed top-5 right-5 z-50 animate-fade-in max-w-sm">
           <div
             className={`p-4 rounded-2xl border shadow-2xl flex items-center gap-3 backdrop-blur-xl ${
               notification.type === "success"
-                ? "bg-emerald-950/85 border-emerald-500/50 text-emerald-200"
-                : "bg-red-950/85 border-red-500/50 text-red-200"
+                ? "bg-emerald-950/90 border-emerald-500/50 text-emerald-200"
+                : "bg-red-950/90 border-red-500/50 text-red-200"
             }`}
           >
             {notification.type === "success" ? (
@@ -246,46 +246,47 @@ export default function DistributionCmsClient({
             ) : (
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
             )}
-            <span className="font-mono text-xs">{notification.text}</span>
+            <span className="text-xs sm:text-sm font-medium">{notification.text}</span>
           </div>
         </div>
       )}
 
       {/* Top Header Bar */}
-      <header className="h-16 border-b border-white/10 bg-[#090611]/80 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-3">
+      <header className="h-16 border-b border-white/[0.08] bg-[#090611]/85 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-3.5">
           <Link href="/" className="flex items-center gap-2 group">
-            <span className="w-2 h-2 rounded-full bg-[#8737FF] group-hover:scale-125 transition shadow-[0_0_8px_#8737FF]" />
-            <span className="font-heavy text-base uppercase tracking-wider text-white">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#8737FF] group-hover:scale-125 transition shadow-[0_0_10px_#8737FF]" />
+            <span className="text-base font-bold tracking-tight text-white">
               CXRNER MUSIC
             </span>
           </Link>
-          <span className="hidden sm:inline font-mono text-xs text-white/30">/</span>
-          <span className="hidden sm:inline px-2.5 py-0.5 rounded-full bg-[#8737FF]/20 border border-[#8737FF]/40 text-[#B46BFF] font-mono text-[10px] font-bold uppercase tracking-wider">
-            DISTRIBUTION &amp; MODERATION CMS
+          <span className="hidden sm:inline text-white/20">/</span>
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#8737FF]/15 border border-[#8737FF]/35 text-[#B46BFF] text-xs font-semibold tracking-wide">
+            <Sparkles className="w-3 h-3" />
+            Панель управления дистрибуцией
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
             onClick={() => fetchForms(true)}
             disabled={refreshing}
-            className="p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/15 text-[#D9D9E2] transition flex items-center gap-1.5 font-mono text-xs"
+            className="px-3 py-2 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-[#D9D9E2] transition flex items-center gap-2 text-xs font-medium"
             title="Синхронизировать с Telegram и базой"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-[#00F0FF]" : ""}`} />
             <span className="hidden md:inline">Синхронизация</span>
           </button>
 
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 font-mono text-xs">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs font-medium text-white/80">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-white/80">{initialUser?.email || "cxrner.label@gmail.com"}</span>
+            <span>{initialUser?.email || "cxrner.label@gmail.com"}</span>
           </div>
 
           <button
             onClick={handleLogout}
-            className="p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-red-500/20 hover:border-red-500/40 text-white/70 hover:text-red-300 transition"
-            title="Выйти из админки"
+            className="p-2 sm:p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-red-500/15 hover:border-red-500/35 text-white/70 hover:text-red-300 transition"
+            title="Выйти из аккаунта"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -293,140 +294,140 @@ export default function DistributionCmsClient({
       </header>
 
       {/* Main Layout: Sidebar Navigation + Content Area */}
-      <div className="flex-1 flex flex-col md:flex-row">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0">
         {/* Sidebar Nav (Desktop) */}
-        <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/10 bg-[#07050d] p-3 sm:p-4 flex-shrink-0 flex md:flex-col justify-start overflow-x-auto md:overflow-x-visible space-y-0 md:space-y-1 gap-1 md:gap-0">
-          <div className="hidden md:block px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">
-            Разделы CMS
+        <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/[0.08] bg-[#07050d] p-3 sm:p-4 flex-shrink-0 flex md:flex-col justify-start overflow-x-auto md:overflow-x-visible space-y-0 md:space-y-1 gap-1 md:gap-0">
+          <div className="hidden md:block px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-1">
+            Разделы управления
           </div>
 
           <button
             onClick={() => setActiveTab("overview")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "overview"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <LayoutDashboard className="w-4 h-4" />
-              <span>Overview</span>
+              <span>Главный обзор</span>
             </div>
           </button>
 
           <button
             onClick={() => setActiveTab("all")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "all"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <Layers className="w-4 h-4" />
               <span>Все заявки</span>
             </div>
-            <span className="text-[10px] opacity-75">{stats.total}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/80 font-semibold">{stats.total}</span>
           </button>
 
           <button
             onClick={() => setActiveTab("on_upload")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "on_upload"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <Clock className="w-4 h-4 text-sky-400" />
               <span>На отгрузке</span>
             </div>
-            <span className="text-[10px] opacity-75">{stats.on_upload}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/80 font-semibold">{stats.on_upload}</span>
           </button>
 
           <button
             onClick={() => setActiveTab("moderation")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "moderation"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <Radio className="w-4 h-4 text-purple-400" />
               <span>Модерация</span>
             </div>
-            <span className="text-[10px] opacity-75">{stats.moderation}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/80 font-semibold">{stats.moderation}</span>
           </button>
 
           <button
             onClick={() => setActiveTab("needfix")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "needfix"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 text-amber-400" />
               <span>На правках</span>
             </div>
-            <span className="text-[10px] opacity-75">{stats.needfix}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/80 font-semibold">{stats.needfix}</span>
           </button>
 
           <button
             onClick={() => setActiveTab("approved")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "approved"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               <span>Одобренные</span>
             </div>
-            <span className="text-[10px] opacity-75">{stats.approved}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/80 font-semibold">{stats.approved}</span>
           </button>
 
           <button
             onClick={() => setActiveTab("rejected")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "rejected"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <XCircle className="w-4 h-4 text-red-400" />
               <span>Отклонённые</span>
             </div>
-            <span className="text-[10px] opacity-75">{stats.rejected}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/80 font-semibold">{stats.rejected}</span>
           </button>
 
           <button
             onClick={() => setActiveTab("archive")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "archive"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <Archive className="w-4 h-4 text-white/50" />
               <span>Архив</span>
             </div>
-            <span className="text-[10px] opacity-75">{stats.archived}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/80 font-semibold">{stats.archived}</span>
           </button>
 
-          <div className="hidden md:block pt-3 border-t border-white/10 my-2" />
+          <div className="hidden md:block pt-3 border-t border-white/[0.08] my-2" />
 
           <button
             onClick={() => setActiveTab("stats")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "stats"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -437,10 +438,10 @@ export default function DistributionCmsClient({
 
           <button
             onClick={() => setActiveTab("settings")}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider transition text-left flex-shrink-0 ${
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition text-left flex-shrink-0 ${
               activeTab === "settings"
-                ? "bg-[#8737FF] text-white font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)]"
-                : "text-white/70 hover:bg-white/5 hover:text-white"
+                ? "bg-gradient-to-r from-[#8737FF] to-[#7025e0] text-white font-semibold shadow-[0_0_20px_rgba(135,55,255,0.35)]"
+                : "text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -456,10 +457,10 @@ export default function DistributionCmsClient({
           {activeTab === "overview" && (
             <div className="space-y-6 animate-fade-in">
               <div className="space-y-1">
-                <h1 className="font-heavy text-2xl sm:text-3xl uppercase tracking-tight text-white">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                   Обзор дистрибуции
                 </h1>
-                <p className="font-mono text-xs text-[#D9D9E2]/60">
+                <p className="text-xs sm:text-sm text-[#9B95AD] font-normal leading-relaxed">
                   Метрики в реальном времени из базы данных Supabase и Telegram-группы модерации.
                 </p>
               </div>
@@ -468,13 +469,13 @@ export default function DistributionCmsClient({
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div
                   onClick={() => setActiveTab("all")}
-                  className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 hover:border-[#8737FF]/50 transition cursor-pointer space-y-2 group"
+                  className="p-4 sm:p-5 rounded-2xl border border-white/[0.08] bg-[#0c0916]/80 hover:border-[#8737FF]/50 transition cursor-pointer space-y-2 group"
                 >
-                  <span className="font-mono text-[10px] uppercase text-white/50 tracking-wider block">
+                  <span className="text-xs font-medium text-white/60 block">
                     Всего активных
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-heavy text-2xl sm:text-4xl text-white group-hover:text-[#B46BFF] transition">
+                    <span className="text-3xl sm:text-4xl font-bold tracking-tight text-white group-hover:text-[#B46BFF] transition">
                       {stats.total}
                     </span>
                     <Layers className="w-4 h-4 text-[#8737FF]" />
@@ -483,13 +484,13 @@ export default function DistributionCmsClient({
 
                 <div
                   onClick={() => setActiveTab("on_upload")}
-                  className="p-4 sm:p-5 rounded-2xl border border-sky-500/20 bg-[#090611]/80 hover:border-sky-500/50 transition cursor-pointer space-y-2 group"
+                  className="p-4 sm:p-5 rounded-2xl border border-sky-500/20 bg-[#0c0916]/80 hover:border-sky-500/50 transition cursor-pointer space-y-2 group"
                 >
-                  <span className="font-mono text-[10px] uppercase text-sky-400/80 tracking-wider block">
+                  <span className="text-xs font-medium text-sky-400/90 block">
                     На отгрузке
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-heavy text-2xl sm:text-4xl text-sky-300">
+                    <span className="text-3xl sm:text-4xl font-bold tracking-tight text-sky-300">
                       {stats.on_upload}
                     </span>
                     <Clock className="w-4 h-4 text-sky-400" />
@@ -498,13 +499,13 @@ export default function DistributionCmsClient({
 
                 <div
                   onClick={() => setActiveTab("moderation")}
-                  className="p-4 sm:p-5 rounded-2xl border border-purple-500/20 bg-[#090611]/80 hover:border-purple-500/50 transition cursor-pointer space-y-2 group"
+                  className="p-4 sm:p-5 rounded-2xl border border-purple-500/20 bg-[#0c0916]/80 hover:border-purple-500/50 transition cursor-pointer space-y-2 group"
                 >
-                  <span className="font-mono text-[10px] uppercase text-purple-400/80 tracking-wider block">
+                  <span className="text-xs font-medium text-purple-300/90 block">
                     На модерации
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-heavy text-2xl sm:text-4xl text-purple-300">
+                    <span className="text-3xl sm:text-4xl font-bold tracking-tight text-purple-300">
                       {stats.moderation}
                     </span>
                     <Radio className="w-4 h-4 text-purple-400" />
@@ -513,13 +514,13 @@ export default function DistributionCmsClient({
 
                 <div
                   onClick={() => setActiveTab("needfix")}
-                  className="p-4 sm:p-5 rounded-2xl border border-amber-500/20 bg-[#090611]/80 hover:border-amber-500/50 transition cursor-pointer space-y-2 group"
+                  className="p-4 sm:p-5 rounded-2xl border border-amber-500/20 bg-[#0c0916]/80 hover:border-amber-500/50 transition cursor-pointer space-y-2 group"
                 >
-                  <span className="font-mono text-[10px] uppercase text-amber-400/80 tracking-wider block">
+                  <span className="text-xs font-medium text-amber-300/90 block">
                     На исправлениях
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-heavy text-2xl sm:text-4xl text-amber-300">
+                    <span className="text-3xl sm:text-4xl font-bold tracking-tight text-amber-300">
                       {stats.needfix}
                     </span>
                     <AlertCircle className="w-4 h-4 text-amber-400" />
@@ -528,13 +529,13 @@ export default function DistributionCmsClient({
 
                 <div
                   onClick={() => setActiveTab("approved")}
-                  className="p-4 sm:p-5 rounded-2xl border border-emerald-500/20 bg-[#090611]/80 hover:border-emerald-500/50 transition cursor-pointer space-y-2 group"
+                  className="p-4 sm:p-5 rounded-2xl border border-emerald-500/20 bg-[#0c0916]/80 hover:border-emerald-500/50 transition cursor-pointer space-y-2 group"
                 >
-                  <span className="font-mono text-[10px] uppercase text-emerald-400/80 tracking-wider block">
+                  <span className="text-xs font-medium text-emerald-300/90 block">
                     Одобрено
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-heavy text-2xl sm:text-4xl text-emerald-300">
+                    <span className="text-3xl sm:text-4xl font-bold tracking-tight text-emerald-300">
                       {stats.approved}
                     </span>
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -543,25 +544,25 @@ export default function DistributionCmsClient({
 
                 <div
                   onClick={() => setActiveTab("rejected")}
-                  className="p-4 sm:p-5 rounded-2xl border border-red-500/20 bg-[#090611]/80 hover:border-red-500/50 transition cursor-pointer space-y-2 group"
+                  className="p-4 sm:p-5 rounded-2xl border border-red-500/20 bg-[#0c0916]/80 hover:border-red-500/50 transition cursor-pointer space-y-2 group"
                 >
-                  <span className="font-mono text-[10px] uppercase text-red-400/80 tracking-wider block">
+                  <span className="text-xs font-medium text-red-300/90 block">
                     Отклонено
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-heavy text-2xl sm:text-4xl text-red-300">
+                    <span className="text-3xl sm:text-4xl font-bold tracking-tight text-red-300">
                       {stats.rejected}
                     </span>
                     <XCircle className="w-4 h-4 text-red-400" />
                   </div>
                 </div>
 
-                <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 space-y-2">
-                  <span className="font-mono text-[10px] uppercase text-white/50 tracking-wider block">
+                <div className="p-4 sm:p-5 rounded-2xl border border-cyan-500/20 bg-[#0c0916]/80 space-y-2">
+                  <span className="text-xs font-medium text-cyan-300/90 block">
                     С кодом UPC
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-heavy text-2xl sm:text-4xl text-[#00F0FF]">
+                    <span className="text-3xl sm:text-4xl font-bold tracking-tight text-[#00F0FF]">
                       {stats.with_upc}
                     </span>
                     <Barcode className="w-4 h-4 text-[#00F0FF]" />
@@ -570,13 +571,13 @@ export default function DistributionCmsClient({
 
                 <div
                   onClick={() => setActiveTab("archive")}
-                  className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 hover:border-white/30 transition cursor-pointer space-y-2 group"
+                  className="p-4 sm:p-5 rounded-2xl border border-white/[0.08] bg-[#0c0916]/80 hover:border-white/30 transition cursor-pointer space-y-2 group"
                 >
-                  <span className="font-mono text-[10px] uppercase text-white/50 tracking-wider block">
+                  <span className="text-xs font-medium text-white/50 block">
                     В архиве
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-heavy text-2xl sm:text-4xl text-white/60">
+                    <span className="text-3xl sm:text-4xl font-bold tracking-tight text-white/60">
                       {stats.archived}
                     </span>
                     <Archive className="w-4 h-4 text-white/40" />
@@ -585,15 +586,15 @@ export default function DistributionCmsClient({
               </div>
 
               {/* Quick Attention & Recent Submissions */}
-              <div className="space-y-3">
+              <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs uppercase tracking-wider text-white font-bold flex items-center gap-2">
+                  <div className="text-sm font-semibold text-white flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[#B46BFF]" />
                     <span>Свежие заявки, требующие внимания</span>
-                  </span>
+                  </div>
                   <button
                     onClick={() => setActiveTab("all")}
-                    className="font-mono text-xs text-[#00F0FF] hover:underline flex items-center gap-1"
+                    className="text-xs font-medium text-[#00F0FF] hover:underline flex items-center gap-1"
                   >
                     <span>Показать все</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -607,14 +608,14 @@ export default function DistributionCmsClient({
                       <div
                         key={release.id}
                         onClick={() => setSelectedRelease(release)}
-                        className="p-4 rounded-2xl border border-white/10 bg-[#090611]/80 hover:border-[#8737FF]/50 transition cursor-pointer space-y-2.5"
+                        className="p-4 sm:p-4.5 rounded-2xl border border-white/[0.08] bg-[#0c0916]/80 hover:border-[#8737FF]/50 transition cursor-pointer space-y-3 shadow-sm hover:shadow-[0_0_24px_rgba(135,55,255,0.12)]"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-white/40">
+                          <span className="text-xs text-white/40 font-medium">
                             {new Date(release.created_at).toLocaleDateString("ru-RU")}
                           </span>
                           <span
-                            className="px-2 py-0.5 rounded-full text-[9px] font-mono uppercase font-bold border flex items-center gap-1"
+                            className="px-2.5 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1.5"
                             style={{
                               backgroundColor: "rgba(135,55,255,0.12)",
                               borderColor: "rgba(180,107,255,0.35)",
@@ -627,18 +628,18 @@ export default function DistributionCmsClient({
                         </div>
 
                         <div>
-                          <h4 className="font-heavy text-base text-white truncate">
+                          <h4 className="text-base font-semibold text-white truncate">
                             {release.track_name || "Без названия"}
                           </h4>
-                          <p className="font-mono text-xs text-[#D9D9E2]/70 truncate">
+                          <p className="text-xs text-[#9B95AD] truncate font-medium pt-0.5">
                             {release.artist_name || "Артист не указан"}
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-between pt-1 border-t border-white/5 font-mono text-[11px] text-white/50">
+                        <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs text-white/50">
                           <span>{release.release_type || "Сингл"}</span>
                           {release.upc ? (
-                            <span className="text-[#10B981] font-bold">UPC ✓</span>
+                            <span className="text-emerald-400 font-semibold font-mono">UPC: {release.upc}</span>
                           ) : (
                             <span className="text-white/30">Без UPC</span>
                           )}
@@ -661,7 +662,7 @@ export default function DistributionCmsClient({
             activeTab === "archive") && (
             <div className="space-y-4 animate-fade-in">
               {/* Filter & Search Bar */}
-              <div className="p-4 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md space-y-3">
+              <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#0c0916]/80 backdrop-blur-md space-y-3">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <div className="relative flex-1">
                     <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -670,11 +671,11 @@ export default function DistributionCmsClient({
                       placeholder="Поиск по названию, артисту, ID заявки, UPC или @telegram..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:border-[#8737FF] outline-none font-mono"
+                      className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-white/30 focus:border-[#8737FF] outline-none"
                     />
                   </div>
 
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 font-mono text-xs">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 text-xs font-medium">
                     <select
                       value={genreFilter}
                       onChange={(e) => setGenreFilter(e.target.value)}
@@ -713,10 +714,10 @@ export default function DistributionCmsClient({
               </div>
 
               {/* Table View (Desktop) */}
-              <div className="hidden lg:block rounded-2xl border border-white/10 bg-[#090611]/80 overflow-hidden shadow-2xl">
+              <div className="hidden lg:block rounded-2xl border border-white/[0.08] bg-[#0c0916]/80 overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left font-mono text-xs">
-                    <thead className="bg-black/60 border-b border-white/10 text-white/50 text-[10px] uppercase tracking-wider">
+                  <table className="w-full text-left text-xs sm:text-sm">
+                    <thead className="bg-black/60 border-b border-white/[0.08] text-white/50 text-xs font-semibold">
                       <tr>
                         <th className="p-3.5 pl-5">Релиз / Артист</th>
                         <th className="p-3.5">Тип</th>
@@ -727,10 +728,10 @@ export default function DistributionCmsClient({
                         <th className="p-3.5 text-right pr-5">Действия</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-white/[0.05]">
                       {filteredForms.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="p-8 text-center text-white/40 font-mono text-xs">
+                          <td colSpan={7} className="p-8 text-center text-white/40 text-xs sm:text-sm">
                             Заявок не найдено
                           </td>
                         </tr>
@@ -744,22 +745,22 @@ export default function DistributionCmsClient({
                               onClick={() => setSelectedRelease(rel)}
                             >
                               <td className="p-3.5 pl-5 min-w-[200px]">
-                                <div className="font-heavy text-sm text-white group-hover:text-[#B46BFF] transition">
+                                <div className="text-sm font-semibold text-white group-hover:text-[#B46BFF] transition">
                                   {rel.track_name || "Без названия"}
                                 </div>
-                                <div className="text-[#D9D9E2]/70 text-[11px]">
+                                <div className="text-[#9B95AD] text-xs font-medium pt-0.5">
                                   {rel.artist_name || "—"}
                                 </div>
                               </td>
                               <td className="p-3.5 text-white/70">
                                 {rel.release_type || "Сингл"}
                               </td>
-                              <td className="p-3.5 text-[#00F0FF]">
+                              <td className="p-3.5 text-[#00F0FF] font-medium">
                                 {rel.form_payload?.date || rel.form_payload?.release_date || "—"}
                               </td>
                               <td className="p-3.5">
                                 <span
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold border"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
                                   style={{
                                     backgroundColor: "rgba(135,55,255,0.12)",
                                     borderColor: "rgba(180,107,255,0.35)",
@@ -772,12 +773,12 @@ export default function DistributionCmsClient({
                               </td>
                               <td className="p-3.5">
                                 {rel.upc ? (
-                                  <span className="text-[#10B981] font-bold">{rel.upc}</span>
+                                  <span className="text-emerald-400 font-semibold font-mono text-xs">{rel.upc}</span>
                                 ) : (
                                   <span className="text-white/25">—</span>
                                 )}
                               </td>
-                              <td className="p-3.5 text-white/50 text-[11px]">
+                              <td className="p-3.5 text-white/50 text-xs">
                                 {new Date(rel.created_at).toLocaleDateString("ru-RU")}
                               </td>
                               <td
@@ -838,7 +839,7 @@ export default function DistributionCmsClient({
               {/* Mobile iPhone Card View */}
               <div className="lg:hidden space-y-3">
                 {filteredForms.length === 0 ? (
-                  <div className="p-8 text-center text-white/40 font-mono text-xs border border-white/10 rounded-2xl bg-[#090611]">
+                  <div className="p-8 text-center text-white/40 text-xs sm:text-sm border border-white/10 rounded-2xl bg-[#0c0916]">
                     Заявок не найдено
                   </div>
                 ) : (
@@ -848,11 +849,11 @@ export default function DistributionCmsClient({
                       <div
                         key={rel.id}
                         onClick={() => setSelectedRelease(rel)}
-                        className="p-4 rounded-2xl border border-white/10 bg-[#090611] space-y-3 cursor-pointer"
+                        className="p-4 rounded-2xl border border-white/[0.08] bg-[#0c0916] space-y-3 cursor-pointer shadow-sm"
                       >
                         <div className="flex items-center justify-between">
                           <span
-                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold border"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
                             style={{
                               backgroundColor: "rgba(135,55,255,0.12)",
                               borderColor: "rgba(180,107,255,0.35)",
@@ -863,28 +864,28 @@ export default function DistributionCmsClient({
                             <span>{sm.label}</span>
                           </span>
 
-                          <span className="font-mono text-[10px] text-white/40">
+                          <span className="text-xs text-white/40 font-medium">
                             {new Date(rel.created_at).toLocaleDateString("ru-RU")}
                           </span>
                         </div>
 
                         <div>
-                          <h4 className="font-heavy text-lg text-white">
+                          <h4 className="text-base font-bold text-white">
                             {rel.track_name || "Без названия"}
                           </h4>
-                          <p className="font-mono text-xs text-[#D9D9E2]/70">
+                          <p className="text-xs text-[#9B95AD] font-medium pt-0.5">
                             {rel.artist_name || "—"}
                           </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 font-mono text-xs pt-1 border-t border-white/5 text-white/60">
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-white/[0.06] text-white/60">
                           <div>
-                            <span className="text-[9px] uppercase text-white/35 block">Тип / Жанр:</span>
-                            <span>{rel.release_type || "Сингл"} • {rel.genre || "Electronic"}</span>
+                            <span className="text-[10px] uppercase font-semibold text-white/35 block">Тип / Жанр:</span>
+                            <span className="font-medium">{rel.release_type || "Сингл"} • {rel.genre || "Electronic"}</span>
                           </div>
                           <div>
-                            <span className="text-[9px] uppercase text-white/35 block">UPC:</span>
-                            <span className={rel.upc ? "text-[#10B981] font-bold" : "text-white/30"}>
+                            <span className="text-[10px] uppercase font-semibold text-white/35 block">UPC:</span>
+                            <span className={rel.upc ? "text-emerald-400 font-mono font-bold" : "text-white/30"}>
                               {rel.upc || "Не присвоен"}
                             </span>
                           </div>
@@ -892,19 +893,19 @@ export default function DistributionCmsClient({
 
                         {/* Quick Action Buttons on Mobile */}
                         <div
-                          className="pt-2 flex items-center gap-2"
+                          className="pt-1 flex items-center gap-2"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
                             onClick={() => setSelectedRelease(rel)}
-                            className="flex-1 py-2 px-3 rounded-xl border border-white/10 bg-white/5 font-mono text-xs font-bold uppercase tracking-wider text-white"
+                            className="flex-1 py-2.5 px-3 rounded-xl border border-white/10 bg-white/5 text-xs font-semibold text-white hover:bg-white/10 transition"
                           >
                             Анкета
                           </button>
                           {rel.status !== "approved" && (
                             <button
                               onClick={() => handleAction({ id: rel.id, status: "approved", action: "approve" })}
-                              className="py-2 px-3 rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-300 font-mono text-xs font-bold uppercase"
+                              className="py-2.5 px-3 rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/25 transition"
                             >
                               Принять
                             </button>
@@ -922,41 +923,41 @@ export default function DistributionCmsClient({
           {activeTab === "stats" && (
             <div className="space-y-6 animate-fade-in">
               <div className="space-y-1">
-                <h1 className="font-heavy text-2xl sm:text-3xl uppercase tracking-tight text-white">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                   Статистика и аналитика
                 </h1>
-                <p className="font-mono text-xs text-[#D9D9E2]/60">
+                <p className="text-xs sm:text-sm text-[#9B95AD]">
                   Реальные расчеты из базы данных CXRNER MUSIC (согласовано с Telegram-командой /stats).
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#090611] space-y-3">
-                  <span className="text-white/50 uppercase tracking-wider block">Процент одобрения</span>
-                  <div className="font-heavy text-4xl text-emerald-300">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0c0916] space-y-3">
+                  <span className="text-white/60 text-xs font-semibold uppercase tracking-wider block">Процент одобрения</span>
+                  <div className="text-4xl font-bold text-emerald-300">
                     {stats.total > 0
                       ? `${Math.round((stats.approved / Math.max(1, stats.approved + stats.rejected)) * 100)}%`
                       : "0%"}
                   </div>
-                  <p className="text-[11px] text-white/50">
+                  <p className="text-xs text-white/50">
                     {stats.approved} одобрено из {stats.approved + stats.rejected} рассмотренных заявок
                   </p>
                 </div>
 
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#090611] space-y-3">
-                  <span className="text-white/50 uppercase tracking-wider block">Охват UPC</span>
-                  <div className="font-heavy text-4xl text-[#00F0FF]">
+                <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0c0916] space-y-3">
+                  <span className="text-white/60 text-xs font-semibold uppercase tracking-wider block">Охват UPC</span>
+                  <div className="text-4xl font-bold text-[#00F0FF]">
                     {stats.total > 0 ? `${Math.round((stats.with_upc / stats.total) * 100)}%` : "0%"}
                   </div>
-                  <p className="text-[11px] text-white/50">
+                  <p className="text-xs text-white/50">
                     {stats.with_upc} из {stats.total} активных релизов имеют присвоенный штрихкод
                   </p>
                 </div>
 
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#090611] space-y-3">
-                  <span className="text-white/50 uppercase tracking-wider block">Всего в системе</span>
-                  <div className="font-heavy text-4xl text-[#B46BFF]">{stats.all_count}</div>
-                  <p className="text-[11px] text-white/50">
+                <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0c0916] space-y-3">
+                  <span className="text-white/60 text-xs font-semibold uppercase tracking-wider block">Всего в системе</span>
+                  <div className="text-4xl font-bold text-[#B46BFF]">{stats.all_count}</div>
+                  <p className="text-xs text-white/50">
                     Включая {stats.archived} архивных и удалённых заявок
                   </p>
                 </div>
@@ -966,30 +967,33 @@ export default function DistributionCmsClient({
 
           {/* TAB: SETTINGS & DIAGNOSTICS */}
           {activeTab === "settings" && (
-            <div className="space-y-6 animate-fade-in max-w-2xl font-mono text-xs">
+            <div className="space-y-6 animate-fade-in max-w-2xl text-xs sm:text-sm">
               <div className="space-y-1">
-                <h1 className="font-heavy text-2xl uppercase tracking-tight text-white">
+                <h1 className="text-2xl font-bold text-white">
                   Настройки и диагностика синхронизации
                 </h1>
-                <p className="text-[#D9D9E2]/60">
+                <p className="text-xs sm:text-sm text-[#9B95AD]">
                   Состояние связки Сайта, Telegram-бота и Supabase.
                 </p>
               </div>
 
-              <div className="p-5 rounded-2xl border border-white/10 bg-[#090611] space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                  <span>Telegram Moderation Chat ID:</span>
-                  <code className="text-[#00F0FF]">-1002117586464</code>
+              <div className="p-5 sm:p-6 rounded-2xl border border-white/[0.08] bg-[#0c0916] space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                  <span className="text-white/70">Telegram Moderation Chat ID:</span>
+                  <code className="text-[#00F0FF] font-mono text-xs bg-cyan-950/40 px-2.5 py-1 rounded-lg border border-cyan-500/30">-1002117586464</code>
                 </div>
 
-                <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                  <span>Supabase Database:</span>
-                  <span className="text-emerald-400 font-bold">Подключено (Active)</span>
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                  <span className="text-white/70">База данных Supabase:</span>
+                  <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Подключено (Active)
+                  </span>
                 </div>
 
-                <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                  <span>Авторизованный модератор:</span>
-                  <span className="text-white/80">{initialUser?.email || "cxrner.label@gmail.com"}</span>
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                  <span className="text-white/70">Авторизованный модератор:</span>
+                  <span className="text-white font-medium">{initialUser?.email || "cxrner.label@gmail.com"}</span>
                 </div>
 
                 <div className="pt-2">
@@ -998,7 +1002,7 @@ export default function DistributionCmsClient({
                       fetchForms(true);
                       showToast("success", "Тест связи выполнен успешно");
                     }}
-                    className="w-full py-3 rounded-xl bg-[#8737FF] hover:bg-[#7025e0] text-white font-bold uppercase transition"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#8737FF] to-[#6d25dc] hover:from-[#9d57ff] hover:to-[#7f32f2] text-white font-semibold text-xs sm:text-sm uppercase tracking-wider transition shadow-[0_0_20px_rgba(135,55,255,0.35)]"
                   >
                     Проверить соединение с Telegram и Supabase
                   </button>

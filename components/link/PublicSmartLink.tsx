@@ -319,7 +319,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
                   setIsPlayingAudio(true);
                 }
               }}
-              className="absolute bottom-3 right-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white font-mono text-[10px] uppercase tracking-wider hover:bg-[#8737FF] transition shadow-lg"
+              className="absolute bottom-3 right-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white font-sans text-xs font-semibold hover:bg-[#8737FF] transition shadow-lg"
             >
               {isPlayingAudio ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
               <span>{isPlayingAudio ? "Пауза" : "Превью"}</span>
@@ -362,32 +362,32 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
 
         {/* Pre-save Live Countdown (if not out now) */}
         {!link.is_out_now && timeLeft && (
-          <div className={`p-3.5 rounded-2xl border backdrop-blur-md text-center space-y-2 ${theme.countdownCardClass}`}>
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] block" style={{ color: theme.accentHex }}>
-              // ДО РЕЛИЗА ОСТАЛОСЬ
+          <div className={`p-3.5 rounded-2xl border backdrop-blur-md text-center space-y-2.5 ${theme.countdownCardClass}`}>
+            <span className="font-sans text-[11px] font-semibold tracking-wider block" style={{ color: theme.accentHex }}>
+              ДО ОФИЦИАЛЬНОГО РЕЛИЗА
             </span>
-            <div className="grid grid-cols-4 gap-2 font-mono text-center">
-              <div className="p-1.5 rounded-xl bg-black/40 border border-white/10">
-                <p className="font-heavy text-xl text-white leading-tight">{timeLeft.days}</p>
-                <p className="text-[9px] uppercase tracking-wider text-[#D9D9E2]/60">Дней</p>
+            <div className="grid grid-cols-4 gap-2 text-center font-sans">
+              <div className="p-2 rounded-xl bg-black/40 border border-white/10">
+                <p className="text-xl sm:text-2xl font-bold text-white leading-tight">{timeLeft.days}</p>
+                <p className="text-[10px] uppercase font-medium text-[#D9D9E2]/60 pt-0.5">Дней</p>
               </div>
-              <div className="p-1.5 rounded-xl bg-black/40 border border-white/10">
-                <p className="font-heavy text-xl text-white leading-tight">{timeLeft.hours}</p>
-                <p className="text-[9px] uppercase tracking-wider text-[#D9D9E2]/60">Часов</p>
+              <div className="p-2 rounded-xl bg-black/40 border border-white/10">
+                <p className="text-xl sm:text-2xl font-bold text-white leading-tight">{timeLeft.hours}</p>
+                <p className="text-[10px] uppercase font-medium text-[#D9D9E2]/60 pt-0.5">Часов</p>
               </div>
-              <div className="p-1.5 rounded-xl bg-black/40 border border-white/10">
-                <p className="font-heavy text-xl text-white leading-tight">{timeLeft.minutes}</p>
-                <p className="text-[9px] uppercase tracking-wider text-[#D9D9E2]/60">Мин</p>
+              <div className="p-2 rounded-xl bg-black/40 border border-white/10">
+                <p className="text-xl sm:text-2xl font-bold text-white leading-tight">{timeLeft.minutes}</p>
+                <p className="text-[10px] uppercase font-medium text-[#D9D9E2]/60 pt-0.5">Мин</p>
               </div>
-              <div className="p-1.5 rounded-xl bg-black/40 border border-white/10">
-                <p className="font-heavy text-xl text-white leading-tight">{timeLeft.seconds}</p>
-                <p className="text-[9px] uppercase tracking-wider text-[#D9D9E2]/60">Сек</p>
+              <div className="p-2 rounded-xl bg-black/40 border border-white/10">
+                <p className="text-xl sm:text-2xl font-bold text-white leading-tight">{timeLeft.seconds}</p>
+                <p className="text-[10px] uppercase font-medium text-[#D9D9E2]/60 pt-0.5">Сек</p>
               </div>
             </div>
 
             <button
               onClick={() => setShowPresaveModal(true)}
-              className={`w-full mt-2 py-2.5 px-4 rounded-xl font-mono text-[11px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-2 ${theme.presaveBtnClass}`}
+              className={`w-full mt-2 py-3 px-4 rounded-xl font-sans text-xs font-semibold uppercase tracking-wider transition flex items-center justify-center gap-2 ${theme.presaveBtnClass}`}
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Оформить Pre-save</span>
@@ -398,7 +398,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
         {/* Music Platforms Streaming List */}
         <div className="space-y-2.5 pt-1">
           {enabledPlatforms.length === 0 ? (
-            <div className="p-6 text-center border border-white/10 rounded-2xl bg-white/5 font-mono text-xs text-[#D9D9E2]/60">
+            <div className="p-6 text-center border border-white/10 rounded-2xl bg-white/5 font-sans text-xs sm:text-sm text-[#D9D9E2]/70 font-medium">
               Ссылки на стриминги появятся в день выхода релиза
             </div>
           ) : (
@@ -431,7 +431,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
                     </span>
                   </div>
 
-                  <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-200 shadow-sm flex-shrink-0 ${theme.actionPillClass}`}>
+                  <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-sans text-[11px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-200 shadow-sm flex-shrink-0 ${theme.actionPillClass}`}>
                     <span>{actionLabel}</span>
                     <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
                   </div>
@@ -487,12 +487,12 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
 
             <div className="space-y-1">
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#B46BFF]">
-                [PRE-SAVE NOTIFICATION]
+                Pre-save уведомление
               </span>
-              <h3 className="font-heavy text-xl uppercase tracking-tight text-white">
+              <h3 className="text-xl font-bold tracking-tight text-white">
                 Не пропустите релиз
               </h3>
-              <p className="text-xs text-[#D9D9E2]/70">
+              <p className="text-xs sm:text-sm text-[#9B95AD]">
                 Мы пришлём ссылку на прослушивание сразу после полуночи в день премьеры.
               </p>
             </div>
@@ -500,17 +500,17 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
             {presaveSuccess ? (
               <div className="p-4 rounded-2xl border border-[#00F0FF]/40 bg-[#00F0FF]/10 text-center space-y-2">
                 <Sparkles className="w-6 h-6 text-[#00F0FF] mx-auto animate-bounce" />
-                <p className="font-mono text-xs uppercase tracking-wider text-white font-bold">
+                <p className="text-sm font-bold text-white">
                   Pre-save подтверждён!
                 </p>
-                <p className="text-[11px] text-[#D9D9E2]/80">
+                <p className="text-xs text-[#D9D9E2]/80">
                   Вы первыми услышите трек «{link.title}».
                 </p>
               </div>
             ) : (
               <form onSubmit={handlePresaveSubmit} className="space-y-3">
                 <div>
-                  <label className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/60 block mb-1">
+                  <label className="text-xs font-medium text-white/70 block mb-1.5">
                     Ваш Email:
                   </label>
                   <div className="relative">
@@ -521,19 +521,19 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
                       placeholder="artist@fan.com"
                       value={presaveEmail}
                       onChange={(e) => setPresaveEmail(e.target.value)}
-                      className="w-full bg-white/5 border border-white/15 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none"
+                      className="w-full bg-white/5 border border-white/15 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none"
                     />
                   </div>
                 </div>
 
                 {presaveError && (
-                  <p className="font-mono text-[10px] text-[#FF2E93]">{presaveError}</p>
+                  <p className="text-xs text-[#FF2E93]">{presaveError}</p>
                 )}
 
                 <button
                   type="submit"
                   disabled={presaveLoading}
-                  className="w-full py-3 rounded-xl bg-[#8737FF] hover:bg-[#B46BFF] text-white font-mono text-xs font-bold uppercase tracking-wider transition shadow-lg disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#8737FF] to-[#6d25dc] hover:from-[#9d57ff] hover:to-[#7f32f2] text-white text-xs sm:text-sm font-semibold uppercase tracking-wider transition shadow-lg disabled:opacity-50"
                 >
                   {presaveLoading ? "Сохранение..." : "Подтвердить Pre-save"}
                 </button>

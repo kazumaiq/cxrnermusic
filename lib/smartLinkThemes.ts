@@ -47,8 +47,8 @@ export const SMART_LINK_THEMES: SmartLinkThemeSpec[] = [
       "border border-[#8737FF]/35 bg-[#0a0614]/75 backdrop-blur-2xl shadow-[0_0_90px_rgba(135,55,255,0.28)]",
     coverFrameClass:
       "rounded-2xl border border-[#00F0FF]/25 shadow-[0_14px_40px_rgba(135,55,255,0.35)]",
-    titleClass: "font-heavy tracking-tight text-white uppercase",
-    artistClass: "font-mono text-[#D9D9E2]/90 tracking-[0.18em] uppercase",
+    titleClass: "font-sans font-extrabold tracking-tight text-white uppercase",
+    artistClass: "font-sans font-medium text-sm sm:text-base text-[#D9D9E2]/90 tracking-normal",
     buttonClass:
       "rounded-2xl border border-white/10 bg-[#0d071a]/80 hover:bg-[#190c32]/90 hover:border-[#00F0FF]/55 hover:shadow-[0_0_24px_rgba(0,240,255,0.18)]",
     actionPillClass:
@@ -76,8 +76,8 @@ export const SMART_LINK_THEMES: SmartLinkThemeSpec[] = [
       "border border-white/15 bg-black/45 backdrop-blur-3xl shadow-[0_24px_90px_rgba(0,0,0,0.85)]",
     coverFrameClass:
       "rounded-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.75)]",
-    titleClass: "font-heavy tracking-tight text-white",
-    artistClass: "font-sans font-medium text-white/80 tracking-wide",
+    titleClass: "font-sans font-extrabold tracking-tight text-white",
+    artistClass: "font-sans font-medium text-sm sm:text-base text-white/80 tracking-normal",
     buttonClass:
       "rounded-2xl border border-white/15 bg-white/[0.06] hover:bg-white/[0.14] hover:border-white/35 backdrop-blur-xl",
     actionPillClass:
@@ -134,8 +134,8 @@ export const SMART_LINK_THEMES: SmartLinkThemeSpec[] = [
       "border border-sky-200/25 bg-[#081728]/70 backdrop-blur-2xl shadow-[0_20px_80px_rgba(56,189,248,0.2)]",
     coverFrameClass:
       "rounded-2xl border border-sky-200/35 shadow-[0_14px_45px_rgba(125,211,252,0.25)]",
-    titleClass: "font-heavy tracking-tight text-sky-50",
-    artistClass: "font-mono text-sky-200/80 tracking-[0.2em] uppercase",
+    titleClass: "font-sans font-extrabold tracking-tight text-sky-50",
+    artistClass: "font-sans font-medium text-sm sm:text-base text-sky-200/90 tracking-normal",
     buttonClass:
       "rounded-2xl border border-sky-200/15 bg-sky-950/50 hover:bg-sky-900/60 hover:border-sky-300/50 hover:shadow-[0_0_22px_rgba(56,189,248,0.2)]",
     actionPillClass:
@@ -164,7 +164,7 @@ export const SMART_LINK_THEMES: SmartLinkThemeSpec[] = [
     coverFrameClass:
       "rounded-xl border border-white/15 shadow-[0_12px_35px_rgba(0,0,0,0.8)]",
     titleClass: "font-sans font-extrabold tracking-tight text-white",
-    artistClass: "font-mono text-zinc-400 tracking-[0.22em] uppercase",
+    artistClass: "font-sans font-medium text-sm sm:text-base text-zinc-400 tracking-normal",
     buttonClass:
       "rounded-xl border border-white/12 bg-zinc-900/70 hover:bg-zinc-800/90 hover:border-white/40",
     actionPillClass:
@@ -191,8 +191,8 @@ export const SMART_LINK_THEMES: SmartLinkThemeSpec[] = [
       "border border-pink-300/25 bg-[#150820]/75 backdrop-blur-2xl shadow-[0_20px_80px_rgba(244,114,182,0.22)]",
     coverFrameClass:
       "rounded-2xl border border-pink-300/30 shadow-[0_14px_40px_rgba(244,114,182,0.28)]",
-    titleClass: "font-heavy tracking-tight text-pink-50",
-    artistClass: "font-mono text-pink-200/85 tracking-[0.16em] uppercase",
+    titleClass: "font-sans font-extrabold tracking-tight text-pink-50",
+    artistClass: "font-sans font-medium text-sm sm:text-base text-pink-200/90 tracking-normal",
     buttonClass:
       "rounded-2xl border border-pink-300/15 bg-[#210d30]/75 hover:bg-[#311347]/90 hover:border-pink-400/50 hover:shadow-[0_0_22px_rgba(244,114,182,0.2)]",
     actionPillClass:
@@ -220,8 +220,8 @@ export const SMART_LINK_THEMES: SmartLinkThemeSpec[] = [
       "border-2 border-white bg-[#050608]/95 shadow-[8px_8px_0px_#00F0FF]",
     coverFrameClass:
       "rounded-none border-2 border-white shadow-[4px_4px_0px_#00F0FF]",
-    titleClass: "font-heavy tracking-wider text-white uppercase",
-    artistClass: "font-mono text-[#00F0FF] tracking-[0.24em] uppercase font-bold",
+    titleClass: "font-sans font-extrabold tracking-tight text-white uppercase",
+    artistClass: "font-sans font-semibold text-sm sm:text-base text-[#00F0FF] tracking-normal uppercase",
     buttonClass:
       "rounded-none border-2 border-white/80 bg-black hover:bg-[#00F0FF]/15 hover:border-[#00F0FF] hover:translate-x-0.5 hover:-translate-y-0.5",
     actionPillClass:

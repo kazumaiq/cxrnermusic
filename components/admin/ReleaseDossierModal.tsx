@@ -9,7 +9,6 @@ import {
   Disc3,
   Calendar,
   Clock,
-  ShieldAlert,
   Send,
   AlertCircle,
   CheckCircle2,
@@ -25,8 +24,10 @@ import {
   ChevronUp,
   FileText,
   AlertTriangle,
+  XCircle,
+  ShieldAlert,
 } from "lucide-react";
-import { CANONICAL_STATUS_MAP, getStatusMeta } from "@/lib/telegramSync";
+import { getStatusMeta } from "@/lib/telegramSync";
 
 export interface DossierRelease {
   id: string;
@@ -116,8 +117,8 @@ export default function ReleaseDossierModal({
   const p = release.form_payload || {};
   const statusMeta = getStatusMeta(release.status || "pending");
 
-  const title = release.track_name || p.name || p.title || "—";
-  const artist = release.artist_name || p.nick || p.artist || "—";
+  const title = release.track_name || p.name || p.title || "Без названия";
+  const artist = release.artist_name || p.nick || p.artist || "Артист не указан";
   const subtitle = p.subname || p.subtitle || "—";
   const fio = p.fio || p.artist_full_name || artist;
   const releaseDate = p.date || p.release_date || "—";
@@ -125,11 +126,21 @@ export default function ReleaseDossierModal({
   const genre = release.genre || p.genre || "Electronic";
   const releaseType = release.release_type || p.type || "Сингл";
   const driveLink = p.link || p.files_link || "";
-  const yandexLink = p.yandex || p.yandex_card_link || "";
-  const hasMat = p.has_explicit || p.mat;
+  const yandexValue = p.yandex || p.yandex_card_link || "";
+  const isCreateNewYandexCard =
+    yandexValue === "create_new_card" ||
+    yandexValue === "new" ||
+    yandexValue === "." ||
+    !yandexValue;
+  const hasMat =
+    p.has_explicit === true ||
+    p.mat === "Да" ||
+    p.mat === "да" ||
+    p.mat === true;
   const promoText = p.promo || p.promo_text || "—";
   const comment = p.comment || "—";
-  const tgContact = p.tg || p.contact_telegram || release.username || "";
+  const rawTg = p.tg || p.contact_telegram || release.username || "";
+  const cleanTg = String(rawTg).replace(/^@/, "").trim();
 
   const handleActionClick = async (
     actionName: string,
@@ -174,33 +185,41 @@ export default function ReleaseDossierModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-4xl rounded-3xl border border-white/15 bg-[#090611] text-white shadow-[0_0_80px_rgba(135,55,255,0.25)] overflow-hidden my-auto max-h-[92vh] flex flex-col">
-        {/* Modal Header */}
-        <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between bg-black/40 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-[#8737FF]/20 border border-[#8737FF]/40 flex items-center justify-center text-[#B46BFF] flex-shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-xl overflow-y-auto font-sans selection:bg-[#8737FF] selection:text-white">
+      <div className="relative w-full max-w-4xl rounded-3xl border border-white/[0.12] bg-[#0c0916] text-white shadow-[0_0_80px_rgba(135,55,255,0.22)] overflow-hidden my-auto max-h-[92vh] flex flex-col">
+        
+        {/* =========================================================================
+            MODAL HEADER: Elegant, balanced, clear typography
+            ========================================================================= */}
+        <div className="p-4 sm:p-6 border-b border-white/[0.08] flex items-center justify-between bg-black/40 flex-shrink-0">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#8737FF]/30 to-[#B46BFF]/10 border border-[#8737FF]/40 flex items-center justify-center text-[#B46BFF] flex-shrink-0 shadow-[0_0_20px_rgba(135,55,255,0.25)]">
               <Disc3 className="w-5 h-5 animate-spin-slow" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-heavy text-lg sm:text-xl text-white truncate">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight truncate max-w-md">
                   {title}
-                </span>
+                </h2>
                 <span
-                  className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold tracking-wider border flex items-center gap-1 flex-shrink-0"
+                  className="px-3 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 flex-shrink-0 shadow-sm"
                   style={{
-                    backgroundColor: "rgba(135,55,255,0.15)",
-                    borderColor: "rgba(180,107,255,0.4)",
-                    color: "#D9D9E2",
+                    backgroundColor: "rgba(135,55,255,0.18)",
+                    borderColor: "rgba(180,107,255,0.35)",
+                    color: "#F4F2FA",
                   }}
                 >
                   <span>{statusMeta.emoji}</span>
                   <span>{statusMeta.label}</span>
                 </span>
               </div>
-              <p className="font-mono text-xs text-[#D9D9E2]/70 truncate">
-                {artist} • ID: <code className="text-white/90">{release.id.slice(0, 8)}</code>
+              <p className="text-xs sm:text-sm text-[#D9D9E2]/75 truncate mt-0.5 font-normal">
+                <span className="font-medium text-white">{artist}</span>
+                <span className="mx-2 text-white/20">•</span>
+                <span className="text-[#9B95AD]">ID:</span>{" "}
+                <code className="font-mono text-xs text-white/90 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
+                  {release.id.slice(0, 8)}
+                </code>
               </p>
             </div>
           </div>
@@ -208,121 +227,146 @@ export default function ReleaseDossierModal({
           <div className="flex items-center gap-2">
             <button
               onClick={() => copyToClipboard(release.id, "id_header")}
-              title="Скопировать ID релиза"
-              className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/15 font-mono text-[11px] text-[#D9D9E2] flex items-center gap-1.5 transition"
+              title="Скопировать полный ID заявки"
+              className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/15 text-xs text-[#D9D9E2] font-medium flex items-center gap-1.5 transition active:scale-95"
             >
               {copiedField === "id_header" ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-[#00F0FF]" />
-                  <span>ID скопирован</span>
+                  <span className="text-[#00F0FF]">Скопировано</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5" />
+                  <Copy className="w-3.5 h-3.5 opacity-70" />
                   <span className="hidden sm:inline">Скопировать ID</span>
                 </>
               )}
             </button>
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-full border border-white/10 bg-white/5 hover:bg-white/20 flex items-center justify-center text-[#D9D9E2] hover:text-white transition"
+              aria-label="Закрыть карточку"
+              className="w-9 h-9 rounded-full border border-white/10 bg-white/5 hover:bg-white/20 flex items-center justify-center text-[#D9D9E2] hover:text-white transition active:scale-90"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Modal Scrollable Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1 font-sans text-xs sm:text-sm">
+        {/* =========================================================================
+            MODAL BODY: Soft contrast, comfortable reading, clean spacing
+            ========================================================================= */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1 text-sm text-[#D9D9E2]">
           {actionError && (
-            <div className="p-3.5 rounded-2xl bg-red-500/15 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+            <div className="p-4 rounded-2xl bg-red-500/15 border border-red-500/35 text-red-200 text-xs sm:text-sm flex items-center gap-2.5 shadow-lg">
               <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
               <span>{actionError}</span>
             </div>
           )}
 
           {/* Group 1: Основная информация */}
-          <div className="rounded-2xl border border-white/10 bg-black/30 overflow-hidden">
+          <div className="rounded-2xl border border-white/[0.08] bg-black/40 overflow-hidden shadow-sm">
             <button
               onClick={() => toggleGroup("main")}
-              className="w-full p-4 flex items-center justify-between text-left font-mono text-xs uppercase tracking-wider text-white hover:bg-white/5 transition"
+              className="w-full p-4 sm:p-4.5 flex items-center justify-between text-left text-sm font-semibold text-white hover:bg-white/[0.03] transition"
             >
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#B46BFF]" />
-                <span className="font-bold">1. Основная информация о релизе</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-lg bg-[#8737FF]/20 border border-[#8737FF]/30 flex items-center justify-center text-[#B46BFF]">
+                  <FileText className="w-3.5 h-3.5" />
+                </div>
+                <span>1. Основная информация о релизе</span>
               </div>
-              {expandedGroups.main ? <ChevronUp className="w-4 h-4 text-white/50" /> : <ChevronDown className="w-4 h-4 text-white/50" />}
+              {expandedGroups.main ? (
+                <ChevronUp className="w-4 h-4 text-white/40" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-white/40" />
+              )}
             </button>
 
             {expandedGroups.main && (
-              <div className="p-4 pt-0 border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Название трека:</span>
-                  <span className="text-white font-medium">{title}</span>
+              <div className="p-4 sm:p-5 pt-0 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs sm:text-sm">
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Название трека:</span>
+                  <p className="text-white font-semibold text-sm sm:text-base">{title}</p>
                 </div>
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Саб-название:</span>
-                  <span className="text-white/80">{subtitle}</span>
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Саб-название:</span>
+                  <p className="text-white/85 font-medium">{subtitle}</p>
                 </div>
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Тип релиза:</span>
-                  <span className="text-white font-medium">{releaseType}</span>
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Тип релиза:</span>
+                  <p className="text-white font-semibold capitalize">{releaseType}</p>
                 </div>
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Версия:</span>
-                  <span className="text-white/80">{version}</span>
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Версия:</span>
+                  <p className="text-white/85 font-medium">{version}</p>
                 </div>
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Жанр:</span>
-                  <span className="text-white font-medium">{genre}</span>
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Жанр:</span>
+                  <p className="text-white font-semibold">{genre}</p>
                 </div>
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Дата выхода:</span>
-                  <span className="text-[#00F0FF] font-medium">{releaseDate}</span>
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Дата премьеры:</span>
+                  <p className="text-[#00F0FF] font-semibold">{releaseDate}</p>
                 </div>
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Дата подачи заявки:</span>
-                  <span className="text-white/60">
-                    {new Date(release.created_at).toLocaleString("ru-RU")}
-                  </span>
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Дата подачи заявки:</span>
+                  <p className="text-white/70">
+                    {new Date(release.created_at).toLocaleString("ru-RU", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
                 </div>
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">UPC / EAN:</span>
-                  <span className="text-[#10B981] font-bold">
-                    {release.upc || p.upc || "Не присвоен"}
-                  </span>
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Штрихкод UPC / EAN:</span>
+                  {release.upc || p.upc ? (
+                    <span className="font-mono text-xs font-bold text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/30 px-2.5 py-0.5 rounded-lg inline-block">
+                      {release.upc || p.upc}
+                    </span>
+                  ) : (
+                    <span className="text-white/35 italic text-xs">Не присвоен</span>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Group 2: Артисты */}
-          <div className="rounded-2xl border border-white/10 bg-black/30 overflow-hidden">
+          {/* Group 2: Артисты и авторы */}
+          <div className="rounded-2xl border border-white/[0.08] bg-black/40 overflow-hidden shadow-sm">
             <button
               onClick={() => toggleGroup("artists")}
-              className="w-full p-4 flex items-center justify-between text-left font-mono text-xs uppercase tracking-wider text-white hover:bg-white/5 transition"
+              className="w-full p-4 sm:p-4.5 flex items-center justify-between text-left text-sm font-semibold text-white hover:bg-white/[0.03] transition"
             >
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-[#00F0FF]" />
-                <span className="font-bold">2. Артисты и авторы</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-lg bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+                <span>2. Артисты и авторы</span>
               </div>
-              {expandedGroups.artists ? <ChevronUp className="w-4 h-4 text-white/50" /> : <ChevronDown className="w-4 h-4 text-white/50" />}
+              {expandedGroups.artists ? (
+                <ChevronUp className="w-4 h-4 text-white/40" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-white/40" />
+              )}
             </button>
 
             {expandedGroups.artists && (
-              <div className="p-4 pt-0 border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Никнейм(ы) артиста:</span>
-                  <span className="text-white font-medium">{artist}</span>
+              <div className="p-4 sm:p-5 pt-0 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Никнейм артиста:</span>
+                  <p className="text-white font-semibold text-sm sm:text-base">{artist}</p>
                 </div>
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">ФИО всех участников:</span>
-                  <span className="text-white/90">{fio}</span>
+                <div className="space-y-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block">ФИО всех участников (правообладатели):</span>
+                  <p className="text-white/90 font-medium">{fio}</p>
                 </div>
                 {p.performers && (
-                  <div className="sm:col-span-2">
-                    <span className="text-white/40 block text-[10px] uppercase">Исполнители / фиты:</span>
-                    <span className="text-white/80">{p.performers}</span>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="text-[#9B95AD] text-xs font-medium block">Исполнители и фиты:</span>
+                    <p className="text-white/80">{p.performers}</p>
                   </div>
                 )}
               </div>
@@ -330,52 +374,62 @@ export default function ReleaseDossierModal({
           </div>
 
           {/* Group 3: Материалы (Google Drive link) */}
-          <div className="rounded-2xl border border-white/10 bg-black/30 overflow-hidden">
+          <div className="rounded-2xl border border-white/[0.08] bg-black/40 overflow-hidden shadow-sm">
             <button
               onClick={() => toggleGroup("materials")}
-              className="w-full p-4 flex items-center justify-between text-left font-mono text-xs uppercase tracking-wider text-white hover:bg-white/5 transition"
+              className="w-full p-4 sm:p-4.5 flex items-center justify-between text-left text-sm font-semibold text-white hover:bg-white/[0.03] transition"
             >
-              <div className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-[#FF2E93]" />
-                <span className="font-bold">3. Исходные материалы релиза</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-lg bg-[#FF2E93]/20 border border-[#FF2E93]/30 flex items-center justify-center text-[#FF2E93]">
+                  <FolderOpen className="w-3.5 h-3.5" />
+                </div>
+                <span>3. Исходные аудио и обложка</span>
               </div>
-              {expandedGroups.materials ? <ChevronUp className="w-4 h-4 text-white/50" /> : <ChevronDown className="w-4 h-4 text-white/50" />}
+              {expandedGroups.materials ? (
+                <ChevronUp className="w-4 h-4 text-white/40" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-white/40" />
+              )}
             </button>
 
             {expandedGroups.materials && (
-              <div className="p-4 pt-0 border-t border-white/5 space-y-3 font-mono text-xs">
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase mb-1">
-                    Ссылка на папку с треком и обложкой (Google Drive / Облако):
+              <div className="p-4 sm:p-5 pt-0 border-t border-white/[0.06] space-y-4 text-xs sm:text-sm">
+                <div className="space-y-2">
+                  <span className="text-[#9B95AD] text-xs font-medium block">
+                    Ссылка на папку с аудио и обложкой (Google Drive / Яндекс Диск):
                   </span>
                   {driveLink ? (
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <a
                         href={driveLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#8737FF]/25 border border-[#B46BFF]/50 text-white font-bold hover:bg-[#8737FF]/40 transition"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8737FF] to-[#B46BFF] text-white font-semibold text-xs sm:text-sm shadow-[0_0_20px_rgba(135,55,255,0.35)] hover:opacity-95 transition active:scale-95"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Открыть Google Drive / Диск</span>
+                        <ExternalLink className="w-4 h-4" />
+                        <span>Открыть папку с треком и обложкой</span>
                       </a>
                       <button
                         onClick={() => copyToClipboard(driveLink, "drive_link")}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/15 text-[#D9D9E2] transition"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/15 text-white/90 text-xs font-medium transition active:scale-95"
                       >
-                        {copiedField === "drive_link" ? <Check className="w-3.5 h-3.5 text-[#00F0FF]" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copiedField === "drive_link" ? "Скопировано" : "Копировать ссылку"}</span>
+                        {copiedField === "drive_link" ? (
+                          <Check className="w-3.5 h-3.5 text-[#00F0FF]" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5 opacity-70" />
+                        )}
+                        <span>{copiedField === "drive_link" ? "Скопировано" : "Скопировать ссылку"}</span>
                       </button>
                     </div>
                   ) : (
-                    <p className="text-white/40">Ссылка не указана</p>
+                    <p className="text-white/35 italic">Ссылка на диск не была указана</p>
                   )}
                 </div>
 
                 {p.cover_url && (
                   <div className="pt-2">
-                    <span className="text-white/40 block text-[10px] uppercase mb-1.5">Превью обложки:</span>
-                    <div className="w-28 h-28 rounded-2xl overflow-hidden border border-white/15 bg-black/50">
+                    <span className="text-[#9B95AD] text-xs font-medium block mb-2">Превью обложки:</span>
+                    <div className="w-28 h-28 rounded-2xl overflow-hidden border border-white/15 bg-black/50 shadow-md">
                       <img src={p.cover_url} alt="Artwork" className="w-full h-full object-cover" />
                     </div>
                   </div>
@@ -385,65 +439,84 @@ export default function ReleaseDossierModal({
           </div>
 
           {/* Group 4: Музыкальные площадки */}
-          <div className="rounded-2xl border border-white/10 bg-black/30 overflow-hidden">
+          <div className="rounded-2xl border border-white/[0.08] bg-black/40 overflow-hidden shadow-sm">
             <button
               onClick={() => toggleGroup("platforms")}
-              className="w-full p-4 flex items-center justify-between text-left font-mono text-xs uppercase tracking-wider text-white hover:bg-white/5 transition"
+              className="w-full p-4 sm:p-4.5 flex items-center justify-between text-left text-sm font-semibold text-white hover:bg-white/[0.03] transition"
             >
-              <div className="flex items-center gap-2">
-                <Music className="w-4 h-4 text-[#FFCC00]" />
-                <span className="font-bold">4. Музыкальные площадки (Яндекс Музыка и DSP)</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-lg bg-[#FFCC00]/20 border border-[#FFCC00]/30 flex items-center justify-center text-[#FFCC00]">
+                  <Music className="w-3.5 h-3.5" />
+                </div>
+                <span>4. Стриминговые площадки (Яндекс Музыка, DSP)</span>
               </div>
-              {expandedGroups.platforms ? <ChevronUp className="w-4 h-4 text-white/50" /> : <ChevronDown className="w-4 h-4 text-white/50" />}
+              {expandedGroups.platforms ? (
+                <ChevronUp className="w-4 h-4 text-white/40" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-white/40" />
+              )}
             </button>
 
             {expandedGroups.platforms && (
-              <div className="p-4 pt-0 border-t border-white/5 space-y-2.5 font-mono text-xs">
+              <div className="p-4 sm:p-5 pt-0 border-t border-white/[0.06] space-y-3.5 text-xs sm:text-sm">
                 <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Яндекс Музыка:</span>
-                  {yandexLink ? (
-                    <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[#9B95AD] text-xs font-medium block mb-1.5">Яндекс Музыка:</span>
+                  {isCreateNewYandexCard ? (
+                    <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-medium text-xs sm:text-sm">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Создать новую карточку артиста</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <a
-                        href={yandexLink}
+                        href={yandexValue}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#FFCC00] hover:underline flex items-center gap-1.5 truncate max-w-lg"
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#FFCC00]/10 border border-[#FFCC00]/30 text-[#FFCC00] hover:bg-[#FFCC00]/20 font-medium text-xs sm:text-sm transition truncate max-w-full"
                       >
-                        <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate">{yandexLink}</span>
+                        <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{yandexValue}</span>
                       </a>
-                      {yandexLink.includes("/artist/") && (
-                        <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] border border-amber-500/30 flex-shrink-0">
-                          Карточка артиста
+                      {yandexValue.includes("/artist/") && (
+                        <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-medium border border-amber-500/30">
+                          Существующая карточка артиста
                         </span>
                       )}
-                      {yandexLink.includes("/album/") && (
-                        <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] border border-emerald-500/30 flex-shrink-0">
-                          Прямой релиз
+                      {yandexValue.includes("/album/") && (
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30">
+                          Альбом / Сингл
                         </span>
                       )}
                     </div>
-                  ) : (
-                    <span className="text-white/50">Создать новую карточку</span>
                   )}
                 </div>
 
                 {p.spotify && (
                   <div>
-                    <span className="text-white/40 block text-[10px] uppercase">Spotify:</span>
-                    <a href={p.spotify} target="_blank" rel="noopener noreferrer" className="text-[#1DB954] hover:underline flex items-center gap-1 pt-0.5">
+                    <span className="text-[#9B95AD] text-xs font-medium block mb-1">Spotify:</span>
+                    <a
+                      href={p.spotify}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#1DB954]/10 border border-[#1DB954]/30 text-[#1DB954] hover:bg-[#1DB954]/20 font-medium text-xs transition"
+                    >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      <span>{p.spotify}</span>
+                      <span className="truncate">{p.spotify}</span>
                     </a>
                   </div>
                 )}
 
                 {p.apple && (
                   <div>
-                    <span className="text-white/40 block text-[10px] uppercase">Apple Music:</span>
-                    <a href={p.apple} target="_blank" rel="noopener noreferrer" className="text-[#FA243C] hover:underline flex items-center gap-1 pt-0.5">
+                    <span className="text-[#9B95AD] text-xs font-medium block mb-1">Apple Music:</span>
+                    <a
+                      href={p.apple}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FA243C]/10 border border-[#FA243C]/30 text-[#FA243C] hover:bg-[#FA243C]/20 font-medium text-xs transition"
+                    >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      <span>{p.apple}</span>
+                      <span className="truncate">{p.apple}</span>
                     </a>
                   </div>
                 )}
@@ -451,65 +524,103 @@ export default function ReleaseDossierModal({
             )}
           </div>
 
-          {/* Group 5: Дополнительные сведения */}
-          <div className="rounded-2xl border border-white/10 bg-black/30 overflow-hidden">
+          {/* Group 5: Дополнительно (мат, промо, контакты) */}
+          <div className="rounded-2xl border border-white/[0.08] bg-black/40 overflow-hidden shadow-sm">
             <button
               onClick={() => toggleGroup("additional")}
-              className="w-full p-4 flex items-center justify-between text-left font-mono text-xs uppercase tracking-wider text-white hover:bg-white/5 transition"
+              className="w-full p-4 sm:p-4.5 flex items-center justify-between text-left text-sm font-semibold text-white hover:bg-white/[0.03] transition"
             >
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#A5B4FC]" />
-                <span className="font-bold">5. Дополнительно (мат, промо, контакты)</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                </div>
+                <span>5. Дополнительно (мат, промо, контакты)</span>
               </div>
-              {expandedGroups.additional ? <ChevronUp className="w-4 h-4 text-white/50" /> : <ChevronDown className="w-4 h-4 text-white/50" />}
+              {expandedGroups.additional ? (
+                <ChevronUp className="w-4 h-4 text-white/40" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-white/40" />
+              )}
             </button>
 
             {expandedGroups.additional && (
-              <div className="p-4 pt-0 border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Наличие ненормативной лексики:</span>
-                  <span className={hasMat ? "text-amber-400 font-bold" : "text-white/80"}>
-                    {hasMat ? "⚠️ Да (Explicit)" : "Нет (Clean)"}
-                  </span>
+              <div className="p-4 sm:p-5 pt-0 border-t border-white/[0.06] space-y-4 text-xs sm:text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <span className="text-[#9B95AD] text-xs font-medium block">
+                      Наличие ненормативной лексики:
+                    </span>
+                    {hasMat ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold text-xs">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                        Да (Explicit / Ненормативная лексика)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold text-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        Нет (Clean / Без мата)
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-[#9B95AD] text-xs font-medium block">
+                      Telegram артиста для связи:
+                    </span>
+                    {cleanTg ? (
+                      <a
+                        href={`https://t.me/${cleanTg}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-xs transition"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>@{cleanTg}</span>
+                        <ExternalLink className="w-3 h-3 opacity-60" />
+                      </a>
+                    ) : (
+                      <span className="text-white/35 italic">Не указан</span>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <span className="text-white/40 block text-[10px] uppercase">Telegram артиста для связи:</span>
-                  {tgContact ? (
-                    <a
-                      href={`https://t.me/${tgContact.replace(/^@/, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#00F0FF] hover:underline flex items-center gap-1"
-                    >
-                      <span>@{tgContact.replace(/^@/, "")}</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  ) : (
-                    <span className="text-white/40">—</span>
-                  )}
+
+                <div className="space-y-1.5">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Промо-текст / питчинг:</span>
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-sm text-[#D9D9E2] leading-relaxed">
+                    {promoText && promoText !== "—" && promoText !== "." ? (
+                      promoText
+                    ) : (
+                      <span className="text-white/30 italic">Промо-текст не прикреплен к заявке</span>
+                    )}
+                  </div>
                 </div>
-                <div className="sm:col-span-2">
-                  <span className="text-white/40 block text-[10px] uppercase">Промо-текст / питчинг:</span>
-                  <p className="text-white/80 font-sans leading-relaxed pt-0.5 bg-black/40 p-2.5 rounded-xl border border-white/5">
-                    {promoText}
-                  </p>
+
+                <div className="space-y-1.5">
+                  <span className="text-[#9B95AD] text-xs font-medium block">Комментарий к заявке:</span>
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-sm text-[#D9D9E2] leading-relaxed">
+                    {comment && comment !== "—" && comment !== "." ? (
+                      comment
+                    ) : (
+                      <span className="text-white/30 italic">Комментарий отсутствует</span>
+                    )}
+                  </div>
                 </div>
-                <div className="sm:col-span-2">
-                  <span className="text-white/40 block text-[10px] uppercase">Комментарий к заявке:</span>
-                  <p className="text-white/80 font-sans leading-relaxed pt-0.5 bg-black/40 p-2.5 rounded-xl border border-white/5">
-                    {comment}
-                  </p>
-                </div>
+
                 {release.reject_reason && (
-                  <div className="sm:col-span-2 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
-                    <span className="text-red-400 block text-[10px] uppercase font-bold">Причина отказа:</span>
-                    <p className="text-red-200 pt-0.5">{release.reject_reason}</p>
+                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 space-y-1">
+                    <span className="text-red-400 font-bold text-xs uppercase tracking-wider block">
+                      Причина отклонения:
+                    </span>
+                    <p className="text-red-200 text-sm leading-relaxed">{release.reject_reason}</p>
                   </div>
                 )}
+
                 {release.moderator_comment && (
-                  <div className="sm:col-span-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                    <span className="text-amber-400 block text-[10px] uppercase font-bold">Требуемые исправления:</span>
-                    <p className="text-amber-200 pt-0.5">{release.moderator_comment}</p>
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+                    <span className="text-amber-400 font-bold text-xs uppercase tracking-wider block">
+                      Требуемые исправления:
+                    </span>
+                    <p className="text-amber-200 text-sm leading-relaxed">{release.moderator_comment}</p>
                   </div>
                 )}
               </div>
@@ -517,22 +628,24 @@ export default function ReleaseDossierModal({
           </div>
 
           {/* Group 6: Действия модератора (7 Parity Controls) */}
-          <div className="rounded-2xl border border-[#8737FF]/35 bg-[#0f0920]/75 p-4 sm:p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-xs uppercase tracking-wider text-white font-bold flex items-center gap-2">
+          <div className="rounded-3xl border border-[#8737FF]/40 bg-gradient-to-b from-[#130a27] to-[#090611] p-4 sm:p-6 space-y-4 shadow-xl">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#B46BFF]" />
-                <span>6. Управление релизом (Паритет с Telegram)</span>
-              </span>
-              <span className="font-mono text-[10px] text-[#00F0FF] uppercase tracking-wider">
-                Синхронизация TG + Кабинет
+                <h3 className="text-sm sm:text-base font-bold text-white tracking-normal">
+                  6. Управление статусом (Паритет с Telegram-ботом)
+                </h3>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/25">
+                Автосинхронизация с ботом и кабинетом
               </span>
             </div>
 
             {/* Prompt Panels */}
             {activePrompt === "upc" && (
-              <div className="p-4 rounded-2xl bg-black/60 border border-[#10B981]/40 space-y-3">
+              <div className="p-4 rounded-2xl bg-black/70 border border-[#10B981]/40 space-y-3 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs uppercase text-[#10B981] font-bold flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#10B981] flex items-center gap-1.5">
                     <Barcode className="w-4 h-4" />
                     <span>Присвоить штрихкод UPC / EAN</span>
                   </span>
@@ -546,12 +659,12 @@ export default function ReleaseDossierModal({
                     placeholder="Введите 12-13 значный UPC/EAN"
                     value={upcInput}
                     onChange={(e) => setUpcInput(e.target.value)}
-                    className="flex-1 bg-black/60 border border-white/20 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder:text-white/30 focus:border-[#10B981] outline-none"
+                    className="flex-1 bg-black/60 border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder:text-white/30 focus:border-[#10B981] outline-none"
                   />
                   <button
                     onClick={submitUpc}
                     disabled={loading}
-                    className="px-5 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-black font-mono text-xs font-bold uppercase transition"
+                    className="px-5 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-black font-semibold text-xs transition active:scale-95"
                   >
                     Сохранить
                   </button>
@@ -560,9 +673,9 @@ export default function ReleaseDossierModal({
             )}
 
             {activePrompt === "reject" && (
-              <div className="p-4 rounded-2xl bg-black/60 border border-red-500/40 space-y-3">
+              <div className="p-4 rounded-2xl bg-black/70 border border-red-500/40 space-y-3 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs uppercase text-red-400 font-bold flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-red-400 flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4" />
                     <span>Укажите причину отказа</span>
                   </span>
@@ -575,12 +688,12 @@ export default function ReleaseDossierModal({
                   placeholder="Опишите причину отклонения (будет отправлено в Telegram и личный кабинет артиста)"
                   value={rejectInput}
                   onChange={(e) => setRejectInput(e.target.value)}
-                  className="w-full bg-black/60 border border-white/20 rounded-xl p-3 text-xs text-white placeholder:text-white/30 focus:border-red-500 outline-none font-sans"
+                  className="w-full bg-black/60 border border-white/20 rounded-xl p-3 text-sm text-white placeholder:text-white/30 focus:border-red-500 outline-none"
                 />
                 <button
                   onClick={submitReject}
                   disabled={loading}
-                  className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-bold uppercase transition"
+                  className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition active:scale-95"
                 >
                   Подтвердить отклонение
                 </button>
@@ -588,9 +701,9 @@ export default function ReleaseDossierModal({
             )}
 
             {activePrompt === "needfix" && (
-              <div className="p-4 rounded-2xl bg-black/60 border border-amber-500/40 space-y-3">
+              <div className="p-4 rounded-2xl bg-black/70 border border-amber-500/40 space-y-3 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs uppercase text-amber-400 font-bold flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                     <AlertCircle className="w-4 h-4" />
                     <span>Комментарий модератора для артиста</span>
                   </span>
@@ -603,12 +716,12 @@ export default function ReleaseDossierModal({
                   placeholder="Что именно нужно исправить? (например: заменить обложку на 3000x3000px, приложить WAV 24-bit)"
                   value={fixCommentInput}
                   onChange={(e) => setFixCommentInput(e.target.value)}
-                  className="w-full bg-black/60 border border-white/20 rounded-xl p-3 text-xs text-white placeholder:text-white/30 focus:border-amber-400 outline-none font-sans"
+                  className="w-full bg-black/60 border border-white/20 rounded-xl p-3 text-sm text-white placeholder:text-white/30 focus:border-amber-400 outline-none"
                 />
                 <button
                   onClick={submitNeedFix}
                   disabled={loading}
-                  className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-mono text-xs font-bold uppercase transition"
+                  className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition active:scale-95"
                 >
                   Отправить на исправления
                 </button>
@@ -616,14 +729,14 @@ export default function ReleaseDossierModal({
             )}
 
             {/* 7 Action Buttons Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs font-semibold">
               {/* 1. На отгрузку */}
               <button
                 onClick={() => handleActionClick("upload", "on_upload")}
                 disabled={loading}
-                className="p-3 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/25 text-sky-200 font-bold transition flex items-center justify-center gap-1.5"
+                className="p-3.5 rounded-2xl border border-sky-500/35 bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 transition flex items-center justify-center gap-2 active:scale-95 shadow-sm"
               >
-                <span>🕓</span>
+                <Clock className="w-4 h-4 text-sky-400" />
                 <span>На отгрузку</span>
               </button>
 
@@ -631,9 +744,9 @@ export default function ReleaseDossierModal({
               <button
                 onClick={() => handleActionClick("moderate", "moderation")}
                 disabled={loading}
-                className="p-3 rounded-xl border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/25 text-purple-200 font-bold transition flex items-center justify-center gap-1.5"
+                className="p-3.5 rounded-2xl border border-purple-500/35 bg-purple-500/15 hover:bg-purple-500/25 text-purple-200 transition flex items-center justify-center gap-2 active:scale-95 shadow-sm"
               >
-                <span>🧠</span>
+                <Sparkles className="w-4 h-4 text-purple-400" />
                 <span>Модерация</span>
               </button>
 
@@ -641,10 +754,10 @@ export default function ReleaseDossierModal({
               <button
                 onClick={() => handleActionClick("approve", "approved")}
                 disabled={loading}
-                className="p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 font-bold transition flex items-center justify-center gap-1.5"
+                className="p-3.5 rounded-2xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 transition flex items-center justify-center gap-2 active:scale-95 shadow-sm"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Принять</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Одобрить</span>
               </button>
 
               {/* 4. Присвоить UPC */}
@@ -653,9 +766,9 @@ export default function ReleaseDossierModal({
                   setUpcInput(release.upc || "");
                   setActivePrompt("upc");
                 }}
-                className="p-3 rounded-xl border border-emerald-400/30 bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-200 font-bold transition flex items-center justify-center gap-1.5"
+                className="p-3.5 rounded-2xl border border-emerald-400/30 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-200 transition flex items-center justify-center gap-2 active:scale-95 shadow-sm"
               >
-                <Barcode className="w-3.5 h-3.5" />
+                <Barcode className="w-4 h-4 text-emerald-400" />
                 <span>{release.upc ? "Сменить UPC" : "Присвоить UPC"}</span>
               </button>
 
@@ -665,9 +778,9 @@ export default function ReleaseDossierModal({
                   setFixCommentInput(release.moderator_comment || "");
                   setActivePrompt("needfix");
                 }}
-                className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/25 text-amber-200 font-bold transition flex items-center justify-center gap-1.5"
+                className="p-3.5 rounded-2xl border border-amber-500/35 bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 transition flex items-center justify-center gap-2 active:scale-95 shadow-sm"
               >
-                <span>✏️</span>
+                <AlertCircle className="w-4 h-4 text-amber-400" />
                 <span>На исправления</span>
               </button>
 
@@ -677,9 +790,9 @@ export default function ReleaseDossierModal({
                   setRejectInput(release.reject_reason || "");
                   setActivePrompt("reject");
                 }}
-                className="p-3 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-200 font-bold transition flex items-center justify-center gap-1.5"
+                className="p-3.5 rounded-2xl border border-red-500/35 bg-red-500/15 hover:bg-red-500/25 text-red-200 transition flex items-center justify-center gap-2 active:scale-95 shadow-sm"
               >
-                <span>❌</span>
+                <XCircle className="w-4 h-4 text-red-400" />
                 <span>Отклонить</span>
               </button>
 
@@ -688,9 +801,9 @@ export default function ReleaseDossierModal({
                 <button
                   onClick={() => handleActionClick("restore", "on_upload", { restore: true })}
                   disabled={loading}
-                  className="sm:col-span-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-200 font-bold transition flex items-center justify-center gap-1.5"
+                  className="sm:col-span-2 p-3.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-200 transition flex items-center justify-center gap-2 active:scale-95"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  <RotateCcw className="w-4 h-4 text-emerald-400" />
                   <span>Восстановить из архива</span>
                 </button>
               ) : (
@@ -701,9 +814,9 @@ export default function ReleaseDossierModal({
                     }
                   }}
                   disabled={loading}
-                  className="sm:col-span-2 p-3 rounded-xl border border-red-500/20 bg-red-950/30 hover:bg-red-900/40 text-red-300 font-bold transition flex items-center justify-center gap-1.5"
+                  className="sm:col-span-2 p-3.5 rounded-2xl border border-red-500/25 bg-red-950/40 hover:bg-red-900/50 text-red-300 transition flex items-center justify-center gap-2 active:scale-95"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4 text-red-400" />
                   <span>В архив (Soft Delete)</span>
                 </button>
               )}
@@ -711,44 +824,66 @@ export default function ReleaseDossierModal({
           </div>
 
           {/* Group 7: История действий модераторов */}
-          <div className="rounded-2xl border border-white/10 bg-black/30 overflow-hidden">
+          <div className="rounded-2xl border border-white/[0.08] bg-black/40 overflow-hidden shadow-sm">
             <button
               onClick={() => toggleGroup("history")}
-              className="w-full p-4 flex items-center justify-between text-left font-mono text-xs uppercase tracking-wider text-white hover:bg-white/5 transition"
+              className="w-full p-4 sm:p-4.5 flex items-center justify-between text-left text-sm font-semibold text-white hover:bg-white/[0.03] transition"
             >
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#A5B4FC]" />
-                <span className="font-bold">
+              <div className="flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                  <Clock className="w-3.5 h-3.5" />
+                </div>
+                <span>
                   7. Журнал действий модерации ({release.action_history?.length || 1})
                 </span>
               </div>
-              {expandedGroups.history ? <ChevronUp className="w-4 h-4 text-white/50" /> : <ChevronDown className="w-4 h-4 text-white/50" />}
+              {expandedGroups.history ? (
+                <ChevronUp className="w-4 h-4 text-white/40" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-white/40" />
+              )}
             </button>
 
             {expandedGroups.history && (
-              <div className="p-4 pt-0 border-t border-white/5 space-y-2.5 font-mono text-xs">
+              <div className="p-4 sm:p-5 pt-0 border-t border-white/[0.06] space-y-2.5 text-xs sm:text-sm">
                 {release.action_history && release.action_history.length > 0 ? (
                   release.action_history.map((h, idx) => (
                     <div
                       key={idx}
-                      className="p-3 rounded-xl bg-black/40 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px]"
+                      className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-1.5"
                     >
                       <div>
-                        <span className="text-[#00F0FF] font-bold">@{h.moderator}</span>:{" "}
-                        <span className="text-white">
+                        <span className="text-[#00F0FF] font-semibold">@{h.moderator}</span>:{" "}
+                        <span className="text-white font-medium">
                           {h.action} {h.prev_status && h.new_status ? `(${h.prev_status} → ${h.new_status})` : ""}
                         </span>
-                        {h.comment && <p className="text-white/60 font-sans text-xs pt-0.5">"{h.comment}"</p>}
-                        {h.upc && <p className="text-[#10B981] font-mono pt-0.5">Присвоен UPC: {h.upc}</p>}
+                        {h.comment && <p className="text-white/70 text-xs pt-1">"{h.comment}"</p>}
+                        {h.upc && (
+                          <p className="text-[#10B981] font-mono text-xs pt-1">Присвоен UPC: {h.upc}</p>
+                        )}
                       </div>
-                      <span className="text-white/35 flex-shrink-0 text-[10px]">
-                        {new Date(h.timestamp).toLocaleString("ru-RU")}
+                      <span className="text-[#9B95AD] text-xs flex-shrink-0">
+                        {new Date(h.timestamp).toLocaleString("ru-RU", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-white/40 text-[11px]">
-                    Заявка создана {new Date(release.created_at).toLocaleString("ru-RU")} (Источник: {release.source || "web"})
+                  <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] text-[#9B95AD] text-xs">
+                    Заявка создана{" "}
+                    {new Date(release.created_at).toLocaleString("ru-RU", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    (Источник: {release.source || "web"})
                   </div>
                 )}
               </div>
