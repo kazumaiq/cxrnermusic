@@ -134,6 +134,7 @@ export async function POST(request: Request) {
     // Notify Telegram bot or direct Telegram API
     const botUrl = process.env.BOT_BACKEND_URL;
     let deliveredViaBot = false;
+    let savedMsgId: string | number | null = null;
 
     if (botUrl) {
       try {
@@ -164,6 +165,14 @@ export async function POST(request: Request) {
 
         if (botRes.ok) {
           deliveredViaBot = true;
+          const botData = await botRes.json().catch(() => ({}));
+          if (botData?.moderation_message_id) {
+            savedMsgId = botData.moderation_message_id;
+            await supabase
+              .from("cxrner_forms")
+              .update({ moderation_message_id: String(savedMsgId) })
+              .eq("id", data.id);
+          }
         } else {
           const text = await botRes.text().catch(() => "");
           console.warn(
@@ -175,49 +184,31 @@ export async function POST(request: Request) {
       }
     }
 
-    // Direct Telegram Bot API Notification Fallback (if bot host is offline, sleeping or credentials set on Vercel)
+    // Direct Telegram Bot API Notification Fallback with full inline keyboard & message_id storage
     const tgToken = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
-    const tgChat = process.env.MODERATION_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
+    const tgChat = process.env.MODERATION_CHAT_ID || process.env.TELEGRAM_CHAT_ID || "-1002117586464";
     if (!deliveredViaBot && tgToken && tgChat) {
       try {
-        const yandexText =
-          formPayload.yandex === "create_new_card"
-            ? "Создать новую карточку"
-            : formPayload.yandex || ".";
-
-        const lines = [
-          "🎵 <b>НОВАЯ АНКЕТА!</b>",
-          "Источник: 🌐 САЙТ",
-          `От: ${body.contact_telegram ? body.contact_telegram : "—"}`,
-          `ID заявки: <code>${data.id}</code>`,
-          `Тип: ${releaseType}`,
-          "",
-          `🎵 <b>Название:</b> ${body.track_name.trim()}`,
-          `✨ <b>Саб-название:</b> ${body.subtitle?.trim() || "."}`,
-          `🎤 <b>Ник:</b> ${body.artist_name.trim()}`,
-          `🪪 <b>ФИО:</b> ${body.artist_full_name?.trim() || body.artist_name.trim()}`,
-          `📅 <b>Дата:</b> ${body.release_date || "—"}`,
-          `🧩 <b>Версия:</b> ${body.version?.trim() || "Оригинал"}`,
-          `🏷 <b>Жанр:</b> ${body.genre.trim()}`,
-          `🔗 <b>Ссылка:</b> ${filesLink || "—"}`,
-          `🟡 <b>Яндекс Музыка:</b> ${yandexText}`,
-          `⚠️ <b>Мат:</b> ${body.has_explicit ? "Да" : "Нет"}`,
-          `📢 <b>Промо:</b> ${body.promo_text?.trim() || "."}`,
-          `💬 <b>Комментарий:</b> ${body.comment?.trim() || "."}`,
-          `📱 <b>Tg:</b> ${body.contact_telegram?.trim() || "—"}`,
-        ];
-
-        await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: tgChat,
-            text: lines.join("\n"),
-            parse_mode: "HTML",
-            disable_web_page_preview: true,
-          }),
+        const { sendTelegramNewMessage } = await import("@/lib/telegramSync");
+        const tgRes = await sendTelegramNewMessage({
+          formId: data.id,
+          telegramId: user.id,
+          chatId: tgChat,
+          status: "pending",
+          artistName: body.artist_name.trim(),
+          trackName: body.track_name.trim(),
+          genre: body.genre.trim(),
+          releaseType: body.release_type,
+          payload: formPayload,
         });
-        deliveredViaBot = true;
+
+        if (tgRes.ok && tgRes.messageId) {
+          deliveredViaBot = true;
+          await supabase
+            .from("cxrner_forms")
+            .update({ moderation_message_id: String(tgRes.messageId) })
+            .eq("id", data.id);
+        }
       } catch (tgErr: any) {
         console.error("[Forms Submit] Direct Telegram notification failed:", tgErr.message);
       }

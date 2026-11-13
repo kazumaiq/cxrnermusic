@@ -289,6 +289,15 @@ export async function PATCH(request: Request) {
       payload: updatedPayload,
     });
 
+    if (tgSyncResult.ok && (tgSyncResult as any).messageId && !currentForm.moderation_message_id) {
+      try {
+        await supabase
+          .from("cxrner_forms")
+          .update({ moderation_message_id: String((tgSyncResult as any).messageId) })
+          .eq("id", id);
+      } catch {}
+    }
+
     return NextResponse.json({
       ok: true,
       form: updated,
