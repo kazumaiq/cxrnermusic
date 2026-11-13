@@ -85,6 +85,32 @@ export default async function DashboardPage() {
     const { data: fRows } = await query.returns<FormRow[]>();
 
     forms = fRows ?? [];
+
+    // Fallback: Check cxrner_public_releases if linked to Telegram and cxrner_forms is empty
+    if (forms.length === 0 && linkedTgId) {
+      try {
+        const { data: pubRows } = await supabase
+          .from("cxrner_public_releases")
+          .select("*")
+          .eq("telegram_id", linkedTgId);
+
+        if (pubRows && pubRows.length > 0) {
+          forms = pubRows.map((r: any) => ({
+            id: r.form_id || `${r.telegram_id}:${r.approved_at}`,
+            artist_name: r.artist_name,
+            track_name: r.track_name,
+            genre: r.genre,
+            status: r.status,
+            upc: r.release_data?.upc || r.upc || null,
+            created_at: r.approved_at || r.updated_at,
+            source: "telegram",
+            reject_reason: null,
+            moderator_comment: null,
+            form_payload: r.release_data,
+          }));
+        }
+      } catch {}
+    }
   } catch (err: any) {
     if (err?.message === "NEXT_REDIRECT") throw err;
     errorNotice =
