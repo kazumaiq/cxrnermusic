@@ -1171,17 +1171,27 @@ export default function CreateLinkWizard() {
                           onChange={(e) =>
                             updatePlatform(p.platform_key, { url: e.target.value, is_direct: true })
                           }
-                          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none pr-16"
+                          className={`w-full bg-black/40 border rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none pr-16 ${
+                            p.platform_key === "yandex" && p.url.includes("/artist/")
+                              ? "border-amber-500/70 focus:border-amber-400"
+                              : "border-white/10 focus:border-[#B46BFF]"
+                          }`}
                         />
                         {p.url.trim() && (
                           <span
                             className={`hidden sm:inline-flex items-center gap-1 absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-full border pointer-events-none ${
-                              p.is_direct
+                              p.platform_key === "yandex" && p.url.includes("/artist/")
+                                ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
+                                : p.is_direct
                                 ? "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"
                                 : "border-[#B46BFF]/40 bg-[#8737FF]/15 text-[#D9D9E2]"
                             }`}
                           >
-                            {p.is_direct ? "Прямая" : "Авто"}
+                            {p.platform_key === "yandex" && p.url.includes("/artist/")
+                              ? "Профиль ⚠️"
+                              : p.is_direct
+                              ? "Прямая"
+                              : "Авто"}
                           </span>
                         )}
                       </div>
@@ -1192,6 +1202,11 @@ export default function CreateLinkWizard() {
                         className="w-24 sm:w-28 bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-xs text-white text-center font-mono flex-shrink-0"
                       />
                     </div>
+                    {p.platform_key === "yandex" && p.url.includes("/artist/") && (
+                      <p className="mt-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 font-mono leading-normal w-full">
+                        ⚠️ Вы указали профиль артиста (/artist/). Для смарт-ссылки используйте прямую ссылку на трек или альбом (/album/...).
+                      </p>
+                    )}
                   </div>
                 );
               })}

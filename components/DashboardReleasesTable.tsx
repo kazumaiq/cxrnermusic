@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Barcode,
   Calendar,
+  Sparkles,
 } from "lucide-react";
 
 type FormRow = {
@@ -26,17 +27,30 @@ type FormRow = {
   upc: string | null;
   created_at: string;
   source: string | null;
+  reject_reason?: string | null;
+  moderator_comment?: string | null;
+  form_payload?: any;
 };
 
 const statusConfig: Record<string, { label: string; classes: string; icon: any }> = {
   pending: {
-    label: "На модерации",
-    classes: "bg-yellow-500/15 text-yellow-300 border-yellow-500/40 shadow-glow",
+    label: "На отгрузке",
+    classes: "bg-sky-500/15 text-sky-300 border-sky-500/40",
+    icon: Clock,
+  },
+  on_upload: {
+    label: "На отгрузке",
+    classes: "bg-sky-500/15 text-sky-300 border-sky-500/40",
     icon: Clock,
   },
   moderation: {
-    label: "В обработке A&R",
-    classes: "bg-yellow-500/15 text-yellow-300 border-yellow-500/40",
+    label: "На модерации",
+    classes: "bg-purple-500/15 text-purple-300 border-purple-500/40",
+    icon: Clock,
+  },
+  on_moderation: {
+    label: "На модерации",
+    classes: "bg-purple-500/15 text-purple-300 border-purple-500/40",
     icon: Clock,
   },
   approved: {
@@ -46,23 +60,33 @@ const statusConfig: Record<string, { label: string; classes: string; icon: any }
   },
   uploaded: {
     label: "Отгружено на DSP",
-    classes: "bg-neon/15 text-neonSoft border-neon/40 shadow-glow",
+    classes: "bg-[#8737FF]/15 text-[#B46BFF] border-[#8737FF]/40 shadow-glow",
     icon: Disc,
   },
   released: {
     label: "В релизе (Live)",
-    classes: "bg-aqua/15 text-aqua border-aqua/40 shadow-glowAqua",
+    classes: "bg-[#00F0FF]/15 text-[#00F0FF] border-[#00F0FF]/40 shadow-glowAqua",
     icon: CheckCircle2,
+  },
+  needfix: {
+    label: "Требует правок",
+    classes: "bg-amber-500/15 text-amber-300 border-amber-500/40",
+    icon: AlertCircle,
   },
   fix_required: {
     label: "Требует правок",
-    classes: "bg-orange-500/15 text-orange-300 border-orange-500/40",
+    classes: "bg-amber-500/15 text-amber-300 border-amber-500/40",
     icon: AlertCircle,
   },
   rejected: {
     label: "Отклонено",
     classes: "bg-red-500/15 text-red-300 border-red-500/40",
     icon: AlertCircle,
+  },
+  deleted: {
+    label: "В архиве",
+    classes: "bg-white/5 text-white/50 border-white/10",
+    icon: Clock,
   },
 };
 
@@ -270,14 +294,45 @@ export default function DashboardReleasesTable({
                       {item.genre}
                     </span>
                   )}
+
+                  {(item.status === "needfix" || item.status === "fix_required") && (
+                    <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-sans">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-300 font-mono text-[10px] uppercase">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>Требуются исправления:</span>
+                      </div>
+                      <p className="mt-1 text-white/90">
+                        {item.moderator_comment || item.reject_reason || "Обновите материалы релиза согласно замечаниям модератора."}
+                      </p>
+                    </div>
+                  )}
+
+                  {item.status === "rejected" && item.reject_reason && (
+                    <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-xs font-sans">
+                      <div className="font-bold flex items-center gap-1.5 text-red-300 font-mono text-[10px] uppercase">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>Причина отказа:</span>
+                      </div>
+                      <p className="mt-1 text-white/80">{item.reject_reason}</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
                   {item.upc ? (
-                    <span className="font-mono text-xs text-aqua flex items-center gap-1">
-                      <Barcode className="w-3.5 h-3.5" />
-                      {item.upc}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-aqua flex items-center gap-1">
+                        <Barcode className="w-3.5 h-3.5" />
+                        {item.upc}
+                      </span>
+                      <Link
+                        href={`/dashboard/links/new?upc=${encodeURIComponent(item.upc)}`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#8737FF]/20 text-[#B46BFF] hover:text-white text-[10px] font-mono uppercase tracking-wider font-bold border border-[#8737FF]/40 transition"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>Smart Link</span>
+                      </Link>
+                    </div>
                   ) : (
                     <span className="text-[11px] text-white/40 italic">UPC присваивается</span>
                   )}

@@ -73,7 +73,7 @@ export default async function DashboardPage() {
 
     let query = supabase
       .from("cxrner_forms")
-      .select("id, artist_name, track_name, genre, status, upc, created_at, source")
+      .select("id, artist_name, track_name, genre, status, upc, created_at, source, reject_reason, moderator_comment, form_payload")
       .order("created_at", { ascending: false });
 
     if (linkedTgId) {

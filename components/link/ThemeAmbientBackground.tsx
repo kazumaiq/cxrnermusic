@@ -37,7 +37,9 @@ export function ThemeAmbientBackground({
   const particleScale = compact ? 0.65 : 1;
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden select-none bg-[#050407]">
+      {/* 100% Solid base backdrop layer ensures zero background bleedthrough */}
+      <div className="absolute inset-0 bg-[#050407]" />
       {/* Inline Keyframes for smooth 60fps ambient animations */}
       <style jsx>{`
         @keyframes cxrnerFall {

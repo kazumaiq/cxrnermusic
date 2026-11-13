@@ -47,6 +47,15 @@ async function getAdminOrServerSupabase() {
   return getSupabaseServerClient();
 }
 
+function sanitizeReleaseYandexLink(rawUrl: any): string | null {
+  if (!rawUrl || typeof rawUrl !== "string" || !rawUrl.startsWith("http")) return null;
+  // If the link is an artist profile card (/artist/), it is NOT a release streaming link!
+  if (rawUrl.includes("music.yandex.") && rawUrl.includes("/artist/")) {
+    return null;
+  }
+  return rawUrl.trim();
+}
+
 /** Merge direct URLs and auto-fill remaining platforms with smart search URLs */
 function buildFullPlatformList(
   artist: string,
@@ -59,6 +68,11 @@ function buildFullPlatformList(
 
   for (const c of directCandidates) {
     if (c.platform_key && c.url && c.url.startsWith("http")) {
+      // Strictly prevent /artist/ cards from masquerading as release track links
+      if (c.platform_key === "yandex") {
+        const clean = sanitizeReleaseYandexLink(c.url);
+        if (!clean) continue;
+      }
       directMap.set(c.platform_key, { ...c, button_text: btnText, is_direct: true });
     }
   }
@@ -109,8 +123,15 @@ async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | n
         const title = form.track_name || payload.name || payload.title || "";
 
         const direct: PlatformLinkCandidate[] = [];
-        if (payload.yandex && String(payload.yandex).startsWith("http")) {
-          direct.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: payload.yandex, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+        const rawYandex =
+          payload.yandex_album ||
+          payload.album_url ||
+          payload.yandex_track ||
+          payload.dsp_links?.yandex ||
+          payload.yandex;
+        const validYandex = sanitizeReleaseYandexLink(rawYandex);
+        if (validYandex) {
+          direct.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: validYandex, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
         }
         if (payload.spotify && String(payload.spotify).startsWith("http")) {
           direct.push({ platform_key: "spotify", platform_name: "Spotify", url: payload.spotify, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
@@ -158,9 +179,16 @@ async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | n
         const title = rel.name || rel.track_name || payload.name || "";
 
         const direct: PlatformLinkCandidate[] = [];
-        const yandexUrl = rel.yandex || payload.yandex;
-        if (yandexUrl && String(yandexUrl).startsWith("http")) {
-          direct.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: yandexUrl, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+        const rawYandex =
+          rel.yandex_album ||
+          payload.yandex_album ||
+          payload.album_url ||
+          payload.dsp_links?.yandex ||
+          rel.yandex ||
+          payload.yandex;
+        const validYandex = sanitizeReleaseYandexLink(rawYandex);
+        if (validYandex) {
+          direct.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: validYandex, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
         }
 
         return {
@@ -305,7 +333,10 @@ async function lookupMusicBrainzByUpc(upc: string): Promise<ReleaseLookupResult 
       } else if (href.includes("music.apple.com")) {
         platforms.push({ platform_key: "apple", platform_name: "Apple Music", url: href, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
       } else if (href.includes("music.yandex.")) {
-        platforms.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: href, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+        const validYandex = sanitizeReleaseYandexLink(href);
+        if (validYandex) {
+          platforms.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: validYandex, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
+        }
       } else if (href.includes("youtube.com") || href.includes("youtu.be")) {
         platforms.push({ platform_key: "youtube", platform_name: "YouTube Music", url: href, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
       } else if (href.includes("deezer.com")) {

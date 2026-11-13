@@ -460,6 +460,13 @@ export default function AdminPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/admin/distribution"
+              className="btn-energy inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)] text-white transition"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>CXRNER CMS // DISTRIBUTION</span>
+            </Link>
             <button
               onClick={loadAdminData}
               disabled={loading}
