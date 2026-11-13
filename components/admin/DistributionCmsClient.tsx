@@ -306,6 +306,33 @@ export default function DistributionCmsClient({
     return Array.from(set);
   }, [forms]);
 
+  // List of releases requiring attention (active, pending review; strictly excludes rejected, deleted, approved)
+  const attentionForms = useMemo(() => {
+    return forms
+      .filter((f) => {
+        // Exclude archived/deleted
+        if (f.user_deleted || f.status === "deleted") return false;
+        // Strictly exclude rejected submissions (user requirement: rejected must vanish from attention/important list)
+        if (f.status === "rejected") return false;
+        // Exclude already completed/published releases
+        if (f.status === "approved" || f.status === "published") return false;
+        // If excluding test releases, filter them out too
+        if (testFilterMode === "exclude_test" && isTestRelease(f)) return false;
+
+        // Only statuses that actively require moderator review or fixes
+        const s = (f.status || "pending").toLowerCase();
+        return (
+          s === "on_upload" ||
+          s === "pending" ||
+          s === "moderation" ||
+          s === "on_moderation" ||
+          s === "needfix" ||
+          s === "fix_required"
+        );
+      })
+      .slice(0, 6);
+  }, [forms, testFilterMode]);
+
   const handleLogout = async () => {
     await fetch("/api/admin/auth", { method: "DELETE" });
     window.location.reload();
@@ -705,6 +732,11 @@ export default function DistributionCmsClient({
                   <div className="text-sm font-semibold text-white flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[#B46BFF]" />
                     <span>Свежие заявки, требующие внимания</span>
+                    {attentionForms.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#B46BFF]/15 text-[#D9D9E2] border border-[#B46BFF]/30">
+                        {attentionForms.length}
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => setActiveTab("all")}
@@ -715,53 +747,73 @@ export default function DistributionCmsClient({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {forms.slice(0, 6).map((release) => {
-                    const sm = getStatusMeta(release.status || "pending");
-                    return (
-                      <div
-                        key={release.id}
-                        onClick={() => setSelectedRelease(release)}
-                        className="p-4 sm:p-4.5 rounded-2xl border border-white/[0.08] bg-[#0c0916]/80 hover:border-[#8737FF]/50 transition cursor-pointer space-y-3 shadow-sm hover:shadow-[0_0_24px_rgba(135,55,255,0.12)]"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-white/40 font-medium">
-                            {new Date(release.created_at).toLocaleDateString("ru-RU")}
-                          </span>
-                          <span
-                            className="px-2.5 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1.5"
-                            style={{
-                              backgroundColor: "rgba(135,55,255,0.12)",
-                              borderColor: "rgba(180,107,255,0.35)",
-                              color: "#D9D9E2",
-                            }}
-                          >
-                            <span>{sm.emoji}</span>
-                            <span>{sm.label}</span>
-                          </span>
-                        </div>
+                {attentionForms.length === 0 ? (
+                  <div className="p-8 sm:p-10 rounded-2xl border border-white/[0.08] bg-[#0c0916]/60 text-center flex flex-col items-center justify-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 mb-1">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <p className="text-sm font-semibold text-white/90">Все заявки обработаны</p>
+                    <p className="text-xs text-white/40 max-w-sm">
+                      Нет активных заявок, требующих внимания. Отклонённые и одобренные релизы автоматически исключены из этого списка.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {attentionForms.map((release) => {
+                      const sm = getStatusMeta(release.status || "pending");
+                      const isTest = isTestRelease(release);
+                      return (
+                        <div
+                          key={release.id}
+                          onClick={() => setSelectedRelease(release)}
+                          className="p-4 sm:p-4.5 rounded-2xl border border-white/[0.08] bg-[#0c0916]/80 hover:border-[#8737FF]/50 transition cursor-pointer space-y-3 shadow-sm hover:shadow-[0_0_24px_rgba(135,55,255,0.12)] group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-white/40 font-medium">
+                              {new Date(release.created_at).toLocaleDateString("ru-RU")}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {isTest && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                                  🧪 Тест
+                                </span>
+                              )}
+                              <span
+                                className="px-2.5 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1.5"
+                                style={{
+                                  backgroundColor: "rgba(135,55,255,0.12)",
+                                  borderColor: "rgba(180,107,255,0.35)",
+                                  color: "#D9D9E2",
+                                }}
+                              >
+                                <span>{sm.emoji}</span>
+                                <span>{sm.label}</span>
+                              </span>
+                            </div>
+                          </div>
 
-                        <div>
-                          <h4 className="text-base font-semibold text-white truncate">
-                            {release.track_name || "Без названия"}
-                          </h4>
-                          <p className="text-xs text-[#9B95AD] truncate font-medium pt-0.5">
-                            {release.artist_name || "Артист не указан"}
-                          </p>
-                        </div>
+                          <div>
+                            <h4 className="text-base font-semibold text-white truncate group-hover:text-[#00F0FF] transition">
+                              {release.track_name || "Без названия"}
+                            </h4>
+                            <p className="text-xs text-[#9B95AD] truncate font-medium pt-0.5">
+                              {release.artist_name || "Артист не указан"}
+                            </p>
+                          </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs text-white/50">
-                          <span>{release.release_type || "Сингл"}</span>
-                          {release.upc ? (
-                            <span className="text-emerald-400 font-semibold font-mono">UPC: {release.upc}</span>
-                          ) : (
-                            <span className="text-white/30">Без UPC</span>
-                          )}
+                          <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs text-white/50">
+                            <span>{release.release_type || "Сингл"}</span>
+                            {release.upc ? (
+                              <span className="text-emerald-400 font-semibold font-mono">UPC: {release.upc}</span>
+                            ) : (
+                              <span className="text-white/30">Без UPC</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}

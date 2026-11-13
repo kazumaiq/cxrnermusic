@@ -133,16 +133,19 @@ export function transformPublicReleaseToDossier(row: any): DossierRelease {
 }
 
 export function computeCmsStats(allReleases: DossierRelease[]) {
-  const activeReleases = allReleases.filter((f) => !f.user_deleted && f.status !== "deleted");
+  // Active releases are non-deleted and non-rejected (rejected forms are not active)
+  const activeReleases = allReleases.filter(
+    (f) => !f.user_deleted && f.status !== "deleted" && f.status !== "rejected"
+  );
 
   return {
     total: activeReleases.length,
-    all_count: allReleases.length,
+    all_count: allReleases.filter((f) => !f.user_deleted && f.status !== "deleted").length,
     on_upload: activeReleases.filter((f) => f.status === "on_upload" || f.status === "pending").length,
     moderation: activeReleases.filter((f) => f.status === "moderation" || f.status === "on_moderation").length,
     needfix: activeReleases.filter((f) => f.status === "needfix" || f.status === "fix_required").length,
     approved: activeReleases.filter((f) => f.status === "approved" || f.status === "published").length,
-    rejected: activeReleases.filter((f) => f.status === "rejected").length,
+    rejected: allReleases.filter((f) => !f.user_deleted && f.status === "rejected").length,
     archived: allReleases.filter((f) => f.user_deleted || f.status === "deleted").length,
     with_upc: activeReleases.filter((f) => Boolean(f.upc && f.upc.trim())).length,
     test_count: allReleases.filter((f) => isTestRelease(f)).length,
