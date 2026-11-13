@@ -270,7 +270,7 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
       </header>
 
       {/* 3. Main Smart Link Card Container */}
-      <main className={`relative z-10 w-full max-w-md rounded-3xl p-5 sm:p-8 ${theme.cardClass} space-y-6 my-auto`}>
+      <main className={`relative z-10 w-full max-w-md rounded-3xl p-4 sm:p-8 ${theme.cardClass} space-y-5 sm:space-y-6 my-auto`}>
         {/* Cover Art Presentation */}
         <div className={`relative group/cover w-full aspect-square overflow-hidden bg-black/40 select-none ${theme.coverFrameClass}`}>
           <img
@@ -410,25 +410,25 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => handlePlatformClick(platform)}
-                  className={`group flex items-center justify-between gap-2.5 p-3 sm:p-3.5 transition-all duration-200 select-none cursor-pointer ${theme.buttonClass}`}
+                  className={`group flex items-center justify-between gap-2 p-2.5 sm:p-3.5 transition-all duration-200 select-none cursor-pointer ${theme.buttonClass}`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
                       style={{
                         backgroundColor: meta.bgColor,
                         color: meta.fgColor,
                         boxShadow: `0 4px 16px ${meta.glowColor}`,
                       }}
                     >
-                      <PlatformLogo platformKey={platform.platform_key} className="w-5 h-5" />
+                      <PlatformLogo platformKey={platform.platform_key} className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <span className="font-sans text-xs sm:text-sm tracking-wide text-white font-semibold truncate">
+                    <span className="font-sans text-[13px] sm:text-sm tracking-tight text-white font-semibold truncate">
                       {meta.name}
                     </span>
                   </div>
 
-                  <div className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-200 shadow-sm flex-shrink-0 ${theme.actionPillClass}`}>
+                  <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-200 shadow-sm flex-shrink-0 ${theme.actionPillClass}`}>
                     <span>{actionLabel}</span>
                     <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
                   </div>

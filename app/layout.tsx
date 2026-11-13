@@ -5,6 +5,7 @@ import { Inter, Oswald, Bebas_Neue, Space_Mono, Unbounded } from "next/font/goog
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import ChromeShell from "../components/ChromeShell";
 import Providers from "./providers";
 import BackgroundFX from "../components/BackgroundFX";
 
@@ -128,13 +129,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
 
-        <div className="relative min-h-screen flex flex-col justify-between overflow-x-hidden">
-          <Header />
-          <Providers>
-            <main className="flex-1">{children}</main>
-          </Providers>
-          <Footer />
-        </div>
+        <Providers>
+          <ChromeShell header={<Header />} footer={<Footer />}>
+            {children}
+          </ChromeShell>
+        </Providers>
       </body>
     </html>
   );
