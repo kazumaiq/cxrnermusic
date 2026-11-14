@@ -23,7 +23,66 @@ export type VerificationStatus =
   | "rejected"
   | "suspended";
 
-export type ItemRarity = "common" | "rare" | "epic" | "legendary" | "mythic";
+export type ItemRarity = "common" | "rare" | "epic" | "legendary" | "mythic" | "special_reward";
+
+export interface DropCaseConfig {
+  id: string;
+  name: string;
+  slug: string;
+  subtitle: string;
+  description: string;
+  price_cxp: number;
+  cover_url: string;
+  is_active: boolean;
+  available_rarities: ItemRarity[];
+  drop_rates: {
+    common: number;
+    rare: number;
+    epic: number;
+    legendary: number;
+    mythic: number;
+    special_reward: number;
+  };
+  display_order: number;
+}
+
+export interface SpecialRewardClaim {
+  id: string;
+  user_id: string;
+  reward_id: string;
+  reward_name: string;
+  claim_code: string;
+  status: "WON" | "PENDING_CLAIM" | "CLAIMED" | "REDEEMED" | "EXPIRED";
+  won_at: string;
+  claimed_at?: string | null;
+  redeemed_at?: string | null;
+  admin_notes?: string | null;
+  admin_id?: string | null;
+}
+
+export interface DropHistoryEntry {
+  id: string;
+  user_id: string;
+  case_id: string;
+  case_name: string;
+  item_id: string;
+  item_name: string;
+  rarity: ItemRarity;
+  serial_number: number;
+  cxp_spent: number;
+  created_at: string;
+}
+
+export interface CxpQuestItem {
+  id: string;
+  title: string;
+  description: string;
+  reward_cxp: number;
+  category: "onboarding" | "daily" | "social" | "music" | "referral";
+  action_label: string;
+  action_href: string;
+  is_completed?: boolean;
+}
 
 export interface CxrnerProfile {
   id: string;
@@ -227,7 +286,7 @@ export interface AdminAuditLog {
 // CATALOG DEFINITIONS: SPECIMENS & ACHIEVEMENTS
 // =========================================================================
 
-export const DROP_SPECIMENS: Array<{
+export interface DropSpecimenDef {
   item_id: string;
   item_name: string;
   collection_name: string;
@@ -235,87 +294,375 @@ export const DROP_SPECIMENS: Array<{
   description: string;
   model_color: string;
   shape: "cylinder" | "box" | "torus" | "octahedron" | "dodecahedron" | "icosahedron";
-}> = [
+  case_id?: string;
+  is_special_reward?: boolean;
+}
+
+export const DROP_CASES: DropCaseConfig[] = [
+  {
+    id: "case_001_archive",
+    name: "CASE 001 — ARCHIVE",
+    slug: "archive",
+    subtitle: "SPECIMEN ARCHIVE BASE",
+    description: "Основной кейс с базовыми коллекционными предметами лейбла, цифровыми ключами, редкими масками и шансом выиграть ваучер на бесплатную обложку.",
+    price_cxp: 50,
+    cover_url: "/drop/cases/case_001_archive.svg",
+    is_active: true,
+    available_rarities: ["common", "rare", "epic", "legendary", "mythic", "special_reward"],
+    drop_rates: {
+      common: 55,
+      rare: 25,
+      epic: 13,
+      legendary: 5.5,
+      mythic: 1.4,
+      special_reward: 0.1,
+    },
+    display_order: 1,
+  },
+  {
+    id: "case_002_black_specimen",
+    name: "CASE 002 — BLACK SPECIMEN",
+    slug: "black-specimen",
+    subtitle: "ORGANIC FORMS & MASKS",
+    description: "Редкая коллекция тёмных металлических артефактов, необычных органических форм, ритуальных масок и биомеханических паразитов.",
+    price_cxp: 75,
+    cover_url: "/drop/cases/case_002_black_specimen.svg",
+    is_active: true,
+    available_rarities: ["rare", "epic", "legendary", "mythic", "special_reward"],
+    drop_rates: {
+      common: 0,
+      rare: 50,
+      epic: 32,
+      legendary: 14,
+      mythic: 3.8,
+      special_reward: 0.2,
+    },
+    display_order: 2,
+  },
+  {
+    id: "case_003_chrome_age",
+    name: "CASE 003 — CHROME AGE",
+    slug: "chrome-age",
+    subtitle: "LIQUID CHROME & SPIKES",
+    description: "Ультрапремиальная линейка жидкого зеркального хрома: шипы Chrome Spike, Void Crown, Chrome Fang, Chrome Chain и сезонные реликвии.",
+    price_cxp: 100,
+    cover_url: "/drop/cases/case_003_chrome_age.svg",
+    is_active: true,
+    available_rarities: ["rare", "epic", "legendary", "mythic", "special_reward"],
+    drop_rates: {
+      common: 0,
+      rare: 35,
+      epic: 40,
+      legendary: 20,
+      mythic: 4.7,
+      special_reward: 0.3,
+    },
+    display_order: 3,
+  },
+];
+
+export const DROP_SPECIMENS: DropSpecimenDef[] = [
+  // -------------------------------------------------------------------------
+  // COMMON (55% Base)
+  // -------------------------------------------------------------------------
   {
     item_id: "specimen_cyber_vinyl_01",
     item_name: "CYBER VINYL GENESIS",
-    collection_name: "GENESIS CHROME",
+    collection_name: "GENESIS ARCHIVE",
     rarity: "common",
     description: "Первый серийный релиз винила с гравировкой лазером CXRNER-001.",
     model_color: "#A855F7",
     shape: "cylinder",
+    case_id: "case_001_archive",
   },
   {
-    item_id: "specimen_cassette_neon_02",
-    item_name: "CHROME CASSETTE 90s",
-    collection_name: "NEON ARCHIVE",
+    item_id: "specimen_archive_cassette_02",
+    item_name: "ARCHIVE CASSETTE",
+    collection_name: "GENESIS ARCHIVE",
     rarity: "common",
-    description: "Металлическая аудиокассета с магнитной лентой высокой плотности.",
+    description: "Коллекционная кассета в прозрачной упаковке с магнитной лентой высокой плотности.",
     model_color: "#06B6D4",
     shape: "box",
+    case_id: "case_001_archive",
   },
   {
-    item_id: "specimen_hologram_mic_03",
-    item_name: "HOLOGRAPHIC VOCAL MIC",
-    collection_name: "DARK SOUNDSCAPE",
+    item_id: "specimen_data_key_03",
+    item_name: "DATA KEY",
+    collection_name: "SPECIMEN ARCHIVE",
+    rarity: "common",
+    description: "Металлический цифровой ключ с защищённым чипом доступа к звуковым дорожкам.",
+    model_color: "#94A3B8",
+    shape: "box",
+    case_id: "case_001_archive",
+  },
+  {
+    item_id: "specimen_basic_specimen_04",
+    item_name: "BASIC SPECIMEN",
+    collection_name: "SPECIMEN ARCHIVE",
+    rarity: "common",
+    description: "Базовый образец коллекции. Запечатанная полимерная капсула архива.",
+    model_color: "#64748B",
+    shape: "cylinder",
+    case_id: "case_001_archive",
+  },
+  {
+    item_id: "specimen_chrome_tag_05",
+    item_name: "CHROME TAG",
+    collection_name: "CHROME AGE",
+    rarity: "common",
+    description: "Металлическая маркировочная бирка с лазерной гравировкой серийного номера.",
+    model_color: "#CBD5E1",
+    shape: "box",
+    case_id: "case_001_archive",
+  },
+
+  // -------------------------------------------------------------------------
+  // RARE (25% Base)
+  // -------------------------------------------------------------------------
+  {
+    item_id: "specimen_chrome_disc_06",
+    item_name: "CHROME DISC",
+    collection_name: "CHROME AGE",
     rarity: "rare",
-    description: "Студийный микрофон с оптическим датчиком гармонических искажений.",
-    model_color: "#3B82F6",
+    description: "Коллекционный металлический диск с радиальной лазерной шлифовкой.",
+    model_color: "#38BDF8",
     shape: "cylinder",
   },
   {
-    item_id: "specimen_void_resonator_04",
-    item_name: "VOID RESONATOR",
-    collection_name: "DARK SOUNDSCAPE",
+    item_id: "specimen_dead_wing_07",
+    item_name: "DEAD WING",
+    collection_name: "BLACK SPECIMEN",
     rarity: "rare",
-    description: "Акустический резонатор глубоких суб-басов, выкованный в обсидиане.",
+    description: "Металлические оксидированные титановые крылья с хитиновым рельефом.",
+    model_color: "#475569",
+    shape: "octahedron",
+  },
+  {
+    item_id: "specimen_void_core_08",
+    item_name: "VOID CORE",
+    collection_name: "BLACK SPECIMEN",
+    rarity: "rare",
+    description: "Чёрный металлический объект с геометрической формой глубокого суб-баса.",
     model_color: "#6366F1",
     shape: "torus",
   },
   {
-    item_id: "specimen_aurora_synth_05",
-    item_name: "AURORA SYNTHESIZER KEY",
-    collection_name: "CELESTIAL REVERB",
-    rarity: "epic",
-    description: "Кристаллический модуль полифонического синтеза с северным сиянием внутри.",
-    model_color: "#EC4899",
-    shape: "octahedron",
+    item_id: "specimen_chrome_chain_09",
+    item_name: "CHROME CHAIN",
+    collection_name: "CHROME AGE",
+    rarity: "rare",
+    description: "Коллекционная массивная металлическая цепь с зеркальной полировкой звеньев.",
+    model_color: "#E2E8F0",
+    shape: "torus",
   },
   {
-    item_id: "specimen_quantum_groove_06",
-    item_name: "QUANTUM GROOVE CORE",
-    collection_name: "NEON ARCHIVE",
+    item_id: "specimen_parasite_mini_10",
+    item_name: "PARASITE MINI",
+    collection_name: "BLACK SPECIMEN",
+    rarity: "rare",
+    description: "Небольшой механический организм, реагирующий на басовые колебания.",
+    model_color: "#A21CAF",
+    shape: "dodecahedron",
+  },
+
+  // -------------------------------------------------------------------------
+  // EPIC (13% Base)
+  // -------------------------------------------------------------------------
+  {
+    item_id: "specimen_watcher_eye_11",
+    item_name: "WATCHER EYE",
+    collection_name: "SPECIMEN ARCHIVE",
     rarity: "epic",
-    description: "Ядро квантового свинга для драм-машин нового поколения.",
-    model_color: "#F59E0B",
+    description: "Механический оптический сенсор с фиолетовой подсветкой и частотным спектром.",
+    model_color: "#C084FC",
     shape: "dodecahedron",
   },
   {
-    item_id: "specimen_monolith_black_07",
-    item_name: "CXRNER MONOLITH V1",
-    collection_name: "GENESIS CHROME",
-    rarity: "legendary",
-    description: "Легендарный артефакт лейбла. Содержит мастер-запись первых 100 релизов.",
-    model_color: "#E2E8F0",
+    item_id: "specimen_black_heart_12",
+    item_name: "BLACK HEART",
+    collection_name: "BLACK SPECIMEN",
+    rarity: "epic",
+    description: "Чёрное хромированное сердце с проводниками суб-басового импульса.",
+    model_color: "#831843",
+    shape: "octahedron",
+  },
+  {
+    item_id: "specimen_violet_visor_13",
+    item_name: "VIOLET VISOR",
+    collection_name: "SPECIMEN ARCHIVE",
+    rarity: "epic",
+    description: "Футуристическая маска-визор с неоновым HUD-интерфейсом звукорежиссёра.",
+    model_color: "#8B5CF6",
     shape: "box",
   },
   {
-    item_id: "specimen_celestial_prism_08",
-    item_name: "CELESTIAL HARMONIC PRISM",
-    collection_name: "CELESTIAL REVERB",
+    item_id: "specimen_specimen_mask_14",
+    item_name: "SPECIMEN MASK",
+    collection_name: "BLACK SPECIMEN",
+    rarity: "epic",
+    description: "Коллекционная ритуальная маска биомеханического архива CXRNER.",
+    model_color: "#701A75",
+    shape: "octahedron",
+  },
+  {
+    item_id: "specimen_dark_wings_15",
+    item_name: "DARK WINGS",
+    collection_name: "BLACK SPECIMEN",
+    rarity: "epic",
+    description: "Чёрные титановые крылья с интенсивными фиолетовыми неоновыми акцентами.",
+    model_color: "#9333EA",
+    shape: "icosahedron",
+  },
+
+  // -------------------------------------------------------------------------
+  // LEGENDARY (5.5% Base)
+  // -------------------------------------------------------------------------
+  {
+    item_id: "specimen_chrome_spike_16",
+    item_name: "CHROME SPIKE",
+    collection_name: "CHROME AGE",
     rarity: "legendary",
-    description: "Призма, расщепляющая звук на бесконечные пространственные обертоны.",
-    model_color: "#8B5CF6",
+    description: "Металлический артефакт с агрессивной зубчатой конструкцией и зеркальным блеском.",
+    model_color: "#F8FAFC",
+    shape: "octahedron",
+  },
+  {
+    item_id: "specimen_void_crown_17",
+    item_name: "VOID CROWN",
+    collection_name: "BLACK SPECIMEN",
+    rarity: "legendary",
+    description: "Чёрная металлическая корона правителя подземной звуковой сцены.",
+    model_color: "#1E1B4B",
+    shape: "torus",
+  },
+  {
+    item_id: "specimen_parasite_18",
+    item_name: "PARASITE",
+    collection_name: "BLACK SPECIMEN",
+    rarity: "legendary",
+    description: "Полноразмерный биомеханический организм с сегментированной бронёй.",
+    model_color: "#7E22CE",
     shape: "icosahedron",
   },
   {
-    item_id: "specimen_mythic_infinity_09",
-    item_name: "MYTHIC OMNI-REVERB 3.8",
-    collection_name: "GENESIS CHROME",
+    item_id: "specimen_chrome_fang_19",
+    item_name: "CHROME FANG",
+    collection_name: "CHROME AGE",
+    rarity: "legendary",
+    description: "Коллекционная металлическая челюсть из аэрокосмического титанового сплава.",
+    model_color: "#F1F5F9",
+    shape: "dodecahedron",
+  },
+  {
+    item_id: "specimen_black_relic_20",
+    item_name: "BLACK RELIC",
+    collection_name: "BLACK SPECIMEN",
+    rarity: "legendary",
+    description: "Уникальный металлический артефакт, содержащий первичный звуковой код лейбла.",
+    model_color: "#312E81",
+    shape: "icosahedron",
+  },
+
+  // -------------------------------------------------------------------------
+  // MYTHIC (1.4% Base)
+  // -------------------------------------------------------------------------
+  {
+    item_id: "specimen_unknown_001_21",
+    item_name: "UNKNOWN-001",
+    collection_name: "RESTRICTED VAULT",
     rarity: "mythic",
-    description: "Мифический артефакт CXRNER. Существует в единственных экземплярах.",
+    description: "Неизвестный объект с секретной маркировкой и гравитационным искажением пространства.",
     model_color: "#F43F5E",
+    shape: "icosahedron",
+  },
+  {
+    item_id: "specimen_forbidden_22",
+    item_name: "FORBIDDEN",
+    collection_name: "RESTRICTED VAULT",
+    rarity: "mythic",
+    description: "Запечатанный запрещённый образец, изъятый из закрытого архива спецпроектов.",
+    model_color: "#BE123C",
+    shape: "dodecahedron",
+  },
+  {
+    item_id: "specimen_last_signal_23",
+    item_name: "LAST SIGNAL",
+    collection_name: "RESTRICTED VAULT",
+    rarity: "mythic",
+    description: "Уникальный артефакт, непрерывно транслирующий закодированный мастер-сигнал CXRNER.",
+    model_color: "#E11D48",
+    shape: "octahedron",
+  },
+  {
+    item_id: "specimen_cxrner_original_24",
+    item_name: "CXRNER ORIGINAL",
+    collection_name: "FOUNDERS EDITION",
+    rarity: "mythic",
+    description: "Фирменный эксклюзивный артефакт основателей лейбла. Абсолютный статус совершенства.",
+    model_color: "#FB7185",
     shape: "torus",
+  },
+
+  // -------------------------------------------------------------------------
+  // SPECIAL REWARD (0.1% Base) - CXRNER COVER VOUCHER
+  // -------------------------------------------------------------------------
+  {
+    item_id: "specimen_cover_voucher_25",
+    item_name: "CXRNER COVER VOUCHER",
+    collection_name: "SPECIAL REWARDS",
+    rarity: "special_reward",
+    description: "Эксклюзивный ваучер на бесплатную обложку для релиза от @kazumaiq. Шанс 0.1%!",
+    model_color: "#F59E0B",
+    shape: "box",
+    is_special_reward: true,
+  },
+];
+
+export const CXP_QUESTS_CATALOG: CxpQuestItem[] = [
+  {
+    id: "quest_profile_80",
+    title: "Заполнение профиля CXRNER ID",
+    description: "Заполни профиль минимум на 80%: имя, аватар, жанры, роль и музыкальные площадки.",
+    reward_cxp: 100,
+    category: "onboarding",
+    action_label: "Заполнить профиль",
+    action_href: "/cabinet/profile",
+  },
+  {
+    id: "quest_telegram_link",
+    title: "Привязка Telegram аккаунта",
+    description: "Привяжи Telegram в профиле для мгновенных уведомлений модерации и синхронизации.",
+    reward_cxp: 50,
+    category: "social",
+    action_label: "Привязать TG",
+    action_href: "/cabinet/profile",
+  },
+  {
+    id: "quest_artist_verification",
+    title: "Верификация артиста",
+    description: "Подтверди свои музыкальные профили на Яндекс Музыке, Spotify или VK Музыке.",
+    reward_cxp: 100,
+    category: "music",
+    action_label: "Пройти верификацию",
+    action_href: "/cabinet/verification",
+  },
+  {
+    id: "quest_submit_release",
+    title: "Отправка первого релиза",
+    description: "Отправь свой трек или альбом на дистрибуцию через форму модерации CXRNER MUSIC.",
+    reward_cxp: 150,
+    category: "music",
+    action_label: "Отправить релиз",
+    action_href: "/submit-release",
+  },
+  {
+    id: "quest_invite_artist",
+    title: "Приглашение друга-артиста",
+    description: "Поделись реферальной ссылкой. Получай 75 CXP за каждого подтверждённого музыканта.",
+    reward_cxp: 75,
+    category: "referral",
+    action_label: "Реферальная сеть",
+    action_href: "/cabinet/referrals",
   },
 ];
 

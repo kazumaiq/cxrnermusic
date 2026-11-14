@@ -13,11 +13,12 @@ import HeroHudControls from "../components/visual/HeroHudControls";
 import BeatLaunchpad from "../components/visual/BeatLaunchpad";
 import Link from "next/link";
 import CxrnerLinkSection from "../components/CxrnerLinkSection";
+import CxrnerDropHeroCard from "../components/drop/CxrnerDropHeroCard";
 import { faqItems, stats } from "../data/site";
 import { getArtists } from "../lib/artists";
 import { getFeaturedRelease } from "../lib/featured";
 import { getReleases } from "../lib/releases";
-import { ArrowDown, ArrowRight, ArrowUpRight, Disc3, Send, Radio } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Disc3, Send, Radio, Boxes } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -104,6 +105,44 @@ export default async function HomePage() {
                 Независимый лейбл и глобальная цифровая дистрибуция на 150+ музыкальных витрин. Прозрачные роялти 70/30, редакторский питчинг и личный кабинет артиста.
               </p>
 
+              {/* Dual Ecosystem Spotlights: CXRNER LINK & CXRNER DROP */}
+              <div className="space-y-3.5 pt-1">
+                {/* High-Impact CXRNER LINK Spotlight Card */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#8737FF]/20 via-[#160B28]/85 to-[#090611] border border-[#B46BFF]/45 shadow-[0_0_30px_rgba(135,55,255,0.25)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
+                  <div className="space-y-1">
+                    <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#00F0FF] font-bold">
+                      <Radio className="w-3 h-3 text-[#00F0FF] animate-pulse" />
+                      <span>НОВЫЙ СЕРВИС · CXRNER LINK</span>
+                      <span className="px-1.5 py-0.2 rounded bg-[#8737FF] text-white text-[8px] font-bold">NEW</span>
+                    </div>
+                    <h3 className="font-heavy text-base sm:text-lg uppercase text-white tracking-wide">
+                      Музыкальные смарт-ссылки и Pre-save
+                    </h3>
+                    <p className="font-sans text-xs text-[#D9D9E2]/80 max-w-md leading-relaxed">
+                      Создавайте умные страницы релизов за 30 секунд по UPC штрихкоду, собирайте пресейвы фанатов и объединяйте 150+ площадок в одну красивую ссылку.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                    <Link
+                      href="/dashboard/links/new"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[#8737FF] to-[#B46BFF] text-white font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(135,55,255,0.35)] active:scale-95 transition"
+                    >
+                      <span>Создать ссылку</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                    <Link
+                      href="/link"
+                      className="hidden sm:inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/20 hover:border-white/40 text-white font-mono text-xs uppercase tracking-wider transition"
+                    >
+                      Обзор
+                    </Link>
+                  </div>
+                </div>
+
+                {/* High-Impact CXRNER DROP Hero Card */}
+                <CxrnerDropHeroCard />
+              </div>
+
               {/* Key Highlights Bar */}
               <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 font-sans text-xs sm:text-sm font-semibold text-[#D9D9E2]/90 pt-1">
                 <span className="px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-white flex items-center gap-1.5">
@@ -132,14 +171,14 @@ export default async function HomePage() {
                 </MagneticButton>
 
                 <MagneticButton
-                  href="/link"
-                  cursorLabel="LINK"
+                  href="/drop"
+                  cursorLabel="DROP"
                   className="btn-void-ghost px-7 py-4 sm:px-8 sm:py-4.5 font-sans text-xs sm:text-sm uppercase tracking-wider border border-[#B46BFF]/50 bg-[#8737FF]/15 hover:bg-[#8737FF]/30 text-white font-bold flex items-center gap-2.5 shadow-[0_0_24px_rgba(135,55,255,0.25)]"
                 >
-                  <Radio className="w-4 h-4 text-[#00F0FF] animate-pulse" />
-                  <span>CXRNER LINK</span>
+                  <Boxes className="w-4 h-4 text-[#00F0FF] animate-pulse" />
+                  <span>CXRNER DROP</span>
                   <span className="px-2 py-0.5 rounded-full text-[9px] bg-gradient-to-r from-[#8737FF] to-[#00F0FF] text-white font-black tracking-wider shadow-[0_0_10px_#8737FF]">
-                    NEW
+                    GAME
                   </span>
                 </MagneticButton>
 

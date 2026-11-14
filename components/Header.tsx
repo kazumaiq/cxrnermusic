@@ -8,7 +8,7 @@ import { User, ArrowUpRight, Radio } from "lucide-react";
 const navItems = [
   { label: "Главная", href: "/" },
   { label: "CXRNER LINK", href: "/link" },
-  { label: "DROP", href: "/cabinet/drop/inventory" },
+  { label: "DROP", href: "/drop" },
   { label: "О лейбле", href: "/#about" },
   { label: "Релизы", href: "/#releases" },
   { label: "Артисты", href: "/#artists" },
@@ -61,19 +61,26 @@ export default async function Header() {
           <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-xs font-sans font-medium text-[#D9D9E2]/80">
             {navItems.map((item) => {
               const isLink = item.href === "/link";
+              const isDrop = item.href === "/drop";
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={`transition duration-200 py-1 relative group whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-                    isLink ? "text-white font-semibold" : "hover:text-white"
+                    isLink || isDrop ? "text-white font-semibold" : "hover:text-white"
                   }`}
                 >
                   {isLink && <Radio className="w-3 h-3 text-[#B46BFF] animate-pulse" />}
+                  {isDrop && <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />}
                   <span>{item.label}</span>
                   {isLink && (
                     <span className="px-1.5 py-0.2 rounded-full bg-gradient-to-r from-[#8737FF] to-[#00F0FF] text-white text-[8px] font-bold tracking-wider shadow-[0_0_8px_#8737FF]">
                       NEW
+                    </span>
+                  )}
+                  {isDrop && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-[#8737FF] text-white text-[8px] font-bold tracking-wider shadow-[0_0_8px_#8737FF]">
+                      GAME
                     </span>
                   )}
                   <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-gradient-to-r from-[#8737FF] to-white transition-all duration-300 group-hover:w-full" />

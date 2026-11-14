@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 480" width="100%" height="100%">
+  <defs>
+    <filter id="pouch_glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <linearGradient id="case_body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A0B2E"/>
+      <stop offset="50%" stop-color="#090514"/>
+      <stop offset="100%" stop-color="#030108"/>
+    </linearGradient>
+    <linearGradient id="foil_header" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="25%" stop-color="#F8FAFC"/>
+      <stop offset="50%" stop-color="#94A3B8"/>
+      <stop offset="75%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <linearGradient id="case_rim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A21CAF"/>
+      <stop offset="50%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#C084FC"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Pouch Silhouette -->
+  <rect x="10" y="10" width="320" height="460" rx="26" fill="url(#case_body)" stroke="url(#case_rim)" stroke-width="2.5" filter="url(#pouch_glow)"/>
+
+  <!-- Heat Sealing Top -->
+  <path d="M 10 36 Q 170 30 330 36 L 330 10 Q 170 10 10 10 Z" fill="url(#foil_header)"/>
+  <ellipse cx="170" cy="22" rx="16" ry="5" fill="#000000" stroke="#64748B" stroke-width="1.2"/>
+
+  <!-- Zipper Section -->
+  <rect x="20" y="46" width="300" height="12" rx="4" fill="#0F172A" stroke="#334155"/>
+  <line x1="24" y1="52" x2="316" y2="52" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="4,4"/>
+  <circle cx="300" cy="52" r="4" fill="#A21CAF"/>
+
+  <!-- Seal Notch Indicator -->
+  <path d="M 10 52 L 20 48 L 20 56 Z" fill="#FFFFFF"/>
+  <path d="M 330 52 L 320 48 L 320 56 Z" fill="#FFFFFF"/>
+
+  <!-- Header Badge -->
+  <g transform="translate(30, 75)">
+    <rect x="0" y="0" width="280" height="24" rx="12" fill="#A21CAF" fill-opacity="0.15" stroke="#A21CAF" stroke-width="1.2"/>
+    <text x="140" y="16" font-family="'Unbounded', sans-serif" font-weight="900" font-size="9" fill="#A21CAF" letter-spacing="2" text-anchor="middle">
+      DARK METALLIC // LIMITED EDITION
+    </text>
+  </g>
+
+  <!-- Main Center Specimen Holographic Seal -->
+  <g transform="translate(170, 230)">
+    <!-- Outer energy rings -->
+    <circle cx="0" cy="0" r="95" fill="none" stroke="#A21CAF" stroke-width="1.5" stroke-dasharray="8,6" opacity="0.4"/>
+    <circle cx="0" cy="0" r="80" fill="#080410" stroke="url(#case_rim)" stroke-width="3" filter="url(#pouch_glow)"/>
+    <circle cx="0" cy="0" r="68" fill="none" stroke="#FFFFFF" stroke-width="1" opacity="0.25"/>
+    
+    <!-- Geometric Cyber Emblem -->
+    <polygon points="0,-45 38,-22 38,22 0,45 -38,22 -38,-22" fill="#A21CAF" fill-opacity="0.2" stroke="#A21CAF" stroke-width="2"/>
+    <polygon points="0,-25 22,-12 22,12 0,25 -22,12 -22,-12" fill="#040207" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="8" fill="#C084FC"/>
+
+    <text x="0" y="60" font-family="'Unbounded', sans-serif" font-weight="900" font-size="10" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">
+      CXRNER
+    </text>
+  </g>
+
+  <!-- Title & Subtitle Section -->
+  <g transform="translate(30, 360)">
+    <text x="140" y="0" font-family="'Unbounded', sans-serif" font-weight="900" font-size="16" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">
+      CASE 002 — BLACK SPECIMEN
+    </text>
+    <text x="140" y="20" font-family="'Space Grotesk', monospace" font-size="9.5" fill="#A21CAF" text-anchor="middle" letter-spacing="2">
+      ORGANIC FORMS & MASKS
+    </text>
+
+    <!-- Price Pill -->
+    <g transform="translate(60, 34)">
+      <rect x="0" y="0" width="160" height="32" rx="16" fill="#090514" stroke="#A21CAF" stroke-width="1.5"/>
+      <circle cx="22" cy="16" r="8" fill="#A21CAF"/>
+      <text x="22" y="20" font-family="'Unbounded', sans-serif" font-weight="900" font-size="9" fill="#000000" text-anchor="middle">C</text>
+      <text x="90" y="21" font-family="'Unbounded', sans-serif" font-weight="900" font-size="12" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">
+        75 CXP
+      </text>
+    </g>
+  </g>
+
+  <!-- Bottom Barcode Strip -->
+  <g transform="translate(35, 442)">
+    <line x1="0" y1="0" x2="270" y2="0" stroke="#334155" stroke-width="0.8"/>
+    <text x="135" y="14" font-family="'Space Grotesk', monospace" font-size="8" fill="#64748B" letter-spacing="2" text-anchor="middle">
+      AUTHENTIC SEALED SPECIMEN PACK // CXRNER MUSIC
+    </text>
+  </g>
+</svg>

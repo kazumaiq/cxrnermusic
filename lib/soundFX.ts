@@ -425,3 +425,178 @@ export function playVinylScratch() {
     osc.stop(now + 0.11);
   } catch {}
 }
+
+/** Case Opening: Physical Zip-Tear Sound */
+export function playZipTearSound() {
+  const ctx = initAudio();
+  if (!ctx) return;
+  try {
+    const bufferSize = ctx.sampleRate * 0.45;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      // Noise with periodic micro-clicks like zipper teeth
+      const click = Math.sin(i / 14) > 0.85 ? 0.6 : 0;
+      data[i] = (Math.random() * 2 - 1) * 0.4 + click * 0.6;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.setValueAtTime(1400, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(3800, ctx.currentTime + 0.45);
+
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(now);
+  } catch {}
+}
+
+/** Case Opening: Sci-Fi Harmonic Build-up Riser */
+export function playChargeUpSound() {
+  const ctx = initAudio();
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc1.type = "sawtooth";
+    osc2.type = "sine";
+
+    osc1.frequency.setValueAtTime(110, now);
+    osc1.frequency.exponentialRampToValueAtTime(740, now + 3.8);
+
+    osc2.frequency.setValueAtTime(220, now);
+    osc2.frequency.exponentialRampToValueAtTime(1480, now + 3.8);
+
+    gain.gain.setValueAtTime(0.02, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 3.5);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 4.0);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 4.0);
+    osc2.stop(now + 4.0);
+  } catch {}
+}
+
+/** Case Opening: Rarity Reveal Impact & Fanfare */
+export function playRevealSound(rarity: string) {
+  const ctx = initAudio();
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+
+    if (rarity === "special_reward") {
+      // Golden Triumphal Fanfare with shimmering chord
+      const freqs = [523.25, 659.25, 783.99, 1046.5, 1318.51];
+      freqs.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        g.gain.setValueAtTime(0, now);
+        g.gain.setValueAtTime(0.12, now + idx * 0.08);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 2.5);
+        osc.connect(g);
+        g.connect(gain);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + 2.6);
+      });
+    } else if (rarity === "mythic") {
+      // Dark Cosmic Boom & Sub Drop
+      const sub = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      sub.type = "sine";
+      sub.frequency.setValueAtTime(160, now);
+      sub.frequency.exponentialRampToValueAtTime(32, now + 1.8);
+      subGain.gain.setValueAtTime(0.35, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+      sub.connect(subGain);
+      subGain.connect(gain);
+      sub.start(now);
+      sub.stop(now + 2.3);
+
+      const chime = ctx.createOscillator();
+      chime.type = "triangle";
+      chime.frequency.setValueAtTime(880, now + 0.1);
+      chime.frequency.exponentialRampToValueAtTime(1760, now + 0.9);
+      const chimeGain = ctx.createGain();
+      chimeGain.gain.setValueAtTime(0.2, now + 0.1);
+      chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+      chime.connect(chimeGain);
+      chimeGain.connect(gain);
+      chime.start(now + 0.1);
+      chime.stop(now + 1.6);
+    } else if (rarity === "legendary") {
+      // Heavy Gold Shockwave + Resonant Ring
+      const sub = ctx.createOscillator();
+      sub.type = "sine";
+      sub.frequency.setValueAtTime(140, now);
+      sub.frequency.exponentialRampToValueAtTime(45, now + 1.2);
+      const subG = ctx.createGain();
+      subG.gain.setValueAtTime(0.3, now);
+      subG.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+      sub.connect(subG);
+      subG.connect(gain);
+      sub.start(now);
+      sub.stop(now + 1.5);
+    } else if (rarity === "epic") {
+      // Violet Ethereal Chord
+      [440, 554.37, 659.25].forEach((f) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, now);
+        g.gain.setValueAtTime(0.1, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+        osc.connect(g);
+        g.connect(gain);
+        osc.start(now);
+        osc.stop(now + 1.2);
+      });
+    } else if (rarity === "rare") {
+      // Cyan Bright Sparkle
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(660, now);
+      osc.frequency.exponentialRampToValueAtTime(1320, now + 0.2);
+      g.gain.setValueAtTime(0.12, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      osc.connect(g);
+      g.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.55);
+    } else {
+      // Common subtle soft click/chime
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+      g.gain.setValueAtTime(0.08, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.connect(g);
+      g.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.28);
+    }
+  } catch {}
+}

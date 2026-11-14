@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
-import { openDropCase, awardCxp } from "@/lib/ecosystemDb";
+import { openDropCase, awardCxp, getCxpWallet } from "@/lib/ecosystemDb";
+import { DROP_CASES } from "@/lib/ecosystemTypes";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
     const supabase = await getSupabaseServerClient();
     const {
@@ -13,28 +14,21 @@ export async function POST() {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
 
-    // Award initial CXP if brand new wallet, or deduct standard case fee 50 CXP
-    const dropCost = 50;
-    // Check wallet
-    let balance = 100;
-    try {
-      const { data: wallet } = await supabase
-        .from("cxrner_cxp_wallet")
-        .select("balance")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (wallet) {
-        balance = wallet.balance;
-      }
-    } catch {
-      // ignore
-    }
+    const body = await req.json().catch(() => ({}));
+    const caseId = (body && body.caseId) || "case_001_archive";
+
+    const targetCase = DROP_CASES.find((c) => c.id === caseId) || DROP_CASES[0];
+    const dropCost = targetCase.price_cxp;
+
+    // Check user wallet balance
+    const wallet = await getCxpWallet(user.id);
+    const balance = wallet.balance;
 
     if (balance < dropCost) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Недостаточно CXP для открытия кейса. Заполните профиль или пригласите артиста для получения CXP.",
+          error: `Недостаточно CXP для открытия ${targetCase.name}. Требуется: ${dropCost} CXP. Текущий баланс: ${balance} CXP.`,
           currentBalance: balance,
           required: dropCost,
         },
@@ -43,21 +37,30 @@ export async function POST() {
     }
 
     // Deduct CXP atomically
+    const eventId = `case_${targetCase.id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     await awardCxp({
       userId: user.id,
       amount: -dropCost,
-      reason: "Открытие кейса CXRNER DROP",
+      reason: `Открытие кейса ${targetCase.name}`,
       sourceEventType: "drop_case_open",
-      sourceEventId: `case_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      sourceEventId: eventId,
     });
 
-    const result = await openDropCase(user.id);
+    const result = await openDropCase({
+      userId: user.id,
+      caseId: targetCase.id,
+    });
 
     return NextResponse.json({
       ok: true,
       item: result.item,
       duplicate: result.duplicate,
       achievementsUnlocked: result.achievementsUnlocked,
+      isSpecialReward: result.isSpecialReward,
+      claimCode: result.claimCode,
+      historyEntry: result.historyEntry,
+      caseConfig: result.caseConfig,
+      balanceAfter: Math.max(0, balance - dropCost),
     });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });

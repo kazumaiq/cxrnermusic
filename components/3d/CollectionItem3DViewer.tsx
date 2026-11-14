@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { RotateCw, ZoomIn, ZoomOut, Eye, Sparkles } from "lucide-react";
+import type { ItemRarity } from "@/lib/ecosystemTypes";
 
 interface CollectionItem3DViewerProps {
   itemName: string;
-  rarity: "common" | "rare" | "epic" | "legendary" | "mythic";
+  rarity: ItemRarity;
   modelColor?: string;
   shape?: "cylinder" | "box" | "torus" | "octahedron" | "dodecahedron" | "icosahedron";
   serialNumber?: number;

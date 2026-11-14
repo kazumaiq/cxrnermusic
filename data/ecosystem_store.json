@@ -1,13 +1,911 @@
 {
-  "profiles": {},
+  "profiles": {
+    "test_user_alpha_2koqg": {
+      "id": "test_user_alpha_2koqg",
+      "username": "alpha_koqg",
+      "display_name": "Alpha Artist",
+      "avatar_url": "https://example.com/avatar.jpg",
+      "banner_url": null,
+      "bio": "Updated underground electronic producer from Moscow.",
+      "country": "RU",
+      "city": null,
+      "genres": [
+        "Trap",
+        "Hyperpop"
+      ],
+      "music_roles": [
+        "Producer",
+        "Artist"
+      ],
+      "social_links": [
+        {
+          "platform": "Instagram",
+          "url": "https://instagram.com/alpha"
+        }
+      ],
+      "music_links": [
+        {
+          "platform": "Spotify",
+          "url": "https://spotify.com/alpha"
+        }
+      ],
+      "telegram_id": null,
+      "telegram_username": null,
+      "telegram_linked": false,
+      "is_artist_verified": true,
+      "completion_percentage": 80,
+      "completion_reward_80_claimed": true,
+      "completion_reward_100_claimed": false,
+      "privacy_settings": {
+        "is_public": true,
+        "show_inventory": true,
+        "show_stats": true,
+        "show_referrals": true,
+        "show_music": true,
+        "show_in_leaderboard": true
+      },
+      "equipped_frame": null,
+      "equipped_effect": null,
+      "equipped_title": null,
+      "equipped_badge": "verified",
+      "equipped_showcase_item": null,
+      "equipped_background": null,
+      "pinned_achievements": [],
+      "pinned_items": [],
+      "is_banned": false,
+      "ban_reason": null,
+      "created_at": "2026-11-14T01:45:59.258Z",
+      "updated_at": "2026-11-14T01:45:59.294Z"
+    },
+    "test_user_beta_57xbo7": {
+      "id": "test_user_beta_57xbo7",
+      "username": "artist_test_u",
+      "display_name": "Beta Artist",
+      "avatar_url": "https://example.com/beta.jpg",
+      "banner_url": null,
+      "bio": "Underground producer and beatmaker with fresh sound.",
+      "country": "RU",
+      "city": null,
+      "genres": [
+        "Trap"
+      ],
+      "music_roles": [
+        "Beatmaker"
+      ],
+      "social_links": [
+        {
+          "platform": "Telegram",
+          "url": "https://t.me/beta"
+        }
+      ],
+      "music_links": [
+        {
+          "platform": "Spotify",
+          "url": "https://spotify.com/beta"
+        }
+      ],
+      "telegram_id": null,
+      "telegram_username": null,
+      "telegram_linked": true,
+      "is_artist_verified": false,
+      "completion_percentage": 90,
+      "completion_reward_80_claimed": true,
+      "completion_reward_100_claimed": false,
+      "privacy_settings": {
+        "is_public": true,
+        "show_inventory": true,
+        "show_stats": true,
+        "show_referrals": true,
+        "show_music": true,
+        "show_in_leaderboard": true
+      },
+      "equipped_frame": null,
+      "equipped_effect": null,
+      "equipped_title": null,
+      "equipped_badge": null,
+      "equipped_showcase_item": null,
+      "equipped_background": null,
+      "pinned_achievements": [],
+      "pinned_items": [],
+      "is_banned": false,
+      "ban_reason": null,
+      "created_at": "2026-11-14T01:45:59.404Z",
+      "updated_at": "2026-11-14T01:45:59.431Z"
+    }
+  },
   "artistProfiles": {},
-  "verifications": {},
-  "inventory": {},
-  "wallets": {},
-  "transactions": {},
-  "achievements": {},
-  "referrals": {},
-  "referralRewards": {},
-  "notifications": {},
-  "auditLogs": []
+  "verifications": {
+    "test_user_alpha_2koqg": {
+      "id": "890249df-7738-48dc-bd1c-e6b853f26437",
+      "user_id": "test_user_alpha_2koqg",
+      "stage_name": "ALPHA SOUND",
+      "method": "code",
+      "verification_code": "CXRNER-6285",
+      "verification_code_status": "active",
+      "evidence_links": [
+        {
+          "title": "Yandex Music",
+          "url": "https://music.yandex.ru/artist/123"
+        }
+      ],
+      "evidence_notes": null,
+      "status": "verified",
+      "reward_claimed": true,
+      "created_at": "2026-11-14T01:45:59.344Z",
+      "reviewer_notes": "Verified via bio code",
+      "reject_reason": null,
+      "reviewed_at": "2026-11-14T01:45:59.358Z",
+      "reviewed_by": "cxrner.label@gmail.com"
+    }
+  },
+  "inventory": {
+    "test_player_0lsd4b": [
+      {
+        "id": "15e6693e-b1de-4548-adab-cc23c9438a18",
+        "user_id": "test_player_0lsd4b",
+        "item_id": "specimen_archive_cassette_02",
+        "item_name": "ARCHIVE CASSETTE",
+        "collection_name": "GENESIS ARCHIVE",
+        "rarity": "common",
+        "serial_number": 4450,
+        "description": "Коллекционная кассета в прозрачной упаковке с магнитной лентой высокой плотности.",
+        "image_url": "/drop/items/specimen_archive_cassette_02.svg",
+        "model_3d_type": "procedural",
+        "model_color": "#06B6D4",
+        "obtained_via": "archive",
+        "is_equipped": false,
+        "is_pinned": true,
+        "is_hidden": false,
+        "created_at": "2026-11-14T01:45:53.815Z"
+      },
+      {
+        "id": "5088a728-acee-43fb-bcaa-b46ae204aad4",
+        "user_id": "test_player_0lsd4b",
+        "item_id": "specimen_void_crown_17",
+        "item_name": "VOID CROWN",
+        "collection_name": "BLACK SPECIMEN",
+        "rarity": "legendary",
+        "serial_number": 5191,
+        "description": "Чёрная металлическая корона правителя подземной звуковой сцены.",
+        "image_url": "/drop/items/specimen_void_crown_17.svg",
+        "model_3d_type": "procedural",
+        "model_color": "#1E1B4B",
+        "obtained_via": "chrome-age",
+        "is_equipped": false,
+        "is_pinned": true,
+        "is_hidden": false,
+        "created_at": "2026-11-14T01:45:53.786Z"
+      },
+      {
+        "id": "ea49e0f2-302c-4aa9-acd9-c871dcbe088c",
+        "user_id": "test_player_0lsd4b",
+        "item_id": "specimen_watcher_eye_11",
+        "item_name": "WATCHER EYE",
+        "collection_name": "SPECIMEN ARCHIVE",
+        "rarity": "epic",
+        "serial_number": 3755,
+        "description": "Механический оптический сенсор с фиолетовой подсветкой и частотным спектром.",
+        "image_url": "/drop/items/specimen_watcher_eye_11.svg",
+        "model_3d_type": "procedural",
+        "model_color": "#C084FC",
+        "obtained_via": "black-specimen",
+        "is_equipped": false,
+        "is_pinned": true,
+        "is_hidden": false,
+        "created_at": "2026-11-14T01:45:53.758Z"
+      },
+      {
+        "id": "e6e82081-c922-4d6d-ac83-ae8412f952ef",
+        "user_id": "test_player_0lsd4b",
+        "item_id": "specimen_chrome_disc_06",
+        "item_name": "CHROME DISC",
+        "collection_name": "CHROME AGE",
+        "rarity": "rare",
+        "serial_number": 5572,
+        "description": "Коллекционный металлический диск с радиальной лазерной шлифовкой.",
+        "image_url": "/drop/items/specimen_chrome_disc_06.svg",
+        "model_3d_type": "procedural",
+        "model_color": "#38BDF8",
+        "obtained_via": "archive",
+        "is_equipped": false,
+        "is_pinned": true,
+        "is_hidden": false,
+        "created_at": "2026-11-14T01:45:53.732Z"
+      },
+      {
+        "id": "ecb86f57-3eaa-4e60-b8cc-dbaf9def4185",
+        "user_id": "test_player_0lsd4b",
+        "item_id": "specimen_cyber_vinyl_01",
+        "item_name": "CYBER VINYL GENESIS",
+        "collection_name": "GENESIS ARCHIVE",
+        "rarity": "common",
+        "serial_number": 135,
+        "description": "Первый серийный релиз винила с гравировкой лазером CXRNER-001.",
+        "image_url": "/covers/the-sadness-of-reality.jpg",
+        "model_3d_type": "procedural",
+        "model_color": "#A855F7",
+        "obtained_via": "starter_drop",
+        "is_equipped": true,
+        "is_pinned": true,
+        "is_hidden": false,
+        "created_at": "2026-11-14T01:45:53.726Z"
+      }
+    ],
+    "test_user_alpha_2koqg": [
+      {
+        "id": "6a8fe1a7-89d2-4a90-bdda-6704d0bbc132",
+        "user_id": "test_user_alpha_2koqg",
+        "item_id": "specimen_data_key_03",
+        "item_name": "DATA KEY",
+        "collection_name": "SPECIMEN ARCHIVE",
+        "rarity": "common",
+        "serial_number": 6482,
+        "description": "Металлический цифровой ключ с защищённым чипом доступа к звуковым дорожкам.",
+        "image_url": "/drop/items/specimen_data_key_03.svg",
+        "model_3d_type": "procedural",
+        "model_color": "#94A3B8",
+        "obtained_via": "archive",
+        "is_equipped": false,
+        "is_pinned": true,
+        "is_hidden": true,
+        "created_at": "2026-11-14T01:45:59.305Z"
+      },
+      {
+        "id": "40bcf729-228b-40fc-8674-fd006b6710ea",
+        "user_id": "test_user_alpha_2koqg",
+        "item_id": "specimen_cyber_vinyl_01",
+        "item_name": "CYBER VINYL GENESIS",
+        "collection_name": "GENESIS ARCHIVE",
+        "rarity": "common",
+        "serial_number": 135,
+        "description": "Первый серийный релиз винила с гравировкой лазером CXRNER-001.",
+        "image_url": "/covers/the-sadness-of-reality.jpg",
+        "model_3d_type": "procedural",
+        "model_color": "#A855F7",
+        "obtained_via": "starter_drop",
+        "is_equipped": true,
+        "is_pinned": true,
+        "is_hidden": false,
+        "created_at": "2026-11-14T01:45:59.300Z"
+      }
+    ]
+  },
+  "wallets": {
+    "test_player_k081b9": {
+      "user_id": "test_player_k081b9",
+      "balance": 1000,
+      "total_earned": 1000,
+      "total_spent": 0,
+      "updated_at": "2026-11-14T01:45:24.522Z"
+    },
+    "test_player_0lsd4b": {
+      "user_id": "test_player_0lsd4b",
+      "balance": 1250,
+      "total_earned": 1250,
+      "total_spent": 0,
+      "updated_at": "2026-11-14T01:45:53.826Z"
+    },
+    "test_user_alpha_2koqg": {
+      "user_id": "test_user_alpha_2koqg",
+      "balance": 1150,
+      "total_earned": 1150,
+      "total_spent": 0,
+      "updated_at": "2026-11-14T01:45:59.503Z"
+    },
+    "test_user_beta_57xbo7": {
+      "user_id": "test_user_beta_57xbo7",
+      "balance": 250,
+      "total_earned": 250,
+      "total_spent": 0,
+      "updated_at": "2026-11-14T01:45:59.464Z"
+    }
+  },
+  "transactions": {
+    "test_player_k081b9": [
+      {
+        "id": "ffd3ff20-72ba-45b0-b526-588634084236",
+        "user_id": "test_player_k081b9",
+        "amount": 1000,
+        "operation_type": "credit",
+        "reason": "Test funding for drop overhaul",
+        "source_event_type": "test_funding",
+        "source_event_id": "test_funding_test_player_k081b9",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:24.521Z"
+      }
+    ],
+    "test_player_0lsd4b": [
+      {
+        "id": "badcb965-1ad4-470b-847c-a9c7c2ddd70e",
+        "user_id": "test_player_0lsd4b",
+        "amount": 1000,
+        "operation_type": "credit",
+        "reason": "Test funding for drop overhaul",
+        "source_event_type": "test_funding",
+        "source_event_id": "test_funding_test_player_0lsd4b",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:53.723Z"
+      },
+      {
+        "id": "e511f865-3315-4ee5-ac14-1a33200f4765",
+        "user_id": "test_player_0lsd4b",
+        "amount": 25,
+        "operation_type": "credit",
+        "reason": "Достижение: FIRST DROP",
+        "source_event_type": "achievement_first_drop",
+        "source_event_id": "achievement_first_drop_test_player_0lsd4b",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:53.746Z"
+      },
+      {
+        "id": "7789efdb-2f5f-4423-9d15-ace79a6ee654",
+        "user_id": "test_player_0lsd4b",
+        "amount": 75,
+        "operation_type": "credit",
+        "reason": "Достижение: RARE FIND",
+        "source_event_type": "achievement_rare_find",
+        "source_event_id": "achievement_rare_find_test_player_0lsd4b",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:53.770Z"
+      },
+      {
+        "id": "ad1df9e9-e911-4b18-8da7-c427ec50ddf1",
+        "user_id": "test_player_0lsd4b",
+        "amount": 100,
+        "operation_type": "credit",
+        "reason": "Достижение: CHROME MASTER",
+        "source_event_type": "achievement_chrome_master",
+        "source_event_id": "achievement_chrome_master_test_player_0lsd4b",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:53.797Z"
+      },
+      {
+        "id": "e3ffcd6e-8a67-44d9-9e06-c300ac0ba7fe",
+        "user_id": "test_player_0lsd4b",
+        "amount": 50,
+        "operation_type": "credit",
+        "reason": "Достижение: SPECIMEN COLLECTOR",
+        "source_event_type": "achievement_specimen_collector",
+        "source_event_id": "achievement_specimen_collector_test_player_0lsd4b",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:53.826Z"
+      }
+    ],
+    "test_user_alpha_2koqg": [
+      {
+        "id": "cfb85459-0f9c-41c3-ae9e-05bd38e944aa",
+        "user_id": "test_user_alpha_2koqg",
+        "amount": 100,
+        "operation_type": "credit",
+        "reason": "Бонус за заполнение профиля (80%+)",
+        "source_event_type": "profile_completion_80",
+        "source_event_id": "profile_completion_80_test_user_alpha_2koqg",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.260Z"
+      },
+      {
+        "id": "d2d10384-2856-423f-94f7-ff312418be2f",
+        "user_id": "test_user_alpha_2koqg",
+        "amount": 100,
+        "operation_type": "credit",
+        "reason": "Достижение: PROFILE COMPLETE",
+        "source_event_type": "achievement_profile_complete",
+        "source_event_id": "achievement_profile_complete_test_user_alpha_2koqg",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.273Z"
+      },
+      {
+        "id": "6d4ff667-17dd-4807-adf9-087804b796a9",
+        "user_id": "test_user_alpha_2koqg",
+        "amount": 25,
+        "operation_type": "credit",
+        "reason": "Достижение: FIRST DROP",
+        "source_event_type": "achievement_first_drop",
+        "source_event_id": "achievement_first_drop_test_user_alpha_2koqg",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.313Z"
+      },
+      {
+        "id": "6f824c3c-b1bd-4e1a-8ce3-93c335c13994",
+        "user_id": "test_user_alpha_2koqg",
+        "amount": 100,
+        "operation_type": "credit",
+        "reason": "Верификация артистического профиля",
+        "source_event_type": "artist_verified_reward",
+        "source_event_id": "artist_verified_reward_test_user_alpha_2koqg",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.358Z"
+      },
+      {
+        "id": "a2cb0057-ede5-472e-b65c-60c1dbe488d4",
+        "user_id": "test_user_alpha_2koqg",
+        "amount": 100,
+        "operation_type": "credit",
+        "reason": "Достижение: VERIFIED ARTIST",
+        "source_event_type": "achievement_verified_artist",
+        "source_event_id": "achievement_verified_artist_test_user_alpha_2koqg",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.371Z"
+      },
+      {
+        "id": "284c9c7b-4cea-4f1e-a627-f5d86f762da3",
+        "user_id": "test_user_alpha_2koqg",
+        "amount": 25,
+        "operation_type": "credit",
+        "reason": "Реферальная награда (email_verified) за приглашённого артиста",
+        "source_event_type": "ref_email_verified",
+        "source_event_id": "c17828d7-0081-4f9c-aeae-91309fc22950",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.411Z"
+      },
+      {
+        "id": "db839de0-a160-4cd8-aee3-3be8f98520f2",
+        "user_id": "test_user_alpha_2koqg",
+        "amount": 50,
+        "operation_type": "credit",
+        "reason": "Реферальная награда (profile_80_tg) за приглашённого артиста",
+        "source_event_type": "ref_profile_80_tg",
+        "source_event_id": "c17828d7-0081-4f9c-aeae-91309fc22950",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.451Z"
+      },
+      {
+        "id": "a0029a97-9c8a-4ff1-b003-44399ff73d0b",
+        "user_id": "test_user_alpha_2koqg",
+        "amount": 150,
+        "operation_type": "credit",
+        "reason": "Реферальная награда (first_release) за приглашённого артиста",
+        "source_event_type": "ref_first_release",
+        "source_event_id": "c17828d7-0081-4f9c-aeae-91309fc22950",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.483Z"
+      },
+      {
+        "id": "33378480-8a73-46f5-aaae-4923aa17598f",
+        "user_id": "test_user_alpha_2koqg",
+        "amount": 500,
+        "operation_type": "credit",
+        "reason": "Победитель битвы битов CXRNER",
+        "source_event_type": "admin_adjustment",
+        "source_event_id": "admin_adjustment_test_user_alpha_2koqg",
+        "admin_notes": "Approved by cxrner.label@gmail.com",
+        "created_at": "2026-11-14T01:45:59.503Z"
+      }
+    ],
+    "test_user_beta_57xbo7": [
+      {
+        "id": "261199ca-96c3-4ae4-90b8-ba2665de1a5d",
+        "user_id": "test_user_beta_57xbo7",
+        "amount": 100,
+        "operation_type": "credit",
+        "reason": "Бонус за заполнение профиля (80%+)",
+        "source_event_type": "profile_completion_80",
+        "source_event_id": "profile_completion_80_test_user_beta_57xbo7",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.431Z"
+      },
+      {
+        "id": "6e55243c-482d-4b14-b469-bffcbf5bab22",
+        "user_id": "test_user_beta_57xbo7",
+        "amount": 100,
+        "operation_type": "credit",
+        "reason": "Достижение: PROFILE COMPLETE",
+        "source_event_type": "achievement_profile_complete",
+        "source_event_id": "achievement_profile_complete_test_user_beta_57xbo7",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.438Z"
+      },
+      {
+        "id": "ad52ff7f-3b81-49d0-b8d0-6854d46ed5d1",
+        "user_id": "test_user_beta_57xbo7",
+        "amount": 50,
+        "operation_type": "credit",
+        "reason": "Приветственный реферальный бонус (profile_80_tg)",
+        "source_event_type": "ref_welcome_profile_80_tg",
+        "source_event_id": "c17828d7-0081-4f9c-aeae-91309fc22950",
+        "admin_notes": null,
+        "created_at": "2026-11-14T01:45:59.464Z"
+      }
+    ]
+  },
+  "achievements": {
+    "test_player_0lsd4b": [
+      {
+        "id": "20fa7ec1-0b50-4ec8-943e-3b8ca4c8fe01",
+        "user_id": "test_player_0lsd4b",
+        "achievement_key": "FIRST_DROP",
+        "unlocked_at": "2026-11-14T01:45:53.740Z",
+        "is_pinned": false
+      },
+      {
+        "id": "4df6853f-988c-478f-b098-e4acacada8e2",
+        "user_id": "test_player_0lsd4b",
+        "achievement_key": "RARE_FIND",
+        "unlocked_at": "2026-11-14T01:45:53.764Z",
+        "is_pinned": false
+      },
+      {
+        "id": "a40a6d02-9711-4cce-ae87-bcaf96ae484f",
+        "user_id": "test_player_0lsd4b",
+        "achievement_key": "CHROME_MASTER",
+        "unlocked_at": "2026-11-14T01:45:53.792Z",
+        "is_pinned": false
+      },
+      {
+        "id": "16d9a5ed-9d6a-41ef-a880-df442820c8f8",
+        "user_id": "test_player_0lsd4b",
+        "achievement_key": "SPECIMEN_COLLECTOR",
+        "unlocked_at": "2026-11-14T01:45:53.820Z",
+        "is_pinned": false
+      }
+    ],
+    "test_user_alpha_2koqg": [
+      {
+        "id": "56415726-9a83-4f05-9ba9-b162a87c9b01",
+        "user_id": "test_user_alpha_2koqg",
+        "achievement_key": "PROFILE_COMPLETE",
+        "unlocked_at": "2026-11-14T01:45:59.267Z",
+        "is_pinned": false
+      },
+      {
+        "id": "0516425b-bd95-4ac5-80ac-92e4d1923fcc",
+        "user_id": "test_user_alpha_2koqg",
+        "achievement_key": "FIRST_DROP",
+        "unlocked_at": "2026-11-14T01:45:59.306Z",
+        "is_pinned": false
+      },
+      {
+        "id": "b00fb8a8-2410-4e61-b640-7f38ea754eb0",
+        "user_id": "test_user_alpha_2koqg",
+        "achievement_key": "VERIFIED_ARTIST",
+        "unlocked_at": "2026-11-14T01:45:59.364Z",
+        "is_pinned": false
+      }
+    ],
+    "test_user_beta_57xbo7": [
+      {
+        "id": "2e88cc56-abef-40d5-8690-fbc766e0c3aa",
+        "user_id": "test_user_beta_57xbo7",
+        "achievement_key": "PROFILE_COMPLETE",
+        "unlocked_at": "2026-11-14T01:45:59.437Z",
+        "is_pinned": false
+      }
+    ]
+  },
+  "referrals": {
+    "test_user_alpha_2koqg": [
+      {
+        "id": "c17828d7-0081-4f9c-aeae-91309fc22950",
+        "referrer_user_id": "test_user_alpha_2koqg",
+        "referred_user_id": "test_user_beta_57xbo7",
+        "referral_code": "ALPHA_KOQG",
+        "status": "registered",
+        "ip_hash": null,
+        "is_qualified": false,
+        "created_at": "2026-11-14T01:45:59.398Z",
+        "updated_at": "2026-11-14T01:45:59.398Z"
+      }
+    ]
+  },
+  "referralRewards": {
+    "c17828d7-0081-4f9c-aeae-91309fc22950": [
+      {
+        "id": "554016ea-9fd5-4a1e-b76b-a56e75bcc45c",
+        "referral_id": "c17828d7-0081-4f9c-aeae-91309fc22950",
+        "user_id": "test_user_alpha_2koqg",
+        "role": "referrer",
+        "event_type": "email_verified",
+        "cxp_amount": 25,
+        "status": "granted",
+        "created_at": "2026-11-14T01:45:59.411Z"
+      },
+      {
+        "id": "64f0efbc-84bc-493e-bad2-6f08ec1185eb",
+        "referral_id": "c17828d7-0081-4f9c-aeae-91309fc22950",
+        "user_id": "test_user_alpha_2koqg",
+        "role": "referrer",
+        "event_type": "profile_80_tg",
+        "cxp_amount": 50,
+        "status": "granted",
+        "created_at": "2026-11-14T01:45:59.451Z"
+      },
+      {
+        "id": "9031f5cb-9669-4745-86ca-f922363a1d9c",
+        "referral_id": "c17828d7-0081-4f9c-aeae-91309fc22950",
+        "user_id": "test_user_beta_57xbo7",
+        "role": "referee",
+        "event_type": "profile_80_tg",
+        "cxp_amount": 50,
+        "status": "granted",
+        "created_at": "2026-11-14T01:45:59.464Z"
+      },
+      {
+        "id": "bffb4e93-5a9c-433b-8d09-91413f510151",
+        "referral_id": "c17828d7-0081-4f9c-aeae-91309fc22950",
+        "user_id": "test_user_alpha_2koqg",
+        "role": "referrer",
+        "event_type": "first_release",
+        "cxp_amount": 150,
+        "status": "granted",
+        "created_at": "2026-11-14T01:45:59.483Z"
+      }
+    ]
+  },
+  "notifications": {
+    "test_player_0lsd4b": [
+      {
+        "id": "7637dca2-de5c-4a84-a1db-f089050e02d6",
+        "user_id": "test_player_0lsd4b",
+        "type": "drop_item",
+        "title": "Получен предмет: ARCHIVE CASSETTE!",
+        "message": "Редкость: COMMON (#4450). Добавлен в личный инвентарь.",
+        "link": "/cabinet/drop/inventory",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:53.837Z"
+      },
+      {
+        "id": "7173e1b1-63fe-464e-bb0e-6b5155a3a102",
+        "user_id": "test_player_0lsd4b",
+        "type": "achievement",
+        "title": "Новое достижение: SPECIMEN COLLECTOR",
+        "message": "Собрано 5 уникальных музыкальных предметов в личном инвентаре.",
+        "link": "/cabinet/profile",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:53.831Z"
+      },
+      {
+        "id": "af68a6b6-3b14-465e-b32b-94581e22e163",
+        "user_id": "test_player_0lsd4b",
+        "type": "drop_item",
+        "title": "Получен предмет: VOID CROWN!",
+        "message": "Редкость: LEGENDARY (#5191). Добавлен в личный инвентарь.",
+        "link": "/cabinet/drop/inventory",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:53.809Z"
+      },
+      {
+        "id": "424c34ec-2594-40be-8520-6acb93f7439d",
+        "user_id": "test_player_0lsd4b",
+        "type": "achievement",
+        "title": "Новое достижение: CHROME MASTER",
+        "message": "Собраны предметы легендарной линейки GENESIS CHROME.",
+        "link": "/cabinet/profile",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:53.803Z"
+      },
+      {
+        "id": "1bc8724e-22ca-48cb-9cbc-081549a3bdd2",
+        "user_id": "test_player_0lsd4b",
+        "type": "drop_item",
+        "title": "Получен предмет: WATCHER EYE!",
+        "message": "Редкость: EPIC (#3755). Добавлен в личный инвентарь.",
+        "link": "/cabinet/drop/inventory",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:53.780Z"
+      },
+      {
+        "id": "54acf222-a18e-46ae-a256-040ce3b4df9c",
+        "user_id": "test_player_0lsd4b",
+        "type": "achievement",
+        "title": "Новое достижение: RARE FIND",
+        "message": "Получен первый артефакт категории EPIC, LEGENDARY или MYTHIC.",
+        "link": "/cabinet/profile",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:53.775Z"
+      },
+      {
+        "id": "2f51aa61-3ddd-4d38-b416-ead23939b0dc",
+        "user_id": "test_player_0lsd4b",
+        "type": "drop_item",
+        "title": "Получен предмет: CHROME DISC!",
+        "message": "Редкость: RARE (#5572). Добавлен в личный инвентарь.",
+        "link": "/cabinet/drop/inventory",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:53.752Z"
+      },
+      {
+        "id": "90f0bee7-8cbb-4992-840c-7eed95ae0d7f",
+        "user_id": "test_player_0lsd4b",
+        "type": "achievement",
+        "title": "Новое достижение: FIRST DROP",
+        "message": "Первое открытие кейса и получение коллекционного предмета в CXRNER DROP.",
+        "link": "/cabinet/profile",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:53.752Z"
+      }
+    ],
+    "test_user_alpha_2koqg": [
+      {
+        "id": "f299c1fb-a28e-4611-a986-fe2e6bb14f25",
+        "user_id": "test_user_alpha_2koqg",
+        "type": "referral_reward",
+        "title": "Реферальная награда: +150 CXP",
+        "message": "Ваш приглашённый артист выполнил этап «first_release». Награда начислена.",
+        "link": "/cabinet/referrals",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.490Z"
+      },
+      {
+        "id": "07c14051-2b9d-4045-b574-ba37bf3dc432",
+        "user_id": "test_user_alpha_2koqg",
+        "type": "referral_reward",
+        "title": "Реферальная награда: +50 CXP",
+        "message": "Ваш приглашённый артист выполнил этап «profile_80_tg». Награда начислена.",
+        "link": "/cabinet/referrals",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.457Z"
+      },
+      {
+        "id": "e0ae4a74-1bb3-4300-ba6f-8806756f86a3",
+        "user_id": "test_user_alpha_2koqg",
+        "type": "referral_reward",
+        "title": "Реферальная награда: +25 CXP",
+        "message": "Ваш приглашённый артист выполнил этап «email_verified». Награда начислена.",
+        "link": "/cabinet/referrals",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.417Z"
+      },
+      {
+        "id": "703bd206-0ea6-48ea-887d-281de100e35c",
+        "user_id": "test_user_alpha_2koqg",
+        "type": "verification_update",
+        "title": "Артистический профиль верифицирован!",
+        "message": "Поздравляем! Ваш статус подтверждён. В профиле появился знак CXRNER VERIFIED и начислено 100 CXP.",
+        "link": "/cabinet/profile",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.383Z"
+      },
+      {
+        "id": "49b76b14-161a-4c2b-97a6-ffe5094e4305",
+        "user_id": "test_user_alpha_2koqg",
+        "type": "achievement",
+        "title": "Новое достижение: VERIFIED ARTIST",
+        "message": "Артистический профиль официально подтверждён модерацией CXRNER MUSIC.",
+        "link": "/cabinet/profile",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.377Z"
+      },
+      {
+        "id": "ec855e80-d4a5-4ad7-8ff7-ec18c3818cdc",
+        "user_id": "test_user_alpha_2koqg",
+        "type": "system",
+        "title": "Заявка на верификацию отправлена",
+        "message": "Заявка для «ALPHA SOUND» передана модераторам CXRNER. Статус проверки отображается в кабинете.",
+        "link": "/cabinet/verification",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.351Z"
+      },
+      {
+        "id": "3324b71f-ec07-438b-8ee7-08385c04021b",
+        "user_id": "test_user_alpha_2koqg",
+        "type": "drop_item",
+        "title": "Получен предмет: DATA KEY!",
+        "message": "Редкость: COMMON (#6482). Добавлен в личный инвентарь.",
+        "link": "/cabinet/drop/inventory",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.319Z"
+      },
+      {
+        "id": "f0b2b27b-a2c3-4def-9ad7-f89931574054",
+        "user_id": "test_user_alpha_2koqg",
+        "type": "achievement",
+        "title": "Новое достижение: FIRST DROP",
+        "message": "Первое открытие кейса и получение коллекционного предмета в CXRNER DROP.",
+        "link": "/cabinet/profile",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.318Z"
+      },
+      {
+        "id": "f60844fd-68df-40fb-8b27-c5970b09d058",
+        "user_id": "test_user_alpha_2koqg",
+        "type": "achievement",
+        "title": "Новое достижение: PROFILE COMPLETE",
+        "message": "Профиль пользователя заполнен минимум на 80%. Получен бонус +100 CXP.",
+        "link": "/cabinet/profile",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.280Z"
+      }
+    ],
+    "test_user_beta_57xbo7": [
+      {
+        "id": "abee2649-6271-41bd-9bd8-1fefea4d700f",
+        "user_id": "test_user_beta_57xbo7",
+        "type": "referral_reward",
+        "title": "Реферальный бонус: +50 CXP!",
+        "message": "Вы получили бонус за выполнение этапа «profile_80_tg» по пригласительной программе.",
+        "link": "/cabinet/referrals",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.470Z"
+      },
+      {
+        "id": "4af613d7-c8ef-4002-8449-2309f3512d2b",
+        "user_id": "test_user_beta_57xbo7",
+        "type": "achievement",
+        "title": "Новое достижение: PROFILE COMPLETE",
+        "message": "Профиль пользователя заполнен минимум на 80%. Получен бонус +100 CXP.",
+        "link": "/cabinet/profile",
+        "is_read": false,
+        "created_at": "2026-11-14T01:45:59.439Z"
+      }
+    ]
+  },
+  "auditLogs": [
+    {
+      "id": "1f50a9ee-282b-4f11-82e0-965012db19d9",
+      "admin_email": "cxrner.label@gmail.com",
+      "action": "cxp_adjust",
+      "target_user_id": "test_user_alpha_2koqg",
+      "details": {
+        "amount": 500,
+        "reason": "Победитель битвы битов CXRNER"
+      },
+      "created_at": "2026-11-14T01:45:59.511Z"
+    }
+  ],
+  "dropHistory": {
+    "test_player_0lsd4b": [
+      {
+        "id": "09a1e5d3-3e49-4446-9be1-416d98cc8ce2",
+        "user_id": "test_player_0lsd4b",
+        "case_id": "case_001_archive",
+        "case_name": "CASE 001 — ARCHIVE",
+        "item_id": "specimen_archive_cassette_02",
+        "item_name": "ARCHIVE CASSETTE",
+        "rarity": "common",
+        "serial_number": 4450,
+        "cxp_spent": 50,
+        "created_at": "2026-11-14T01:45:53.815Z"
+      },
+      {
+        "id": "e719bd94-01d2-49f3-970a-4ebd7400b2ae",
+        "user_id": "test_player_0lsd4b",
+        "case_id": "case_003_chrome_age",
+        "case_name": "CASE 003 — CHROME AGE",
+        "item_id": "specimen_void_crown_17",
+        "item_name": "VOID CROWN",
+        "rarity": "legendary",
+        "serial_number": 5191,
+        "cxp_spent": 100,
+        "created_at": "2026-11-14T01:45:53.786Z"
+      },
+      {
+        "id": "4c343ab2-ac15-41e8-b2a5-0619ed75c0e9",
+        "user_id": "test_player_0lsd4b",
+        "case_id": "case_002_black_specimen",
+        "case_name": "CASE 002 — BLACK SPECIMEN",
+        "item_id": "specimen_watcher_eye_11",
+        "item_name": "WATCHER EYE",
+        "rarity": "epic",
+        "serial_number": 3755,
+        "cxp_spent": 75,
+        "created_at": "2026-11-14T01:45:53.758Z"
+      },
+      {
+        "id": "dd793e05-31a0-4d86-8ce2-72159cfc2199",
+        "user_id": "test_player_0lsd4b",
+        "case_id": "case_001_archive",
+        "case_name": "CASE 001 — ARCHIVE",
+        "item_id": "specimen_chrome_disc_06",
+        "item_name": "CHROME DISC",
+        "rarity": "rare",
+        "serial_number": 5572,
+        "cxp_spent": 50,
+        "created_at": "2026-11-14T01:45:53.732Z"
+      }
+    ],
+    "test_user_alpha_2koqg": [
+      {
+        "id": "b7455cbf-99eb-4fc5-ba4f-bacd12173bd8",
+        "user_id": "test_user_alpha_2koqg",
+        "case_id": "case_001_archive",
+        "case_name": "CASE 001 — ARCHIVE",
+        "item_id": "specimen_data_key_03",
+        "item_name": "DATA KEY",
+        "rarity": "common",
+        "serial_number": 6482,
+        "cxp_spent": 50,
+        "created_at": "2026-11-14T01:45:59.305Z"
+      }
+    ]
+  }
 }

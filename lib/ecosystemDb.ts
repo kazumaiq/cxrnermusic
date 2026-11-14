@@ -20,9 +20,13 @@ import type {
   ItemRarity,
   MusicRole,
   VerificationStatus,
+  DropCaseConfig,
+  SpecialRewardClaim,
+  DropHistoryEntry,
 } from "./ecosystemTypes";
 import {
   DROP_SPECIMENS,
+  DROP_CASES,
   ACHIEVEMENTS_CATALOG,
   calculateProfileCompletion,
 } from "./ecosystemTypes";
@@ -43,6 +47,8 @@ interface EcosystemStore {
   referralRewards: Record<string, ReferralReward[]>;
   notifications: Record<string, NotificationItem[]>;
   auditLogs: AdminAuditLog[];
+  dropHistory: Record<string, DropHistoryEntry[]>;
+  specialClaims: Record<string, SpecialRewardClaim[]>;
 }
 
 const STORE_PATH = path.join(process.cwd(), "data", "ecosystem_store.json");
@@ -60,6 +66,8 @@ function getInitialStore(): EcosystemStore {
     referralRewards: {},
     notifications: {},
     auditLogs: [],
+    dropHistory: {},
+    specialClaims: {},
   };
 }
 
@@ -216,6 +224,37 @@ export async function awardCxp(params: {
 
   saveLocalStore(store);
   return { ok: true, newBalance: currentWallet.balance };
+}
+
+export async function getCxpWallet(userId: string): Promise<CxpWallet> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data: wallet } = await supabase
+      .from("cxrner_cxp_wallet")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (wallet) {
+      return wallet as CxpWallet;
+    }
+  } catch {
+    // fallback
+  }
+
+  const store = loadLocalStore();
+  let w = store.wallets[userId];
+  if (!w) {
+    w = {
+      user_id: userId,
+      balance: 100,
+      total_earned: 100,
+      total_spent: 0,
+      updated_at: new Date().toISOString(),
+    };
+    store.wallets[userId] = w;
+    saveLocalStore(store);
+  }
+  return w;
 }
 
 export async function unlockAchievement(params: {
@@ -862,23 +901,65 @@ export async function getUserInventory(userId: string): Promise<DropInventoryIte
   return [initialItem];
 }
 
-export async function openDropCase(userId: string): Promise<{
+export async function openDropCase(
+  userIdOrParams: string | { userId: string; caseId?: string }
+): Promise<{
   ok: boolean;
   item: DropInventoryItem;
   duplicate: boolean;
   achievementsUnlocked: string[];
+  isSpecialReward: boolean;
+  claimCode?: string;
+  historyEntry?: DropHistoryEntry;
+  caseConfig: DropCaseConfig;
 }> {
-  // 1. Roll random specimen weighted by rarity
-  // Common 60%, Rare 25%, Epic 10%, Legendary 4%, Mythic 1%
-  const roll = Math.random() * 100;
-  let targetRarity: ItemRarity = "common";
-  if (roll > 99) targetRarity = "mythic";
-  else if (roll > 95) targetRarity = "legendary";
-  else if (roll > 85) targetRarity = "epic";
-  else if (roll > 60) targetRarity = "rare";
+  const userId = typeof userIdOrParams === "string" ? userIdOrParams : userIdOrParams.userId;
+  const targetCaseId = typeof userIdOrParams === "string" ? "case_001_archive" : (userIdOrParams.caseId || "case_001_archive");
 
-  const candidates = DROP_SPECIMENS.filter((s) => s.rarity === targetRarity);
-  const picked = candidates[Math.floor(Math.random() * candidates.length)] || DROP_SPECIMENS[0];
+  const caseConfig = DROP_CASES.find((c) => c.id === targetCaseId) || DROP_CASES[0];
+
+  // 1. Roll random rarity based on case's configured probabilities
+  // Example for Case 001: Common 55%, Rare 25%, Epic 13%, Legendary 5.5%, Mythic 1.4%, Special 0.1%
+  const roll = Math.random() * 100;
+  const rates = caseConfig.drop_rates;
+
+  let targetRarity: ItemRarity = "common";
+  let isSpecialReward = false;
+
+  // Cumulative threshold calculation
+  const specialThreshold = rates.special_reward;
+  const mythicThreshold = specialThreshold + rates.mythic;
+  const legendaryThreshold = mythicThreshold + rates.legendary;
+  const epicThreshold = legendaryThreshold + rates.epic;
+  const rareThreshold = epicThreshold + rates.rare;
+
+  if (roll < specialThreshold) {
+    targetRarity = "special_reward";
+    isSpecialReward = true;
+  } else if (roll < mythicThreshold) {
+    targetRarity = "mythic";
+  } else if (roll < legendaryThreshold) {
+    targetRarity = "legendary";
+  } else if (roll < epicThreshold) {
+    targetRarity = "epic";
+  } else if (roll < rareThreshold) {
+    targetRarity = "rare";
+  } else {
+    targetRarity = "common";
+  }
+
+  // 2. Select item from catalog
+  let picked: (typeof DROP_SPECIMENS)[number];
+  if (isSpecialReward) {
+    picked = DROP_SPECIMENS.find((s) => s.is_special_reward) || DROP_SPECIMENS[DROP_SPECIMENS.length - 1];
+  } else {
+    // If case has specific assigned candidates, prioritize them
+    let candidates = DROP_SPECIMENS.filter((s) => s.rarity === targetRarity && (!s.case_id || s.case_id === caseConfig.id));
+    if (candidates.length === 0) {
+      candidates = DROP_SPECIMENS.filter((s) => s.rarity === targetRarity);
+    }
+    picked = candidates[Math.floor(Math.random() * candidates.length)] || DROP_SPECIMENS[0];
+  }
 
   const currentInventory = await getUserInventory(userId);
   const duplicate = currentInventory.some((i) => i.item_id === picked.item_id);
@@ -893,16 +974,46 @@ export async function openDropCase(userId: string): Promise<{
     rarity: picked.rarity,
     serial_number: serialNumber,
     description: picked.description,
-    image_url: "/covers/the-sadness-of-reality.jpg",
+    image_url: `/drop/items/${picked.item_id}.svg`,
     model_3d_type: "procedural",
     model_color: picked.model_color,
-    obtained_via: "case_drop",
+    obtained_via: caseConfig.slug,
     is_equipped: false,
     is_pinned: currentInventory.length < 6,
     is_hidden: false,
     created_at: new Date().toISOString(),
   };
 
+  // Special Claim generation
+  let claimCode: string | undefined;
+  if (isSpecialReward) {
+    claimCode = `CV-2026-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const claimRecord: SpecialRewardClaim = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      reward_id: picked.item_id,
+      reward_name: picked.item_name,
+      claim_code: claimCode,
+      status: "WON",
+      won_at: new Date().toISOString(),
+    };
+
+    try {
+      const supabase = await getSupabaseServerClient();
+      await supabase.from("special_reward_claims").insert(claimRecord);
+    } catch {
+      // fallback
+    }
+
+    const store = loadLocalStore();
+    if (!store.specialClaims) store.specialClaims = {};
+    const claimsList = store.specialClaims[userId] || [];
+    claimsList.unshift(claimRecord);
+    store.specialClaims[userId] = claimsList;
+    saveLocalStore(store);
+  }
+
+  // Save to Inventory
   try {
     const supabase = await getSupabaseServerClient();
     await supabase.from("cxrner_drop_inventory").insert(newItem);
@@ -914,6 +1025,32 @@ export async function openDropCase(userId: string): Promise<{
   const list = store.inventory[userId] || [];
   list.unshift(newItem);
   store.inventory[userId] = list;
+
+  // Record into Drop History
+  const historyEntry: DropHistoryEntry = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    case_id: caseConfig.id,
+    case_name: caseConfig.name,
+    item_id: picked.item_id,
+    item_name: picked.item_name,
+    rarity: picked.rarity,
+    serial_number: serialNumber,
+    cxp_spent: caseConfig.price_cxp,
+    created_at: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    await supabase.from("cxrner_drop_history").insert(historyEntry);
+  } catch {
+    // fallback
+  }
+
+  if (!store.dropHistory) store.dropHistory = {};
+  const historyList = store.dropHistory[userId] || [];
+  historyList.unshift(historyEntry);
+  store.dropHistory[userId] = historyList;
   saveLocalStore(store);
 
   // Check achievements
@@ -923,8 +1060,8 @@ export async function openDropCase(userId: string): Promise<{
   const res1 = await unlockAchievement({ userId, achievementKey: "FIRST_DROP" });
   if (!res1.alreadyUnlocked) achievementsUnlocked.push("FIRST_DROP");
 
-  // RARE FIND if epic, legendary, or mythic
-  if (["epic", "legendary", "mythic"].includes(picked.rarity)) {
+  // RARE FIND if epic, legendary, mythic, or special
+  if (["epic", "legendary", "mythic", "special_reward"].includes(picked.rarity)) {
     const res2 = await unlockAchievement({ userId, achievementKey: "RARE_FIND" });
     if (!res2.alreadyUnlocked) achievementsUnlocked.push("RARE_FIND");
   }
@@ -936,15 +1073,187 @@ export async function openDropCase(userId: string): Promise<{
     if (!res3.alreadyUnlocked) achievementsUnlocked.push("SPECIMEN_COLLECTOR");
   }
 
+  // CHROME MASTER if chrome spike or void crown
+  if (["specimen_chrome_spike_16", "specimen_void_crown_17", "specimen_chrome_chain_09"].includes(picked.item_id)) {
+    const res4 = await unlockAchievement({ userId, achievementKey: "CHROME_MASTER" });
+    if (!res4.alreadyUnlocked) achievementsUnlocked.push("CHROME_MASTER");
+  }
+
   await createNotification({
     userId,
     type: "drop_item",
-    title: `Получен предмет: ${picked.item_name}!`,
-    message: `Редкость: ${picked.rarity.toUpperCase()} (#${serialNumber}). Добавлен в личный инвентарь.`,
-    link: "/cabinet/drop/inventory",
+    title: isSpecialReward
+      ? "🎁 СПЕЦИАЛЬНАЯ НАГРАДА: CXRNER COVER VOUCHER!"
+      : `Получен предмет: ${picked.item_name}!`,
+    message: isSpecialReward
+      ? `Поздравляем! Ты выиграл бесплатную обложку для релиза от @kazumaiq. Код: ${claimCode}`
+      : `Редкость: ${picked.rarity.toUpperCase()} (#${serialNumber}). Добавлен в личный инвентарь.`,
+    link: isSpecialReward ? "/cabinet/drop/inventory" : "/cabinet/drop/inventory",
   });
 
-  return { ok: true, item: newItem, duplicate, achievementsUnlocked };
+  return {
+    ok: true,
+    item: newItem,
+    duplicate,
+    achievementsUnlocked,
+    isSpecialReward,
+    claimCode,
+    historyEntry,
+    caseConfig,
+  };
+}
+
+export async function getDropHistory(
+  userId: string,
+  rarityFilter?: string
+): Promise<DropHistoryEntry[]> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    let query = supabase
+      .from("cxrner_drop_history")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (rarityFilter && rarityFilter !== "all") {
+      query = query.eq("rarity", rarityFilter);
+    }
+
+    const { data, error } = await query;
+    if (!error && data && data.length > 0) {
+      return data as DropHistoryEntry[];
+    }
+  } catch {
+    // fallback
+  }
+
+  const store = loadLocalStore();
+  const list = (store.dropHistory && store.dropHistory[userId]) || [];
+  if (!rarityFilter || rarityFilter === "all") {
+    return list;
+  }
+  return list.filter((h) => h.rarity === rarityFilter);
+}
+
+export async function getSpecialRewardClaims(userId: string): Promise<SpecialRewardClaim[]> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("special_reward_claims")
+      .select("*")
+      .eq("user_id", userId)
+      .order("won_at", { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      return data as SpecialRewardClaim[];
+    }
+  } catch {
+    // fallback
+  }
+
+  const store = loadLocalStore();
+  return (store.specialClaims && store.specialClaims[userId]) || [];
+}
+
+export async function getAllSpecialRewardClaims(): Promise<SpecialRewardClaim[]> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("special_reward_claims")
+      .select("*")
+      .order("won_at", { ascending: false });
+
+    if (!error && data) {
+      return data as SpecialRewardClaim[];
+    }
+  } catch {
+    // fallback
+  }
+
+  const store = loadLocalStore();
+  const all: SpecialRewardClaim[] = [];
+  if (store.specialClaims) {
+    for (const list of Object.values(store.specialClaims)) {
+      all.push(...list);
+    }
+  }
+  return all.sort((a, b) => new Date(b.won_at).getTime() - new Date(a.won_at).getTime());
+}
+
+export async function updateSpecialClaimStatus(params: {
+  claimId: string;
+  status: "WON" | "PENDING_CLAIM" | "CLAIMED" | "REDEEMED" | "EXPIRED";
+  notes?: string;
+  adminId?: string;
+}): Promise<boolean> {
+  const { claimId, status, notes, adminId } = params;
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    const updates: Record<string, any> = {
+      status,
+      admin_notes: notes || null,
+      admin_id: adminId || null,
+    };
+    if (status === "CLAIMED") updates.claimed_at = new Date().toISOString();
+    if (status === "REDEEMED") updates.redeemed_at = new Date().toISOString();
+
+    await supabase.from("special_reward_claims").update(updates).eq("id", claimId);
+  } catch {
+    // fallback
+  }
+
+  const store = loadLocalStore();
+  if (store.specialClaims) {
+    for (const list of Object.values(store.specialClaims)) {
+      const found = list.find((c) => c.id === claimId);
+      if (found) {
+        found.status = status;
+        if (notes) found.admin_notes = notes;
+        if (adminId) found.admin_id = adminId;
+        if (status === "CLAIMED") found.claimed_at = new Date().toISOString();
+        if (status === "REDEEMED") found.redeemed_at = new Date().toISOString();
+        saveLocalStore(store);
+        return true;
+      }
+    }
+  }
+  return true;
+}
+
+export async function getDropAnalytics(): Promise<{
+  totalOpened: number;
+  totalCxpSpent: number;
+  rarityBreakdown: Record<string, number>;
+  specialRewardsWon: number;
+}> {
+  const store = loadLocalStore();
+  let totalOpened = 0;
+  let totalCxpSpent = 0;
+  const rarityBreakdown: Record<string, number> = {
+    common: 0,
+    rare: 0,
+    epic: 0,
+    legendary: 0,
+    mythic: 0,
+    special_reward: 0,
+  };
+  let specialRewardsWon = 0;
+
+  if (store.dropHistory) {
+    for (const list of Object.values(store.dropHistory)) {
+      for (const entry of list) {
+        totalOpened += 1;
+        totalCxpSpent += entry.cxp_spent || 50;
+        rarityBreakdown[entry.rarity] = (rarityBreakdown[entry.rarity] || 0) + 1;
+        if (entry.rarity === "special_reward") {
+          specialRewardsWon += 1;
+        }
+      }
+    }
+  }
+
+  return { totalOpened, totalCxpSpent, rarityBreakdown, specialRewardsWon };
 }
 
 export async function updateItemDisplayStatus(params: {

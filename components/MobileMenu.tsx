@@ -188,7 +188,7 @@ export default function MobileMenu({ isLoggedIn, navItems }: MobileMenuProps) {
                   <span>CXRNER ID</span>
                 </Link>
                 <Link
-                  href="/cabinet/drop/inventory"
+                  href="/drop"
                   onClick={() => setIsOpen(false)}
                   className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white flex items-center justify-center gap-1.5 hover:bg-white/10 transition"
                 >

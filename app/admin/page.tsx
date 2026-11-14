@@ -33,6 +33,7 @@ import {
   Trash2,
   Headphones,
   Check,
+  Boxes,
 } from "lucide-react";
 
 type Tab = "moderation" | "users" | "featured" | "releases" | "artists" | "system";
@@ -594,6 +595,13 @@ export default function AdminPage() {
               <Radio className="w-3.5 h-3.5 text-purple-400" />
               <span>CXRNER LINK</span>
               <ExternalLink className="w-3 h-3 text-purple-400" />
+            </Link>
+            <Link
+              href="/admin/drop"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-mono text-xs uppercase tracking-wider text-amber-300 hover:text-white hover:bg-amber-600/30 border border-amber-500/30 bg-amber-500/10 transition shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+            >
+              <Boxes className="w-3.5 h-3.5 text-amber-400" />
+              <span>CXRNER DROP</span>
             </Link>
           </div>
         </div>
