@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import type { ItemRarity } from "@/lib/ecosystemTypes";
+import { playHoverSound } from "@/lib/soundFX";
 
 interface SpecimenVisualProps {
   itemId: string;
@@ -109,35 +110,66 @@ export default function SpecimenVisual({
     setTilt({ x, y });
   };
 
+  const handleMouseEnter = () => {
+    playHoverSound();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!interactiveTilt || !e.touches[0]) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = ((touch.clientX - rect.left) / rect.width - 0.5) * 18;
+    const y = ((touch.clientY - rect.top) / rect.height - 0.5) * -18;
+    setTilt({ x, y });
+  };
+
+  const handleTouchStart = () => {
+    playHoverSound();
+  };
+
+  const handleTouchEnd = () => {
+    setTilt({ x: 0, y: 0 });
+  };
+
   const handleMouseLeave = () => {
     setTilt({ x: 0, y: 0 });
   };
 
+  // Dynamic holographic light glare coordinates
+  const glareX = 50 + tilt.x * 2.8;
+  const glareY = 50 - tilt.y * 2.8;
+
   return (
     <div
+      onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       style={{
-        transform: `perspective(800px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)`,
-        transition: tilt.x === 0 && tilt.y === 0 ? "transform 0.4s ease-out" : "none",
+        transform: `perspective(850px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)`,
+        transition: tilt.x === 0 && tilt.y === 0 ? "transform 0.45s ease-out" : "none",
       }}
-      className={`relative group rounded-3xl overflow-hidden border ${theme.border} ${theme.glow} bg-gradient-to-b ${theme.bg} p-2.5 transition-all duration-300 ${className}`}
+      className={`relative group rounded-3xl overflow-hidden border ${theme.border} ${theme.glow} bg-gradient-to-b ${theme.bg} p-2.5 transition-all duration-300 ${
+        isSpecialReward ? "ring-2 ring-amber-400/60 shadow-[0_0_50px_rgba(251,191,36,0.5)]" : ""
+      } ${className}`}
     >
-      {/* Specimen Ambient Backlight */}
+      {/* Dynamic Specimen Ambient Backlight */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-40 group-hover:opacity-75 transition-opacity duration-500"
+        className="pointer-events-none absolute inset-0 opacity-40 group-hover:opacity-85 transition-opacity duration-500"
         style={{
-          background: `radial-gradient(circle at 50% 40%, ${theme.text}33, transparent 70%)`,
+          background: `radial-gradient(circle at ${glareX}% ${glareY}%, ${theme.text}44, transparent 70%)`,
         }}
       />
 
-      {/* Main Specimen Image Display */}
-      <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-black/40 flex items-center justify-center">
+      {/* Main Specimen Image Display Container */}
+      <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-black/50 flex items-center justify-center">
         {!imageError ? (
           <img
             src={currentSrc}
             alt={itemName}
-            className="w-full h-full object-contain p-1 filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] group-hover:scale-[1.03] transition-transform duration-300"
+            className="w-full h-full object-contain p-1 filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)] group-hover:scale-[1.04] transition-transform duration-300"
             onError={() => {
               if (!currentSrc.endsWith(".svg")) {
                 setCurrentSrc(`/drop/items/${itemId}.svg`);
@@ -155,8 +187,29 @@ export default function SpecimenVisual({
           </div>
         )}
 
+        {/* Dynamic Holographic Iridescent Foil Sheen Overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-25 group-hover:opacity-60 transition-opacity duration-300 mix-blend-color-dodge"
+          style={{
+            background: `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.75) 0%, rgba(0,240,255,0.4) 28%, rgba(180,107,255,0.3) 55%, transparent 75%)`,
+          }}
+        />
+
+        {/* High-Tech Sci-Fi Laser Scanline */}
+        <div className="pointer-events-none absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00F0FF] to-transparent shadow-[0_0_10px_#00F0FF] animate-drop-scanline opacity-75" />
+
+        {/* Sci-Fi Reticle Brackets for High Rarities */}
+        {["epic", "legendary", "mythic", "special_reward"].includes(rarity) && (
+          <>
+            <div className="pointer-events-none absolute top-1.5 left-1.5 w-3 h-3 border-t-2 border-l-2 border-white/40 rounded-tl" />
+            <div className="pointer-events-none absolute top-1.5 right-1.5 w-3 h-3 border-t-2 border-r-2 border-white/40 rounded-tr" />
+            <div className="pointer-events-none absolute bottom-1.5 left-1.5 w-3 h-3 border-b-2 border-l-2 border-white/40 rounded-bl" />
+            <div className="pointer-events-none absolute bottom-1.5 right-1.5 w-3 h-3 border-b-2 border-r-2 border-white/40 rounded-br" />
+          </>
+        )}
+
         {/* Holographic Specimen Seal Sticker (Top Left) */}
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 border border-white/20 backdrop-blur-md">
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 border border-white/20 backdrop-blur-md shadow-lg">
           <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
           <span className="font-mono text-[8px] uppercase tracking-wider text-white font-bold">
             {isSpecialReward
@@ -170,7 +223,7 @@ export default function SpecimenVisual({
         {/* Rarity Pill (Top Right) */}
         <div className="absolute top-2.5 right-2.5">
           <span
-            className={`inline-block px-2.5 py-0.5 rounded-full font-display font-black text-[9px] uppercase tracking-wider border backdrop-blur-md ${theme.pillBg}`}
+            className={`inline-block px-2.5 py-0.5 rounded-full font-display font-black text-[9px] uppercase tracking-wider border backdrop-blur-md shadow-lg ${theme.pillBg}`}
           >
             {theme.name}
           </span>
@@ -178,7 +231,7 @@ export default function SpecimenVisual({
 
         {/* Drop Chance Tag (Bottom Right if provided) */}
         {dropChance && (
-          <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/85 border border-[#00F0FF]/40 backdrop-blur-md">
+          <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/85 border border-[#00F0FF]/40 backdrop-blur-md shadow-md">
             <span className="font-mono text-[8px] uppercase tracking-wider text-[#00F0FF] font-bold">
               {dropChance}
             </span>

@@ -21,7 +21,8 @@ function initAudio(): AudioContext | null {
 export function isSfxEnabled(): boolean {
   if (typeof window === "undefined") return false;
   if (sfxEnabled === undefined || sfxEnabled === false) {
-    sfxEnabled = window.localStorage.getItem("cxrner_sfx") === "true";
+    const stored = window.localStorage.getItem("cxrner_sfx");
+    sfxEnabled = stored === null ? true : stored === "true";
   }
   return sfxEnabled;
 }

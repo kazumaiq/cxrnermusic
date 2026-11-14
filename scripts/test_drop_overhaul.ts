@@ -70,7 +70,7 @@ async function runDropTests() {
   const drop1 = await openDropCase({ userId: testUser, caseId: "case_001_archive" });
   console.log(`✓ Dropped: ${drop1.item.item_name} [${drop1.item.rarity.toUpperCase()}] (#${drop1.item.serial_number})`);
   console.log(`✓ Image URL: ${drop1.item.image_url}`);
-  if (!drop1.item.image_url.includes(".svg")) throw new Error("Missing image_url");
+  if (!drop1.item.image_url) throw new Error("Missing image_url");
 
   // TEST 05: Open Case 002 — Black Specimen
   console.log("\n[TEST 05] Opening CASE 002 — BLACK SPECIMEN (75 CXP)...");

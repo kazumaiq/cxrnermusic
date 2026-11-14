@@ -88,11 +88,13 @@ export default function ZipPacket3DViewer({
 
     const pouchMat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color("#0c0916"),
-      metalness: 0.85,
-      roughness: 0.22,
-      clearcoat: 0.95,
-      clearcoatRoughness: 0.12,
-      reflectivity: 0.9,
+      metalness: 0.9,
+      roughness: 0.16,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.08,
+      reflectivity: 1.0,
+      iridescence: 0.85,
+      iridescenceIOR: 1.35,
     });
     const pouchMesh = new THREE.Mesh(pouchGeom, pouchMat);
     mainGroup.add(pouchMesh);
@@ -181,9 +183,34 @@ export default function ZipPacket3DViewer({
       isDragging = false;
     };
 
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        prevMouseX = e.touches[0].clientX;
+        prevMouseY = e.touches[0].clientY;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      const deltaX = e.touches[0].clientX - prevMouseX;
+      const deltaY = e.touches[0].clientY - prevMouseY;
+      targetRotationY += deltaX * 0.012;
+      targetRotationX += deltaY * 0.012;
+      prevMouseX = e.touches[0].clientX;
+      prevMouseY = e.touches[0].clientY;
+    };
+
+    const onTouchEnd = () => {
+      isDragging = false;
+    };
+
     container.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
+    container.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd);
 
     // Animation Loop
     let animId: number;
@@ -193,11 +220,21 @@ export default function ZipPacket3DViewer({
       animId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
 
-      if (!isDragging) {
+      if (isOpening) {
+        // High-energy vibration and rapid spin when unsealing
+        const jitter = (Math.random() - 0.5) * 0.08;
+        mainGroup.position.x = jitter;
+        mainGroup.position.y = jitter;
+        targetRotationY += 0.035;
+        ringMesh.rotation.z += 0.06;
+        dirLight1.intensity = 3.5 + Math.sin(elapsed * 15) * 1.8;
+      } else if (!isDragging) {
         // Subtle floating breathing & auto-spin
         targetRotationY += 0.008;
         targetRotationX = Math.sin(elapsed * 1.5) * 0.08;
         mainGroup.position.y = Math.sin(elapsed * 2.0) * 0.07;
+        mainGroup.position.x = 0;
+        dirLight1.intensity = 3.5;
       }
 
       // Smooth damping interpolation
@@ -208,7 +245,7 @@ export default function ZipPacket3DViewer({
       ringMesh.rotation.z += 0.015;
 
       if (particlePoints) {
-        particlePoints.rotation.y = elapsed * 0.04;
+        particlePoints.rotation.y = elapsed * (isOpening ? 0.15 : 0.04);
       }
 
       if (renderer) {
@@ -235,6 +272,9 @@ export default function ZipPacket3DViewer({
       container.removeEventListener("mousedown", onMouseDown);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
+      container.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
       renderer?.dispose();
       pouchGeom.dispose();
       pouchMat.dispose();
@@ -265,8 +305,8 @@ export default function ZipPacket3DViewer({
   return (
     <div className={`relative ${className} select-none`}>
       <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-md font-mono text-[9px] uppercase tracking-widest text-[#D9D9E2]/60">
-        3D PREVIEW • DRAG TO ROTATE
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-md font-mono text-[9px] uppercase tracking-widest text-[#D9D9E2]/60 whitespace-nowrap">
+        3D PREVIEW • DRAG / TOUCH TO ROTATE
       </div>
     </div>
   );

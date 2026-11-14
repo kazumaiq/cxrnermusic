@@ -18,6 +18,8 @@ import {
   ShieldCheck,
   ChevronRight,
   Award,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import type {
   DropCaseConfig,
@@ -35,7 +37,7 @@ import GetCxpModal from "./GetCxpModal";
 import DropHistoryModal from "./DropHistoryModal";
 import ItemInspectModal from "./ItemInspectModal";
 import OnboardingTourModal from "./OnboardingTourModal";
-import { playClickSound } from "@/lib/soundFX";
+import { playClickSound, isSfxEnabled, setSfxEnabled } from "@/lib/soundFX";
 
 interface DropGameArenaProps {
   initialItems: DropInventoryItem[];
@@ -57,6 +59,8 @@ export default function DropGameArena({
   const [activeTab, setActiveTab] = useState<"play" | "inventory" | "prizes">(defaultTab);
   const [items, setItems] = useState<DropInventoryItem[]>(initialItems);
   const [balance, setBalance] = useState<number>(initialBalance);
+  const [animatedBalance, setAnimatedBalance] = useState<number>(initialBalance);
+  const [sfxOn, setSfxOn] = useState<boolean>(true);
   const [history, setHistory] = useState<DropHistoryEntry[]>(initialHistory);
 
   // Case selection
@@ -85,6 +89,24 @@ export default function DropGameArena({
       if (!onboarded) {
         setIsTourModalOpen(true);
       }
+    }
+  }, []);
+
+  // Animate CXP balance counter smoothly
+  useEffect(() => {
+    if (animatedBalance === balance) return;
+    const diff = balance - animatedBalance;
+    const step = Math.sign(diff) * Math.max(1, Math.min(Math.abs(diff), Math.ceil(Math.abs(diff) / 6)));
+    const timer = setTimeout(() => {
+      setAnimatedBalance((prev) => prev + step);
+    }, 30);
+    return () => clearTimeout(timer);
+  }, [balance, animatedBalance]);
+
+  // Sync SFX state on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSfxOn(isSfxEnabled());
     }
   }, []);
 
@@ -187,7 +209,14 @@ export default function DropGameArena({
   ];
 
   return (
-    <div className="min-h-screen bg-[#05030A] pt-14 sm:pt-20 text-white selection:bg-[#8737FF] selection:text-white">
+    <div className="min-h-screen bg-[#05030A] pt-14 sm:pt-20 text-white selection:bg-[#8737FF] selection:text-white relative">
+      {/* Ambient Cosmic Atmosphere & Glow Layers */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-32 left-1/4 w-[600px] h-[600px] bg-[#8737FF]/15 rounded-full blur-[140px] animate-drop-pulse" />
+        <div className="absolute top-1/2 -right-40 w-[550px] h-[550px] bg-[#00F0FF]/10 rounded-full blur-[150px] animate-drop-pulse" style={{ animationDelay: "1.5s" }} />
+        <div className="absolute -bottom-40 left-1/3 w-[700px] h-[500px] bg-[#3B0764]/20 rounded-full blur-[160px]" />
+        <div className="absolute inset-0 gothic-grid opacity-25" />
+      </div>
       {/* =====================================================================
           TOP GAMING HUD BAR
           ===================================================================== */}
@@ -271,7 +300,7 @@ export default function DropGameArena({
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 border border-[#00F0FF]/40 shadow-[0_0_15px_rgba(0,240,255,0.15)]">
               <Coins className="w-4 h-4 text-[#00F0FF] animate-pulse" />
               <span className="font-display font-black text-sm text-white">
-                {balance}
+                {animatedBalance}
               </span>
               <span className="font-display font-black text-[10px] text-[#00F0FF] uppercase tracking-wider">
                 CXP
@@ -307,6 +336,23 @@ export default function DropGameArena({
               className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-[#D9D9E2]/80 hover:text-white transition"
             >
               <HelpCircle className="w-4 h-4" />
+            </button>
+
+            {/* Audio SFX Toggle */}
+            <button
+              onClick={() => {
+                const next = !sfxOn;
+                setSfxOn(next);
+                setSfxEnabled(next);
+              }}
+              title={sfxOn ? "Звуковые эффекты: ВКЛ" : "Звуковые эффекты: ВЫКЛ"}
+              className={`p-2 rounded-xl border transition ${
+                sfxOn
+                  ? "bg-[#8737FF]/20 border-[#B46BFF]/50 text-[#B46BFF] shadow-[0_0_12px_rgba(135,55,255,0.35)]"
+                  : "bg-white/[0.04] border-white/10 text-white/40 hover:text-white"
+              }`}
+            >
+              {sfxOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
             {/* Profile Link */}
@@ -348,7 +394,7 @@ export default function DropGameArena({
               <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/70 border border-[#00F0FF]/40">
                 <Coins className="w-3.5 h-3.5 text-[#00F0FF]" />
                 <span className="font-display font-black text-xs text-white">
-                  {balance}
+                  {animatedBalance}
                 </span>
                 <span className="font-mono text-[8px] text-[#00F0FF] font-bold">
                   CXP
@@ -382,6 +428,21 @@ export default function DropGameArena({
                 className="p-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-white/70 hover:text-white"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-[#B46BFF]" />
+              </button>
+              <button
+                onClick={() => {
+                  const next = !sfxOn;
+                  setSfxOn(next);
+                  setSfxEnabled(next);
+                }}
+                title={sfxOn ? "Звук: ВКЛ" : "Звук: ВЫКЛ"}
+                className={`p-1.5 rounded-lg border transition ${
+                  sfxOn
+                    ? "bg-[#8737FF]/25 border-[#B46BFF]/50 text-[#B46BFF]"
+                    : "bg-white/[0.04] border-white/10 text-white/40"
+                }`}
+              >
+                {sfxOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>
@@ -456,9 +517,12 @@ export default function DropGameArena({
           {liveRecentDrops.map((drop, idx) => {
             const theme = RARITY_THEMES[drop.rarity as ItemRarity] || RARITY_THEMES.common;
             return (
-              <div key={idx} className="inline-flex items-center gap-2">
+              <div key={idx} onClick={() => {
+                const match = DROP_SPECIMENS.find((s) => s.item_name.toLowerCase().includes(drop.name.toLowerCase()));
+                if (match) handleInspectSpecimen(match);
+              }} className="inline-flex items-center gap-2 hover:opacity-100 transition group cursor-pointer text-left" title="Осмотреть артефакт в 3D">
                 <span className="text-white/40">@{drop.user}:</span>
-                <span className="text-white font-bold">{drop.name}</span>
+                <span className="text-white font-bold group-hover:text-[#00F0FF] transition-colors">{drop.name}</span>
                 <span
                   className={`px-1.5 py-0.2 rounded text-[8px] font-bold uppercase border ${theme.pillBg}`}
                 >
@@ -596,7 +660,7 @@ export default function DropGameArena({
                             : "text-rose-400"
                         }`}
                       >
-                        {balance} CXP
+                        {animatedBalance} CXP
                       </span>
                     </div>
                     <div className="col-span-2 sm:col-span-1">
@@ -630,6 +694,21 @@ export default function DropGameArena({
                         className="py-3 px-4 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/10 font-mono text-xs uppercase tracking-wider text-[#D9D9E2] flex items-center justify-center gap-1.5 transition"
                       >
                         <HelpCircle className="w-3.5 h-3.5 text-[#B46BFF]" />
+              </button>
+              <button
+                onClick={() => {
+                  const next = !sfxOn;
+                  setSfxOn(next);
+                  setSfxEnabled(next);
+                }}
+                title={sfxOn ? "Звук: ВКЛ" : "Звук: ВЫКЛ"}
+                className={`p-1.5 rounded-lg border transition ${
+                  sfxOn
+                    ? "bg-[#8737FF]/25 border-[#B46BFF]/50 text-[#B46BFF]"
+                    : "bg-white/[0.04] border-white/10 text-white/40"
+                }`}
+              >
+                {sfxOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                         <span>Как играть</span>
                       </button>
                     </div>
