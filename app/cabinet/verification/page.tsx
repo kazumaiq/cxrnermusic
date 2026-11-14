@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
-import { getArtistProfileByUserId, getProfileByUserId } from "@/lib/ecosystemDb";
+import {
+  getArtistProfileByUserId,
+  getProfileByUserId,
+  getVerificationByUserId,
+} from "@/lib/ecosystemDb";
 import CabinetNav from "@/components/CabinetNav";
 import VerificationClient from "./VerificationClient";
 
@@ -16,23 +20,11 @@ export default async function CabinetVerificationPage() {
     redirect("/auth/login");
   }
 
-  const profile = await getProfileByUserId(user.id);
-  const artistProfile = await getArtistProfileByUserId(user.id);
-
-  // Fetch latest verification record
-  let verification = null;
-  try {
-    const { data } = await supabase
-      .from("cxrner_artist_verifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    verification = data;
-  } catch {
-    // ignore
-  }
+  const [profile, artistProfile, verification] = await Promise.all([
+    getProfileByUserId(user.id),
+    getArtistProfileByUserId(user.id),
+    getVerificationByUserId(user.id),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#050407] text-[#D9D9E2] pt-16 sm:pt-[72px] pb-28 selection:bg-[#8737FF] selection:text-white">

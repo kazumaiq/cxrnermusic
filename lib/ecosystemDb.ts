@@ -351,12 +351,22 @@ function hydrateProfileWithCabinet(
 
   if (!chosen) return null;
 
+  const verStatus = (cabinetProfile?.ecosystem_verification as CxrnerArtistVerification | undefined)?.status;
+  const artVerStatus = (cabinetProfile?.ecosystem_artist_profile as CxrnerArtistProfile | undefined)?.verification_status;
+  const isVerifiedFromVault =
+    verStatus === "verified" || artVerStatus === "verified"
+      ? true
+      : verStatus === "rejected" || verStatus === "not_verified" || artVerStatus === "not_verified"
+      ? false
+      : Boolean(chosen.is_artist_verified);
+
   const merged: CxrnerProfile = {
     ...chosen,
     id: chosen.id || userId,
     telegram_id: tgId,
     telegram_username: tgUser,
     telegram_linked: Boolean(tgId || chosen.telegram_linked),
+    is_artist_verified: isVerifiedFromVault,
     display_name:
       chosen.display_name ||
       cabinetProfile?.artist_name ||
@@ -1145,7 +1155,12 @@ export async function upsertUserProfile(params: {
     equipped_frame: params.equippedFrame !== undefined ? params.equippedFrame : current.equipped_frame,
     equipped_effect: params.equippedEffect !== undefined ? params.equippedEffect : current.equipped_effect,
     equipped_title: params.equippedTitle !== undefined ? params.equippedTitle : current.equipped_title,
-    equipped_badge: params.equippedBadge !== undefined ? params.equippedBadge : current.equipped_badge,
+    equipped_badge:
+      params.equippedBadge !== undefined
+        ? params.equippedBadge === "verified" && !current.is_artist_verified
+          ? current.equipped_badge
+          : params.equippedBadge
+        : current.equipped_badge,
     equipped_showcase_item:
       params.equippedShowcaseItem !== undefined
         ? params.equippedShowcaseItem
@@ -1233,17 +1248,46 @@ export async function upsertUserProfile(params: {
 // 4. ARTIST PROFILES & VERIFICATION SYSTEM
 // =========================================================================
 
+function toDbVerificationRow(v: CxrnerArtistVerification) {
+  return {
+    id: v.id,
+    user_id: v.user_id,
+    artist_profile_id: v.artist_profile_id || null,
+    stage_name: v.stage_name,
+    method: v.method,
+    verification_code: v.verification_code || null,
+    verification_code_status: v.verification_code_status || "active",
+    evidence_links: Array.isArray(v.evidence_links) ? v.evidence_links : [],
+    evidence_notes: v.evidence_notes || null,
+    status: v.status,
+    reviewer_notes: v.reviewer_notes || null,
+    reject_reason: v.reject_reason || null,
+    reward_claimed: Boolean(v.reward_claimed),
+    created_at: v.created_at,
+    reviewed_at: v.reviewed_at || null,
+    reviewed_by: v.reviewed_by || null,
+  };
+}
+
 export async function getArtistProfileByUserId(userId: string): Promise<CxrnerArtistProfile | null> {
   const db = await getDbForUser(userId);
   if (db) {
     const [{ data, error }, vault] = await Promise.all([
-      db.from("cxrner_artist_profiles").select("*").eq("user_id", userId).maybeSingle(),
+      runOptionalTableQuery<CxrnerArtistProfile>("cxrner_artist_profiles", () =>
+        db.from("cxrner_artist_profiles").select("*").eq("user_id", userId).maybeSingle()
+      ),
       readCabinetVault(userId, db),
     ]);
-    if (!error && data) return data as CxrnerArtistProfile;
     if (vault?.ecosystem_artist_profile) {
-      return vault.ecosystem_artist_profile as CxrnerArtistProfile;
+      const vaultArt = vault.ecosystem_artist_profile as CxrnerArtistProfile;
+      if (!error && data) {
+        const tDb = new Date(data.updated_at || 0).getTime();
+        const tVault = new Date(vaultArt.updated_at || 0).getTime();
+        return tVault >= tDb ? vaultArt : (data as CxrnerArtistProfile);
+      }
+      return vaultArt;
     }
+    if (!error && data) return data as CxrnerArtistProfile;
     return null;
   }
 
@@ -1285,7 +1329,9 @@ export async function upsertArtistProfile(
       ...prev,
       ecosystem_artist_profile: updated,
     }));
-    await db.from("cxrner_artist_profiles").upsert(updated).then(() => undefined);
+    await runOptionalTableQuery("cxrner_artist_profiles", () =>
+      db.from("cxrner_artist_profiles").upsert(updated)
+    );
     return updated;
   }
 
@@ -1301,19 +1347,29 @@ export async function getVerificationByUserId(
   const db = await getDbForUser(userId);
   if (db) {
     const [{ data, error }, vault] = await Promise.all([
-      db
-        .from("cxrner_artist_verifications")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      runOptionalTableQuery<CxrnerArtistVerification>("cxrner_artist_verifications", () =>
+        db
+          .from("cxrner_artist_verifications")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ),
       readCabinetVault(userId, db),
     ]);
-    if (!error && data) return data as CxrnerArtistVerification;
-    if (vault?.ecosystem_verification) {
-      return vault.ecosystem_verification as CxrnerArtistVerification;
+    const vaultVer = vault?.ecosystem_verification as CxrnerArtistVerification | undefined;
+    if (vaultVer) {
+      if (!error && data) {
+        const tDb = new Date(data.reviewed_at || data.created_at || 0).getTime();
+        const tVault = new Date(
+          vaultVer.updated_at || vaultVer.reviewed_at || vaultVer.created_at || 0
+        ).getTime();
+        return tVault >= tDb ? vaultVer : { ...(data as CxrnerArtistVerification), ...vaultVer };
+      }
+      return vaultVer;
     }
+    if (!error && data) return data as CxrnerArtistVerification;
     return null;
   }
 
@@ -1321,40 +1377,200 @@ export async function getVerificationByUserId(
   return store.verifications[userId] || null;
 }
 
+function enrichVerificationWithVault(
+  ver: CxrnerArtistVerification,
+  cabinetRow?: { user_id: string; profile: Record<string, any>; updated_at: string },
+  fallbackProfile?: CxrnerProfile | null,
+  fallbackArtist?: CxrnerArtistProfile | null
+): CxrnerArtistVerification {
+  const vault = cabinetRow?.profile || {};
+  const cid = (vault.cxrner_id as CxrnerProfile | undefined) || fallbackProfile || null;
+  const art =
+    (vault.ecosystem_artist_profile as CxrnerArtistProfile | undefined) || fallbackArtist || null;
+
+  const tgId =
+    cid?.telegram_id ||
+    (vault.telegram_id ? String(vault.telegram_id) : null);
+  const tgUsername =
+    ver.contact_telegram ||
+    cid?.telegram_username ||
+    vault.telegram_username ||
+    null;
+
+  return {
+    ...ver,
+    stage_name:
+      ver.stage_name && ver.stage_name !== "Artist"
+        ? ver.stage_name
+        : art?.stage_name || cid?.display_name || vault.artist_name || ver.stage_name || "Artist",
+    project_type: ver.project_type || art?.project_type || "solo",
+    genres:
+      Array.isArray(ver.genres) && ver.genres.length > 0
+        ? ver.genres
+        : Array.isArray(art?.genres) && art.genres.length > 0
+        ? art.genres
+        : Array.isArray(cid?.genres)
+        ? cid.genres
+        : [],
+    country: ver.country || art?.country || cid?.country || "RU",
+    city: ver.city ?? art?.city ?? cid?.city ?? null,
+    contact_telegram: tgUsername,
+    bio: ver.bio ?? art?.bio ?? cid?.bio ?? null,
+    account_summary: {
+      username: cid?.username || vault.username || `artist_${ver.user_id.slice(0, 6)}`,
+      display_name:
+        cid?.display_name || vault.artist_name || ver.stage_name || "CXRNER Artist",
+      email: vault.email || vault.contact_email || null,
+      avatar_url: cid?.avatar_url || vault.avatar_url || null,
+      telegram_username: tgUsername,
+      telegram_id: tgId,
+      telegram_linked: Boolean(cid?.telegram_linked || tgId),
+      is_artist_verified: Boolean(cid?.is_artist_verified || ver.status === "verified"),
+      completion_percentage: cid?.completion_percentage || 0,
+      country: cid?.country || art?.country || ver.country || "RU",
+      city: cid?.city || art?.city || ver.city || null,
+      bio: cid?.bio || art?.bio || ver.bio || null,
+      genres: Array.isArray(cid?.genres) ? cid.genres : [],
+      music_roles: Array.isArray(cid?.music_roles) ? cid.music_roles : ["Artist"],
+      social_links: Array.isArray(cid?.social_links) ? cid.social_links : [],
+      music_links: Array.isArray(cid?.music_links) ? cid.music_links : [],
+    },
+    artist_profile: art,
+  };
+}
+
 export async function getAllVerifications(
   statusFilter = "all"
 ): Promise<CxrnerArtistVerification[]> {
   const { client: db } = await getEcosystemDbClient();
   if (db) {
-    let query = db
-      .from("cxrner_artist_verifications")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (statusFilter !== "all") {
-      query = query.eq("status", statusFilter);
-    }
-    const { data, error } = await query;
-    if (!error && Array.isArray(data) && data.length > 0) {
-      return data as CxrnerArtistVerification[];
-    }
+    const [{ data: dbRows }, users] = await Promise.all([
+      runOptionalTableQuery<CxrnerArtistVerification[]>("cxrner_artist_verifications", () => {
+        let query = db
+          .from("cxrner_artist_verifications")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (statusFilter !== "all") {
+          query = query.eq("status", statusFilter);
+        }
+        return query;
+      }),
+      listAllCabinetUsers(500),
+    ]);
 
-    const users = await listAllCabinetUsers(500);
-    const list: CxrnerArtistVerification[] = [];
-    for (const u of users) {
-      const ver = u.profile.ecosystem_verification as CxrnerArtistVerification | undefined;
-      if (ver && (statusFilter === "all" || ver.status === statusFilter)) {
-        list.push(ver);
+    const userMap = new Map(users.map((u) => [u.user_id, u]));
+    const byUserId = new Map<string, CxrnerArtistVerification>();
+
+    if (Array.isArray(dbRows)) {
+      for (const row of dbRows) {
+        byUserId.set(row.user_id, row);
       }
     }
-    return list.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+
+    for (const u of users) {
+      const vaultVer = u.profile.ecosystem_verification as CxrnerArtistVerification | undefined;
+      const cid = u.profile.cxrner_id as CxrnerProfile | undefined;
+      const art = u.profile.ecosystem_artist_profile as CxrnerArtistProfile | undefined;
+
+      if (vaultVer) {
+        const existing = byUserId.get(u.user_id);
+        if (!existing) {
+          byUserId.set(u.user_id, vaultVer);
+        } else {
+          const tDb = new Date(existing.reviewed_at || existing.created_at || 0).getTime();
+          const tVault = new Date(
+            vaultVer.updated_at || vaultVer.reviewed_at || vaultVer.created_at || 0
+          ).getTime();
+          byUserId.set(
+            u.user_id,
+            tVault >= tDb ? { ...existing, ...vaultVer } : { ...vaultVer, ...existing }
+          );
+        }
+      } else if (art || cid) {
+        // Also surface registered artist profiles in Admin Panel so Admin can inspect & verify any artist
+        const synthesizedStatus: VerificationStatus = cid?.is_artist_verified
+          ? "verified"
+          : art?.verification_status && art.verification_status !== "not_verified"
+          ? art.verification_status
+          : "not_verified";
+
+        const synthLinks: Array<{ title: string; url: string }> = [];
+        if (art?.yandex_music_url) synthLinks.push({ title: "Яндекс Музыка", url: art.yandex_music_url });
+        if (art?.spotify_url) synthLinks.push({ title: "Spotify", url: art.spotify_url });
+        if (art?.apple_music_url) synthLinks.push({ title: "Apple Music", url: art.apple_music_url });
+        if (art?.vk_music_url) synthLinks.push({ title: "VK Музыка", url: art.vk_music_url });
+        if (Array.isArray(cid?.music_links)) {
+          for (const ml of cid.music_links) {
+            if (ml.url && !synthLinks.some((s) => s.url === ml.url)) {
+              synthLinks.push({ title: ml.platform || "Площадка", url: ml.url });
+            }
+          }
+        }
+        if (Array.isArray(cid?.social_links)) {
+          for (const sl of cid.social_links) {
+            if (sl.url && !synthLinks.some((s) => s.url === sl.url)) {
+              synthLinks.push({ title: sl.platform || "Соцсеть", url: sl.url });
+            }
+          }
+        }
+
+        byUserId.set(u.user_id, {
+          id: art?.id || `profile_${u.user_id}`,
+          user_id: u.user_id,
+          artist_profile_id: art?.id || null,
+          stage_name:
+            art?.stage_name || cid?.display_name || u.profile.artist_name || "CXRNER Artist",
+          method: "manual",
+          verification_code: null,
+          verification_code_status: "active",
+          evidence_links: synthLinks,
+          evidence_notes: cid?.bio || art?.bio || null,
+          status: synthesizedStatus,
+          reward_claimed: Boolean(cid?.is_artist_verified),
+          created_at: cid?.created_at || u.updated_at || new Date().toISOString(),
+          updated_at: cid?.updated_at || u.updated_at || null,
+        });
+      }
+    }
+
+    const enriched: CxrnerArtistVerification[] = [];
+    for (const [uid, ver] of byUserId.entries()) {
+      const item = enrichVerificationWithVault(ver, userMap.get(uid));
+      if (statusFilter === "all") {
+        enriched.push(item);
+      } else if (item.status === statusFilter) {
+        enriched.push(item);
+      }
+    }
+
+    const statusPriority: Record<string, number> = {
+      pending: 0,
+      needs_info: 1,
+      verified: 2,
+      rejected: 3,
+      draft: 4,
+      not_verified: 5,
+    };
+
+    return enriched.sort((a, b) => {
+      const pa = statusPriority[a.status] ?? 9;
+      const pb = statusPriority[b.status] ?? 9;
+      if (pa !== pb) return pa - pb;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
   }
 
   const store = loadLocalStore();
-  return Object.values(store.verifications).filter(
-    (v) => statusFilter === "all" || v.status === statusFilter
-  );
+  return Object.values(store.verifications)
+    .filter((v) => statusFilter === "all" || v.status === statusFilter)
+    .map((v) =>
+      enrichVerificationWithVault(
+        v,
+        undefined,
+        store.profiles[v.user_id] || null,
+        store.artistProfiles[v.user_id] || null
+      )
+    );
 }
 
 export async function generateVerificationCode(userId: string): Promise<string> {
@@ -1363,16 +1579,18 @@ export async function generateVerificationCode(userId: string): Promise<string> 
   const nowIso = new Date().toISOString();
 
   const existing = await getVerificationByUserId(userId);
+  const profile = await getProfileByUserId(userId);
   const nextVer: CxrnerArtistVerification = existing
     ? {
         ...existing,
         verification_code: code,
         verification_code_status: "active",
+        updated_at: nowIso,
       }
     : {
         id: crypto.randomUUID(),
         user_id: userId,
-        stage_name: "Artist",
+        stage_name: profile?.display_name || "Artist",
         method: "code",
         verification_code: code,
         verification_code_status: "active",
@@ -1381,6 +1599,7 @@ export async function generateVerificationCode(userId: string): Promise<string> 
         status: "draft",
         reward_claimed: false,
         created_at: nowIso,
+        updated_at: nowIso,
       };
 
   const db = await getDbForUser(userId);
@@ -1389,7 +1608,9 @@ export async function generateVerificationCode(userId: string): Promise<string> 
       ...prev,
       ecosystem_verification: nextVer,
     }));
-    await db.from("cxrner_artist_verifications").upsert(nextVer).then(() => undefined);
+    await runOptionalTableQuery("cxrner_artist_verifications", () =>
+      db.from("cxrner_artist_verifications").upsert(toDbVerificationRow(nextVer))
+    );
     return code;
   }
 
@@ -1406,30 +1627,143 @@ export async function submitVerificationApplication(params: {
   evidenceLinks: Array<{ title: string; url: string }>;
   evidenceNotes?: string;
   verificationCode?: string;
+  projectType?: "solo" | "duo" | "band" | "collective";
+  genres?: string[];
+  country?: string;
+  city?: string;
+  contactTelegram?: string;
+  bio?: string;
+  releaseLinks?: string;
 }): Promise<CxrnerArtistVerification> {
-  const { userId, stageName, method, evidenceLinks, evidenceNotes, verificationCode } = params;
-
-  const ver: CxrnerArtistVerification = {
-    id: crypto.randomUUID(),
-    user_id: userId,
-    stage_name: stageName,
+  const {
+    userId,
+    stageName,
     method,
-    verification_code: verificationCode || null,
+    evidenceLinks,
+    evidenceNotes,
+    verificationCode,
+    projectType,
+    genres,
+    country,
+    city,
+    contactTelegram,
+    bio,
+    releaseLinks,
+  } = params;
+
+  const nowIso = new Date().toISOString();
+  const existing = await getVerificationByUserId(userId);
+  const cleanStageName = stageName.trim();
+
+  // Extract DSP URLs from evidence links to keep artist profile synchronized
+  const findUrl = (keywords: string[]) =>
+    evidenceLinks.find((l) => {
+      const hay = `${l.title} ${l.url}`.toLowerCase();
+      return keywords.some((k) => hay.includes(k));
+    })?.url || undefined;
+
+  const spotifyUrl = findUrl(["spotify"]);
+  const yandexUrl = findUrl(["yandex", "яндекс"]);
+  const appleUrl = findUrl(["apple"]);
+  const vkUrl = findUrl(["vk.com", "vk ", "вк"]);
+  const tgUrl = findUrl(["t.me", "telegram", "телеграм"]);
+
+  const artistProf = await upsertArtistProfile(userId, {
+    stage_name: cleanStageName,
+    ...(projectType ? { project_type: projectType } : {}),
+    ...(Array.isArray(genres) && genres.length > 0 ? { genres } : {}),
+    ...(country ? { country } : {}),
+    ...(city !== undefined ? { city: city || null } : {}),
+    ...(bio !== undefined && bio.trim() ? { bio: bio.trim() } : {}),
+    ...(spotifyUrl ? { spotify_url: spotifyUrl } : {}),
+    ...(yandexUrl ? { yandex_music_url: yandexUrl } : {}),
+    ...(appleUrl ? { apple_music_url: appleUrl } : {}),
+    ...(vkUrl ? { vk_music_url: vkUrl } : {}),
+    ...(tgUrl ? { telegram_url: tgUrl } : {}),
+    verification_status: "pending",
+  });
+
+  // Also sync filled fields into CXRNER ID profile so user's profile & admin dossier stay consistent
+  const currentProfile = await getProfileByUserId(userId);
+  if (currentProfile) {
+    const mergedMusicLinks = [...(currentProfile.music_links || [])];
+    const mergedSocialLinks = [...(currentProfile.social_links || [])];
+
+    for (const link of evidenceLinks) {
+      if (!link.url) continue;
+      const lower = `${link.title} ${link.url}`.toLowerCase();
+      const isSocial =
+        lower.includes("t.me") ||
+        lower.includes("telegram") ||
+        lower.includes("instagram") ||
+        lower.includes("tiktok") ||
+        (lower.includes("vk.com") && !lower.includes("artist"));
+      if (isSocial) {
+        if (!mergedSocialLinks.some((s) => s.url === link.url)) {
+          mergedSocialLinks.push({ platform: link.title || "Social", url: link.url });
+        }
+      } else {
+        if (!mergedMusicLinks.some((m) => m.url === link.url)) {
+          mergedMusicLinks.push({ platform: link.title || "DSP", url: link.url });
+        }
+      }
+    }
+
+    await upsertUserProfile({
+      userId,
+      displayName: currentProfile.display_name === "CXRNER Artist" ? cleanStageName : undefined,
+      bio: bio && !currentProfile.bio ? bio : undefined,
+      country: country || currentProfile.country,
+      city: city || currentProfile.city || undefined,
+      genres:
+        Array.isArray(genres) && genres.length > 0
+          ? Array.from(new Set([...(currentProfile.genres || []), ...genres]))
+          : undefined,
+      telegramUsername:
+        contactTelegram && !currentProfile.telegram_username
+          ? contactTelegram.replace(/^@/, "").trim()
+          : undefined,
+      musicLinks: mergedMusicLinks,
+      socialLinks: mergedSocialLinks,
+    });
+  }
+
+  // Strictly status: "pending" — only Admin in Admin Panel can set status: "verified"
+  const ver: CxrnerArtistVerification = {
+    id: existing?.id || crypto.randomUUID(),
+    user_id: userId,
+    artist_profile_id: artistProf.id,
+    stage_name: cleanStageName,
+    method: method === "oauth" ? "manual" : method,
+    verification_code: verificationCode || existing?.verification_code || null,
     verification_code_status: "active",
     evidence_links: evidenceLinks,
     evidence_notes: evidenceNotes || null,
+    project_type: projectType || artistProf.project_type || "solo",
+    genres: Array.isArray(genres) && genres.length > 0 ? genres : artistProf.genres || [],
+    country: country || artistProf.country || "RU",
+    city: city !== undefined ? city || null : artistProf.city || null,
+    contact_telegram: contactTelegram ? contactTelegram.replace(/^@/, "").trim() : null,
+    bio: bio || artistProf.bio || null,
+    release_links: releaseLinks || null,
     status: "pending",
-    reward_claimed: false,
-    created_at: new Date().toISOString(),
+    reviewer_notes: null,
+    reject_reason: null,
+    reward_claimed: Boolean(existing?.reward_claimed),
+    created_at: existing?.created_at || nowIso,
+    updated_at: nowIso,
   };
 
   const db = await getDbForUser(userId);
   if (db) {
     await writeCabinetVault(userId, (prev) => ({
       ...prev,
+      artist_name: cleanStageName,
       ecosystem_verification: ver,
     }));
-    await db.from("cxrner_artist_verifications").upsert(ver).then(() => undefined);
+    await runOptionalTableQuery("cxrner_artist_verifications", () =>
+      db.from("cxrner_artist_verifications").upsert(toDbVerificationRow(ver))
+    );
   } else {
     const store = loadLocalStore();
     store.verifications[userId] = ver;
@@ -1440,7 +1774,7 @@ export async function submitVerificationApplication(params: {
     userId,
     type: "system",
     title: "Заявка на верификацию отправлена",
-    message: `Заявка для «${stageName}» передана модераторам CXRNER. Статус проверки отображается в кабинете.`,
+    message: `Заявка для «${cleanStageName}» передана в панель администратора CXRNER. Верификация будет активирована после ручной проверки ваших данных.`,
     link: "/cabinet/verification",
   });
 
@@ -1450,26 +1784,45 @@ export async function submitVerificationApplication(params: {
 export async function processVerificationReview(params: {
   verificationId: string;
   targetUserId: string;
-  decision: "verified" | "rejected" | "needs_info";
+  decision: "verified" | "rejected" | "needs_info" | "not_verified";
   reviewerEmail: string;
   notes?: string;
   rejectReason?: string;
 }): Promise<{ ok: boolean; status: VerificationStatus }> {
   const { targetUserId, decision, reviewerEmail, notes, rejectReason } = params;
-  const ver = await getVerificationByUserId(targetUserId);
-  if (!ver) return { ok: false, status: "not_verified" };
-
   const reviewedAt = new Date().toISOString();
+  const profile = await getProfileByUserId(targetUserId);
+  const artistProf = await getArtistProfileByUserId(targetUserId);
+
+  const existingVer = await getVerificationByUserId(targetUserId);
+  const ver: CxrnerArtistVerification = existingVer || {
+    id: crypto.randomUUID(),
+    user_id: targetUserId,
+    artist_profile_id: artistProf?.id || null,
+    stage_name: artistProf?.stage_name || profile?.display_name || "CXRNER Artist",
+    method: "manual",
+    verification_code: null,
+    verification_code_status: "active",
+    evidence_links: [],
+    evidence_notes: null,
+    status: decision,
+    reward_claimed: false,
+    created_at: reviewedAt,
+  };
+
   ver.status = decision;
   ver.reviewer_notes = notes || null;
   ver.reject_reason = rejectReason || null;
   ver.reviewed_at = reviewedAt;
   ver.reviewed_by = reviewerEmail;
+  ver.updated_at = reviewedAt;
+  if (decision === "verified") {
+    ver.verification_code_status = "verified";
+  }
 
   const db = await getDbForUser(targetUserId);
 
   if (decision === "verified") {
-    const profile = await getProfileByUserId(targetUserId);
     if (profile) {
       profile.is_artist_verified = true;
       if (!profile.equipped_badge) profile.equipped_badge = "verified";
@@ -1480,11 +1833,12 @@ export async function processVerificationReview(params: {
           ...prev,
           cxrner_id: profile,
         }));
-        await db
-          .from("cxrner_profiles")
-          .update({ is_artist_verified: true, equipped_badge: profile.equipped_badge })
-          .eq("id", targetUserId)
-          .then(() => undefined);
+        await runOptionalTableQuery("cxrner_profiles", () =>
+          db
+            .from("cxrner_profiles")
+            .update({ is_artist_verified: true, equipped_badge: profile.equipped_badge })
+            .eq("id", targetUserId)
+        );
       } else {
         const store = loadLocalStore();
         store.profiles[targetUserId] = profile;
@@ -1492,13 +1846,11 @@ export async function processVerificationReview(params: {
       }
     }
 
-    const artistProf = await getArtistProfileByUserId(targetUserId);
-    if (artistProf) {
-      await upsertArtistProfile(targetUserId, {
-        verification_status: "verified",
-        verified_at: reviewedAt,
-      });
-    }
+    await upsertArtistProfile(targetUserId, {
+      stage_name: ver.stage_name || artistProf?.stage_name || profile?.display_name || "Artist",
+      verification_status: "verified",
+      verified_at: reviewedAt,
+    });
 
     if (!ver.reward_claimed) {
       ver.reward_claimed = true;
@@ -1521,25 +1873,68 @@ export async function processVerificationReview(params: {
       type: "verification_update",
       title: "Артистический профиль верифицирован!",
       message:
-        "Поздравляем! Ваш статус подтверждён. В профиле появился знак CXRNER VERIFIED и начислено 100 CXP.",
+        "Поздравляем! Администратор проверил ваши данные и подтвердил аккаунт артиста. В профиле активирован статус CXRNER VERIFIED и начислено 100 CXP.",
       link: "/cabinet/profile",
     });
-  } else if (decision === "rejected") {
-    await createNotification({
-      userId: targetUserId,
-      type: "verification_update",
-      title: "Верификация отклонена",
-      message: `Причина: ${rejectReason || "Недостаточно доказательств владения карточкой артиста"}. Вы можете исправить данные и подать заявку повторно.`,
-      link: "/cabinet/verification",
-    });
-  } else if (decision === "needs_info") {
-    await createNotification({
-      userId: targetUserId,
-      type: "verification_update",
-      title: "Требуются дополнительные данные",
-      message: notes || "Модератор запросил уточняющую информацию по вашей заявке.",
-      link: "/cabinet/verification",
-    });
+  } else {
+    // If rejected, needs_info, or revoked (not_verified), ensure is_artist_verified is false
+    if (profile && profile.is_artist_verified) {
+      profile.is_artist_verified = false;
+      if (profile.equipped_badge === "verified") {
+        profile.equipped_badge = null;
+      }
+      profile.updated_at = reviewedAt;
+
+      if (db) {
+        await writeCabinetVault(targetUserId, (prev) => ({
+          ...prev,
+          cxrner_id: profile,
+        }));
+        await runOptionalTableQuery("cxrner_profiles", () =>
+          db
+            .from("cxrner_profiles")
+            .update({ is_artist_verified: false, equipped_badge: profile.equipped_badge })
+            .eq("id", targetUserId)
+        );
+      } else {
+        const store = loadLocalStore();
+        store.profiles[targetUserId] = profile;
+        saveLocalStore(store);
+      }
+    }
+
+    if (artistProf) {
+      await upsertArtistProfile(targetUserId, {
+        verification_status: decision,
+        verified_at: null,
+      });
+    }
+
+    if (decision === "rejected") {
+      await createNotification({
+        userId: targetUserId,
+        type: "verification_update",
+        title: "Верификация отклонена",
+        message: `Причина: ${rejectReason || "Недостаточно доказательств владения карточкой артиста"}. Вы можете дополнить данные и подать заявку повторно.`,
+        link: "/cabinet/verification",
+      });
+    } else if (decision === "needs_info") {
+      await createNotification({
+        userId: targetUserId,
+        type: "verification_update",
+        title: "Требуются дополнительные данные",
+        message: notes || "Администратор запросил уточняющую информацию по вашей заявке на верификацию.",
+        link: "/cabinet/verification",
+      });
+    } else if (decision === "not_verified") {
+      await createNotification({
+        userId: targetUserId,
+        type: "verification_update",
+        title: "Статус верификации изменён",
+        message: notes || "Статус верификации аккаунта артиста был снят администратором.",
+        link: "/cabinet/verification",
+      });
+    }
   }
 
   if (db) {
@@ -1547,18 +1942,9 @@ export async function processVerificationReview(params: {
       ...prev,
       ecosystem_verification: ver,
     }));
-    await db
-      .from("cxrner_artist_verifications")
-      .update({
-        status: decision,
-        reviewer_notes: notes || null,
-        reject_reason: rejectReason || null,
-        reviewed_at: reviewedAt,
-        reviewed_by: reviewerEmail,
-        reward_claimed: ver.reward_claimed,
-      })
-      .eq("user_id", targetUserId)
-      .then(() => undefined);
+    await runOptionalTableQuery("cxrner_artist_verifications", () =>
+      db.from("cxrner_artist_verifications").upsert(toDbVerificationRow(ver))
+    );
   } else {
     const store = loadLocalStore();
     store.verifications[targetUserId] = ver;
@@ -3338,55 +3724,23 @@ export async function adminSetUserVerification(
   targetUserId: string,
   verificationStatus: VerificationStatus
 ): Promise<void> {
-  const db = await getDbForUser(targetUserId);
-  if (!db) return;
+  const decision: "verified" | "rejected" | "needs_info" | "not_verified" =
+    verificationStatus === "verified"
+      ? "verified"
+      : verificationStatus === "rejected"
+      ? "rejected"
+      : verificationStatus === "needs_info"
+      ? "needs_info"
+      : "not_verified";
 
-  const isVerified = verificationStatus === "verified";
-  const nowIso = new Date().toISOString();
-
-  await db
-    .from("cxrner_profiles")
-    .update({ is_artist_verified: isVerified })
-    .eq("id", targetUserId)
-    .then(() => undefined);
-
-  await db
-    .from("cxrner_artist_profiles")
-    .update({
-      verification_status: verificationStatus,
-      verified_at: isVerified ? nowIso : null,
-    })
-    .eq("user_id", targetUserId)
-    .then(() => undefined);
-
-  await writeCabinetVault(targetUserId, (prev) => {
-    const cid = prev.cxrner_id as CxrnerProfile | undefined;
-    const art = prev.ecosystem_artist_profile as CxrnerArtistProfile | undefined;
-    return {
-      ...prev,
-      ...(cid
-        ? {
-            cxrner_id: {
-              ...cid,
-              is_artist_verified: isVerified,
-              updated_at: nowIso,
-            },
-          }
-        : {}),
-      ...(art
-        ? {
-            ecosystem_artist_profile: {
-              ...art,
-              verification_status: verificationStatus,
-              verified_at: isVerified ? nowIso : null,
-              updated_at: nowIso,
-            },
-          }
-        : {}),
-    };
+  await processVerificationReview({
+    verificationId: `admin_${targetUserId}`,
+    targetUserId,
+    decision,
+    reviewerEmail: "cxrner.label@gmail.com",
+    notes:
+      decision === "verified"
+        ? "Подтверждено администратором вручную"
+        : "Статус обновлён администратором",
   });
-
-  if (isVerified) {
-    await evaluateReferralMilestones(targetUserId).catch(() => {});
-  }
 }

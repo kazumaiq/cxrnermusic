@@ -1,24 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import React, { useState } from "react";
 import {
   ShieldCheck,
-  Key,
-  FileText,
-  Clock,
   CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Sparkles,
-  ExternalLink,
+  Clock,
+  AlertCircle,
   Copy,
-  Check,
   RefreshCw,
+  ExternalLink,
+  Music2,
+  KeyRound,
+  FileText,
+  Sparkles,
   Send,
-  HelpCircle,
+  Globe,
+  UserCheck,
+  Edit3,
 } from "lucide-react";
-import type { CxrnerProfile, CxrnerArtistProfile, CxrnerArtistVerification } from "@/lib/ecosystemTypes";
+import type {
+  CxrnerArtistProfile,
+  CxrnerArtistVerification,
+  CxrnerProfile,
+} from "@/lib/ecosystemTypes";
 
 interface VerificationClientProps {
   profile: CxrnerProfile | null;
@@ -31,388 +35,706 @@ export default function VerificationClient({
   artistProfile,
   initialVerification,
 }: VerificationClientProps) {
-  const [verification, setVerification] = useState<CxrnerArtistVerification | null>(initialVerification);
-  const [method, setMethod] = useState<"oauth" | "code" | "manual">("code");
-  const [stageName, setStageName] = useState(artistProfile?.stage_name || profile?.display_name || "");
-  const [dspUrl1, setDspUrl1] = useState(artistProfile?.spotify_url || "");
-  const [dspUrl2, setDspUrl2] = useState(artistProfile?.yandex_music_url || "");
-  const [socialUrl, setSocialUrl] = useState("");
-  const [evidenceNotes, setEvidenceNotes] = useState("");
-  const [verificationCode, setVerificationCode] = useState(
-    initialVerification?.verification_code || "CXRNER-7492"
+  const [verification, setVerification] = useState<CxrnerArtistVerification | null>(
+    initialVerification
   );
-  const [generatingCode, setGeneratingCode] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [currentArtistProfile, setCurrentArtistProfile] = useState<CxrnerArtistProfile | null>(
+    artistProfile
+  );
 
-  const status = verification?.status || (profile?.is_artist_verified ? "verified" : "not_verified");
+  const existingLinks = initialVerification?.evidence_links || [];
+  const defaultDsp1 =
+    existingLinks[0]?.url ||
+    artistProfile?.yandex_music_url ||
+    artistProfile?.spotify_url ||
+    profile?.music_links?.[0]?.url ||
+    "";
+  const defaultDsp2 =
+    existingLinks[1]?.url ||
+    artistProfile?.spotify_url ||
+    artistProfile?.apple_music_url ||
+    artistProfile?.vk_music_url ||
+    profile?.music_links?.[1]?.url ||
+    "";
+  const defaultSocial =
+    existingLinks[2]?.url ||
+    artistProfile?.telegram_url ||
+    artistProfile?.instagram_url ||
+    profile?.social_links?.[0]?.url ||
+    "";
+
+  const [stageName, setStageName] = useState(
+    initialVerification?.stage_name && initialVerification.stage_name !== "Artist"
+      ? initialVerification.stage_name
+      : artistProfile?.stage_name || profile?.display_name || ""
+  );
+  const [projectType, setProjectType] = useState<"solo" | "duo" | "band" | "collective">(
+    initialVerification?.project_type || artistProfile?.project_type || "solo"
+  );
+  const [genresText, setGenresText] = useState(
+    (
+      initialVerification?.genres?.length
+        ? initialVerification.genres
+        : artistProfile?.genres?.length
+        ? artistProfile.genres
+        : profile?.genres || []
+    ).join(", ")
+  );
+  const [country, setCountry] = useState(
+    initialVerification?.country || artistProfile?.country || profile?.country || "RU"
+  );
+  const [city, setCity] = useState(
+    initialVerification?.city || artistProfile?.city || profile?.city || ""
+  );
+  const [contactTelegram, setContactTelegram] = useState(
+    initialVerification?.contact_telegram ||
+      (profile?.telegram_username ? `@${profile.telegram_username.replace(/^@/, "")}` : "")
+  );
+  const [bio, setBio] = useState(
+    initialVerification?.bio || artistProfile?.bio || profile?.bio || ""
+  );
+  const [releaseLinks, setReleaseLinks] = useState(initialVerification?.release_links || "");
+
+  const [method, setMethod] = useState<"code" | "manual">(
+    initialVerification?.method === "manual" ? "manual" : "code"
+  );
+  const [verCode, setVerCode] = useState(initialVerification?.verification_code || "");
+  const [generatingCode, setGeneratingCode] = useState(false);
+
+  const [dspUrl1, setDspUrl1] = useState(defaultDsp1);
+  const [dspUrl2, setDspUrl2] = useState(defaultDsp2);
+  const [socialUrl, setSocialUrl] = useState(defaultSocial);
+  const [notes, setNotes] = useState(initialVerification?.evidence_notes || "");
+
+  const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isEditingPending, setIsEditingPending] = useState(false);
+
+  const status = profile?.is_artist_verified
+    ? "verified"
+    : verification?.status || artistProfile?.verification_status || "not_verified";
 
   const handleGenerateCode = async () => {
     setGeneratingCode(true);
+    setErrorMsg(null);
     try {
       const res = await fetch("/api/cabinet/verification?action=generate_code");
       const data = await res.json();
       if (data.ok && data.code) {
-        setVerificationCode(data.code);
+        setVerCode(data.code);
+      } else {
+        setErrorMsg(data.error || "Ошибка генерации кода");
       }
     } catch {
-      // ignore
+      setErrorMsg("Сбой соединения с сервером");
     } finally {
       setGeneratingCode(false);
     }
   };
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(verificationCode);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
+    if (!verCode) return;
+    navigator.clipboard.writeText(verCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    if (!stageName.trim()) {
+      setErrorMsg("Укажите сценическое имя артиста");
+      return;
+    }
+
+    const links: Array<{ title: string; url: string }> = [];
+    if (dspUrl1.trim()) links.push({ title: "Основная площадка (DSP #1)", url: dspUrl1.trim() });
+    if (dspUrl2.trim()) links.push({ title: "Доп. площадка (DSP #2)", url: dspUrl2.trim() });
+    if (socialUrl.trim()) links.push({ title: "Официальная соцсеть / канал", url: socialUrl.trim() });
+
+    if (links.length === 0) {
+      setErrorMsg("Укажите хотя бы одну ссылку на карточку артиста или официальное сообщество");
+      return;
+    }
+
+    const parsedGenres = genresText
+      .split(",")
+      .map((g) => g.trim())
+      .filter(Boolean);
+
     setSubmitting(true);
-    setNotice(null);
-
-    const evidenceLinks = [
-      dspUrl1 ? { title: "Основная карточка артиста", url: dspUrl1 } : null,
-      dspUrl2 ? { title: "Вторая площадка", url: dspUrl2 } : null,
-      socialUrl ? { title: "Официальная соцсеть", url: socialUrl } : null,
-    ].filter(Boolean);
-
     try {
       const res = await fetch("/api/cabinet/verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          stageName,
+          stageName: stageName.trim(),
           method,
-          verificationCode: method === "code" ? verificationCode : null,
-          evidenceLinks,
-          evidenceNotes,
+          verificationCode: verCode || null,
+          evidenceLinks: links,
+          evidenceNotes: notes.trim(),
+          projectType,
+          genres: parsedGenres,
+          country: country.trim() || "RU",
+          city: city.trim(),
+          contactTelegram: contactTelegram.trim(),
+          bio: bio.trim(),
+          releaseLinks: releaseLinks.trim(),
         }),
       });
-
       const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setNotice({ type: "error", text: data.error || "Ошибка отправки заявки" });
-        return;
+      if (data.ok) {
+        setVerification(data.application);
+        if (data.artistProfile) {
+          setCurrentArtistProfile(data.artistProfile);
+        }
+        setIsEditingPending(false);
+        setSuccessMsg(
+          "Заявка и анкета артиста отправлены в Админ-панель CXRNER! После ручной проверки всех данных администратором ваш аккаунт получит статус CXRNER VERIFIED."
+        );
+      } else {
+        setErrorMsg(data.error || "Ошибка отправки заявки");
       }
-
-      setVerification(data.application);
-      setNotice({
-        type: "success",
-        text: "Заявка на верификацию успешно отправлена на проверку модераторам CXRNER!",
-      });
     } catch {
-      setNotice({ type: "error", text: "Ошибка сети при отправке" });
+      setErrorMsg("Ошибка отправки заявки");
     } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
-        <div>
-          <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-[#B46BFF] font-semibold">
-            <ShieldCheck className="w-4 h-4 text-[#00F0FF]" />
-            <span>ARTIST NETWORK // ВЕРИФИКАЦИЯ</span>
-          </div>
-          <h1 className="font-display font-black text-2xl sm:text-3xl text-white tracking-wide mt-1">
-            Верификация Артиста
-          </h1>
-          <p className="text-xs sm:text-sm text-[#D9D9E2]/60 mt-0.5">
-            Подтвердите владение артистическими площадками для получения официального статуса CXRNER VERIFIED.
-          </p>
-        </div>
+  const showForm =
+    status !== "verified" && (status !== "pending" || isEditingPending);
 
-        {status === "verified" ? (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono text-xs font-bold">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>CXRNER VERIFIED ARTIST</span>
+  return (
+    <div className="space-y-8">
+      {/* Header Banner */}
+      <div className="relative rounded-3xl bg-gradient-to-br from-[#0F0A1C] via-[#090611] to-[#050407] border border-white/10 p-6 sm:p-8 overflow-hidden shadow-2xl">
+        <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-[#8737FF]/15 blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#8737FF]/15 border border-[#8737FF]/35 text-[#B46BFF] font-mono text-xs">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>VERIFIED ARTIST IDENTITY // РУЧНАЯ МОДЕРАЦИЯ</span>
+            </div>
+            <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight">
+              Верификация артиста CXRNER
+            </h1>
+            <p className="text-sm text-[#D9D9E2]/70 leading-relaxed">
+              Заполните анкету артиста и прикрепите ссылки на площадки. Все указанные вами данные
+              поступают напрямую в закрытую панель администратора лейбла. Статус{" "}
+              <span className="text-white font-semibold">CXRNER VERIFIED</span> и награда{" "}
+              <span className="text-[#00F0FF] font-mono font-bold">+100 CXP</span> присваиваются
+              после личной проверки администратором.
+            </p>
           </div>
-        ) : (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/15 text-[#D9D9E2]/70 font-mono text-xs">
-            <Clock className="w-4 h-4 text-[#B46BFF]" />
-            <span>Статус: {status.toUpperCase()}</span>
+
+          {/* Current Status Pill */}
+          <div className="shrink-0">
+            {status === "verified" && (
+              <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+                <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-wider opacity-70">
+                    Статус аккаунта
+                  </div>
+                  <div className="font-display font-bold text-sm">ВЕРИФИЦИРОВАН</div>
+                </div>
+              </div>
+            )}
+            {status === "pending" && (
+              <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300">
+                <Clock className="w-6 h-6 text-amber-400 shrink-0 animate-pulse" />
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-wider opacity-70">
+                    Статус заявки
+                  </div>
+                  <div className="font-display font-bold text-sm">НА ПРОВЕРКЕ У АДМИНА</div>
+                </div>
+              </div>
+            )}
+            {status === "needs_info" && (
+              <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF]">
+                <AlertCircle className="w-6 h-6 shrink-0" />
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-wider opacity-70">
+                    Статус заявки
+                  </div>
+                  <div className="font-display font-bold text-sm">НУЖНЫ УТОЧНЕНИЯ</div>
+                </div>
+              </div>
+            )}
+            {status === "rejected" && (
+              <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300">
+                <AlertCircle className="w-6 h-6 text-red-400 shrink-0" />
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-wider opacity-70">
+                    Статус заявки
+                  </div>
+                  <div className="font-display font-bold text-sm">ОТКЛОНЕНО</div>
+                </div>
+              </div>
+            )}
+            {(status === "not_verified" || status === "draft") && (
+              <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-[#D9D9E2]/70">
+                <Music2 className="w-6 h-6 text-[#B46BFF] shrink-0" />
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-wider opacity-70">
+                    Статус аккаунта
+                  </div>
+                  <div className="font-display font-bold text-sm text-white">НЕ ПОДТВЕРЖДЁН</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Reviewer Feedback Alert if rejected or needs_info */}
+      {(status === "rejected" || status === "needs_info") &&
+        (verification?.reject_reason || verification?.reviewer_notes) && (
+          <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-start gap-3.5 text-sm text-red-200">
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="font-bold text-white">Комментарий администратора CXRNER:</div>
+              <p className="text-xs leading-relaxed">
+                {verification.reject_reason || verification.reviewer_notes}
+              </p>
+            </div>
           </div>
         )}
-      </div>
 
-      {notice && (
-        <div
-          className={`p-4 rounded-2xl border flex items-center gap-3 font-sans text-xs sm:text-sm ${
-            notice.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-              : "bg-red-500/10 border-red-500/30 text-red-300"
-          }`}
-        >
-          {notice.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
-          ) : (
-            <AlertTriangle className="w-5 h-5 shrink-0 text-red-400" />
+      {/* Submitted Application Summary Card (when pending or verified) */}
+      {verification && status !== "not_verified" && status !== "draft" && (
+        <div className="p-6 sm:p-8 rounded-3xl bg-[#090611]/90 border border-white/10 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-[#8737FF]/15 border border-[#8737FF]/35 flex items-center justify-center text-[#B46BFF]">
+                <UserCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-[#00F0FF]">
+                  // АНКЕТА АРТИСТА В БАЗЕ МОДЕРАЦИИ
+                </div>
+                <h2 className="font-display font-bold text-lg text-white">
+                  {verification.stage_name || currentArtistProfile?.stage_name}
+                </h2>
+              </div>
+            </div>
+
+            {status === "pending" && !isEditingPending && (
+              <button
+                type="button"
+                onClick={() => setIsEditingPending(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-mono text-white transition"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-[#B46BFF]" />
+                <span>Дополнить / изменить данные</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs font-mono">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div className="text-[#D9D9E2]/50 text-[10px] uppercase">Способ подтверждения</div>
+              <div className="text-white font-bold mt-1">
+                {verification.method === "code" ? "Проверочный код в описании" : "Ручная анкета + ссылки"}
+              </div>
+            </div>
+            {verification.verification_code && (
+              <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5">
+                <div className="text-[#D9D9E2]/50 text-[10px] uppercase">Проверочный код</div>
+                <div className="text-[#00F0FF] font-bold mt-1">{verification.verification_code}</div>
+              </div>
+            )}
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div className="text-[#D9D9E2]/50 text-[10px] uppercase">Формат и локация</div>
+              <div className="text-white font-bold mt-1 uppercase">
+                {verification.project_type || currentArtistProfile?.project_type || "solo"} ·{" "}
+                {verification.country || currentArtistProfile?.country || "RU"}
+                {verification.city || currentArtistProfile?.city
+                  ? `, ${verification.city || currentArtistProfile?.city}`
+                  : ""}
+              </div>
+            </div>
+            {(verification.contact_telegram || profile?.telegram_username) && (
+              <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5">
+                <div className="text-[#D9D9E2]/50 text-[10px] uppercase">Контактный Telegram</div>
+                <div className="text-[#B46BFF] font-bold mt-1">
+                  @{String(verification.contact_telegram || profile?.telegram_username).replace(/^@/, "")}
+                </div>
+              </div>
+            )}
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div className="text-[#D9D9E2]/50 text-[10px] uppercase">Дата подачи</div>
+              <div className="text-white font-bold mt-1">
+                {new Date(verification.updated_at || verification.created_at).toLocaleString("ru-RU")}
+              </div>
+            </div>
+          </div>
+
+          {verification.evidence_links?.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#D9D9E2]/50">
+                Переданные ссылки для проверки администратором:
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {verification.evidence_links.map((link, idx) => (
+                  <a
+                    key={idx}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 flex items-center justify-between gap-2 text-xs font-mono transition"
+                  >
+                    <div className="truncate">
+                      <span className="text-[#D9D9E2]/50 mr-2">{link.title}:</span>
+                      <span className="text-[#00F0FF]">{link.url}</span>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                  </a>
+                ))}
+              </div>
+            </div>
           )}
-          <span>{notice.text}</span>
+
+          {status === "verified" && (
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-bold">
+                <Sparkles className="w-4 h-4" />
+                <span>Награда +100 CXP и бейдж CXRNER VERIFIED активированы администратором</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Benefits Card */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-[#160B28] via-[#090611] to-[#12081C] border border-[#B46BFF]/30 shadow-xl space-y-4">
-        <h3 className="font-display font-bold text-base text-white flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#00F0FF]" />
-          <span>Что даёт подтверждение артистического профиля:</span>
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-            <div className="text-[#00F0FF] font-bold mb-1">CXRNER VERIFIED</div>
-            <div className="text-[#D9D9E2]/70 text-[11px] font-sans">
-              Официальный бейдж верификации в вашем личном профиле и каталоге артистов.
-            </div>
-          </div>
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-            <div className="text-[#B46BFF] font-bold mb-1">+100 CXP & ДОСТИЖЕНИЕ</div>
-            <div className="text-[#D9D9E2]/70 text-[11px] font-sans">
-              Награда 100 CXP и разблокировка редкого достижения «VERIFIED ARTIST».
-            </div>
-          </div>
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-            <div className="text-emerald-400 font-bold mb-1">ПРИОРИТЕТ МОДЕРАЦИИ</div>
-            <div className="text-[#D9D9E2]/70 text-[11px] font-sans">
-              Ускоренная отгрузка ваших будущих релизов на стриминги и в смарт-ссылки.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Verification Status Banner if pending / rejected / needs info */}
-      {verification && (
-        <div
-          className={`p-6 rounded-3xl border space-y-2 ${
-            verification.status === "verified"
-              ? "bg-emerald-500/10 border-emerald-500/30"
-              : verification.status === "pending"
-              ? "bg-blue-500/10 border-blue-500/30"
-              : verification.status === "needs_info"
-              ? "bg-amber-500/10 border-amber-500/30"
-              : "bg-red-500/10 border-red-500/30"
-          }`}
+      {/* Application Form */}
+      {showForm && (
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 sm:p-8 rounded-3xl bg-[#090611]/90 border border-white/10 space-y-6"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 font-mono text-xs uppercase font-bold">
-              {verification.status === "verified" && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-              {verification.status === "pending" && <Clock className="w-4 h-4 text-blue-400 animate-spin" />}
-              {verification.status === "needs_info" && <HelpCircle className="w-4 h-4 text-amber-400" />}
-              {verification.status === "rejected" && <XCircle className="w-4 h-4 text-red-400" />}
-              <span>Статус заявки: {verification.status.toUpperCase()}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
+            <div>
+              <h2 className="font-display font-bold text-xl text-white">
+                {status === "pending"
+                  ? "Редактирование заявки на верификацию"
+                  : "Подача заявки на верификацию артиста"}
+              </h2>
+              <p className="text-xs text-[#D9D9E2]/60 mt-1">
+                Все поля ниже передаются в панель администратора CXRNER для ручной сверки и подтверждения.
+              </p>
             </div>
-            <span className="font-mono text-[11px] text-[#D9D9E2]/50">
-              {new Date(verification.created_at).toLocaleDateString()}
-            </span>
+            {isEditingPending && (
+              <button
+                type="button"
+                onClick={() => setIsEditingPending(false)}
+                className="text-xs font-mono text-[#D9D9E2]/60 hover:text-white"
+              >
+                Отменить редактирование
+              </button>
+            )}
           </div>
 
-          {verification.status === "needs_info" && (
-            <p className="text-xs text-amber-200 font-sans">
-              Запрос модератора: {verification.reviewer_notes || "Уточните ссылки на профили."}
-            </p>
+          {errorMsg && (
+            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
           )}
 
-          {verification.status === "rejected" && (
-            <p className="text-xs text-red-200 font-sans">
-              Причина отклонения: {verification.reject_reason || "Недостаточно подтверждающих материалов."}
-            </p>
+          {successMsg && (
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{successMsg}</span>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Verification Submission Form */}
-      {status !== "verified" && (
-        <form onSubmit={handleSubmit} className="p-7 rounded-3xl bg-[#090611] border border-white/10 space-y-6">
-          <h3 className="font-display font-bold text-lg text-white">
-            Подача заявки на верификацию
-          </h3>
+          {/* Block 1: Core Artist Identity */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase tracking-wider text-[#D9D9E2]/60">
+                Сценическое имя артиста (никнейм на площадках) *
+              </label>
+              <input
+                type="text"
+                value={stageName}
+                onChange={(e) => setStageName(e.target.value)}
+                placeholder="Например: KAZUMA"
+                required
+                className="w-full px-4 py-3 rounded-2xl bg-[#050407] border border-white/10 text-white text-sm focus:outline-none focus:border-[#8737FF]"
+              />
+            </div>
 
-          {/* Stage name */}
-          <div>
-            <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-              Сценическое имя артиста *
-            </label>
-            <input
-              type="text"
-              required
-              value={stageName}
-              onChange={(e) => setStageName(e.target.value)}
-              placeholder="Например: KAZUMA"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none transition"
-            />
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase tracking-wider text-[#D9D9E2]/60">
+                Формат проекта
+              </label>
+              <select
+                value={projectType}
+                onChange={(e) =>
+                  setProjectType(e.target.value as "solo" | "duo" | "band" | "collective")
+                }
+                className="w-full px-4 py-3 rounded-2xl bg-[#050407] border border-white/10 text-white text-sm focus:outline-none focus:border-[#8737FF]"
+              >
+                <option value="solo">Сольный артист (Solo)</option>
+                <option value="duo">Дуэт (Duo)</option>
+                <option value="band">Группа (Band)</option>
+                <option value="collective">Творческое объединение / Лейбл</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase tracking-wider text-[#D9D9E2]/60">
+                Основные жанры (через запятую)
+              </label>
+              <input
+                type="text"
+                value={genresText}
+                onChange={(e) => setGenresText(e.target.value)}
+                placeholder="Phonk, Trap, Electronic, Hyperpop"
+                className="w-full px-4 py-3 rounded-2xl bg-[#050407] border border-white/10 text-white text-sm focus:outline-none focus:border-[#8737FF]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase tracking-wider text-[#D9D9E2]/60">
+                Ваш Telegram для связи с администратором *
+              </label>
+              <div className="relative">
+                <Send className="w-4 h-4 text-[#B46BFF] absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  value={contactTelegram}
+                  onChange={(e) => setContactTelegram(e.target.value)}
+                  placeholder="@username"
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-[#050407] border border-white/10 text-white text-sm focus:outline-none focus:border-[#8737FF]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase tracking-wider text-[#D9D9E2]/60">
+                Страна
+              </label>
+              <div className="relative">
+                <Globe className="w-4 h-4 text-[#D9D9E2]/40 absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="RU / KZ / BY / EU"
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-[#050407] border border-white/10 text-white text-sm focus:outline-none focus:border-[#8737FF]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase tracking-wider text-[#D9D9E2]/60">
+                Город
+              </label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Москва / Санкт-Петербург / Алматы"
+                className="w-full px-4 py-3 rounded-2xl bg-[#050407] border border-white/10 text-white text-sm focus:outline-none focus:border-[#8737FF]"
+              />
+            </div>
           </div>
 
-          {/* Choose Verification Method */}
-          <div>
-            <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
-              Выберите способ подтверждения
+          {/* Method Selector (Both go to manual Admin verification) */}
+          <div className="space-y-2">
+            <label className="text-xs font-mono uppercase tracking-wider text-[#D9D9E2]/60">
+              Способ подтверждения владения карточкой артиста
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setMethod("code")}
-                className={`p-4 rounded-2xl text-left border transition ${
+                className={`p-4 rounded-2xl border text-left transition ${
                   method === "code"
-                    ? "bg-[#8737FF]/20 border-[#8737FF] shadow-[0_0_16px_rgba(135,55,255,0.3)]"
-                    : "bg-white/5 border-white/10 hover:border-white/20"
+                    ? "bg-[#8737FF]/15 border-[#8737FF] text-white"
+                    : "bg-[#050407] border-white/10 text-[#D9D9E2]/60 hover:text-white"
                 }`}
               >
-                <div className="font-mono text-xs font-bold text-[#00F0FF] mb-1">
-                  METHOD B: Временный код
+                <div className="flex items-center gap-2 font-mono text-xs font-bold text-[#00F0FF] mb-1">
+                  <KeyRound className="w-4 h-4" />
+                  <span>СПОСОБ 1: Проверочный код</span>
                 </div>
-                <div className="text-[11px] text-[#D9D9E2]/70 font-sans">
-                  Размещение сгенерированного кода в описании профиля или карточки артиста.
-                </div>
+                <p className="text-[11px] leading-relaxed opacity-80">
+                  Разместите уникальный код CXRNER в описании карточки артиста или соцсети для быстрой проверки администратором.
+                </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => setMethod("manual")}
-                className={`p-4 rounded-2xl text-left border transition ${
+                className={`p-4 rounded-2xl border text-left transition ${
                   method === "manual"
-                    ? "bg-[#8737FF]/20 border-[#8737FF] shadow-[0_0_16px_rgba(135,55,255,0.3)]"
-                    : "bg-white/5 border-white/10 hover:border-white/20"
+                    ? "bg-[#8737FF]/15 border-[#8737FF] text-white"
+                    : "bg-[#050407] border-white/10 text-[#D9D9E2]/60 hover:text-white"
                 }`}
               >
-                <div className="font-mono text-xs font-bold text-[#B46BFF] mb-1">
-                  METHOD C: Ручная проверка
+                <div className="flex items-center gap-2 font-mono text-xs font-bold text-[#B46BFF] mb-1">
+                  <FileText className="w-4 h-4" />
+                  <span>СПОСОБ 2: Полная ручная сверка</span>
                 </div>
-                <div className="text-[11px] text-[#D9D9E2]/70 font-sans">
-                  Предоставление ссылок на карточки стримингов и официальные соцсети.
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMethod("oauth")}
-                className={`p-4 rounded-2xl text-left border transition ${
-                  method === "oauth"
-                    ? "bg-[#8737FF]/20 border-[#8737FF] shadow-[0_0_16px_rgba(135,55,255,0.3)]"
-                    : "bg-white/5 border-white/10 hover:border-white/20"
-                }`}
-              >
-                <div className="font-mono text-xs font-bold text-white/90 mb-1">
-                  METHOD A: Platform OAuth
-                </div>
-                <div className="text-[11px] text-[#D9D9E2]/70 font-sans">
-                  Прямое подтверждение владения через сторонние OAuth-провайдеры площадок.
-                </div>
+                <p className="text-[11px] leading-relaxed opacity-80">
+                  Предоставьте ссылки на стриминговые площадки, официальные сообщества и релизы для сверки администратором.
+                </p>
               </button>
             </div>
           </div>
 
-          {/* Method B: Code Generator Box */}
+          {/* Code Block for Method "code" */}
           {method === "code" && (
-            <div className="p-5 rounded-2xl bg-black/60 border border-white/15 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-[#00F0FF] uppercase font-bold">
-                  Ваш уникальный проверочный код:
-                </span>
-                <button
-                  type="button"
-                  onClick={handleGenerateCode}
-                  disabled={generatingCode}
-                  className="flex items-center gap-1 font-mono text-[11px] text-[#D9D9E2]/60 hover:text-white"
-                >
-                  <RefreshCw className={`w-3 h-3 ${generatingCode ? "animate-spin" : ""}`} />
-                  <span>Обновить</span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="px-5 py-3 rounded-xl bg-white/10 border border-white/20 font-mono text-lg font-black text-white tracking-widest shadow-inner">
-                  {verificationCode}
+            <div className="p-5 rounded-2xl bg-[#050407] border border-[#00F0FF]/25 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="text-xs font-mono text-[#00F0FF] uppercase font-bold">
+                    Ваш уникальный проверочный код:
+                  </div>
+                  <p className="text-xs text-[#D9D9E2]/65">
+                    Временно добавьте этот код в описание профиля артиста (Яндекс Музыка, Spotify for Artists, VK или Telegram-канал). Администратор проверит его наличие.
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCopyCode}
-                  className="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-mono font-medium text-white transition active:scale-95"
-                >
-                  {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  <span>{copiedCode ? "Скопировано!" : "Скопировать"}</span>
-                </button>
-              </div>
 
-              <p className="text-xs text-[#D9D9E2]/70 font-sans leading-relaxed">
-                Разместите этот код в биографии/описании вашей карточки на Яндекс Музыке, Spotify, в шапке паблика VK или в статусе Telegram артиста. После проверки модератор подтвердит заявку.
-              </p>
+                {verCode ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 font-mono font-bold text-base text-white tracking-wider">
+                      {verCode}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyCode}
+                      className="p-2.5 rounded-xl bg-[#8737FF] text-white hover:bg-[#7225e8] transition"
+                      title="Скопировать код"
+                    >
+                      {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGenerateCode}
+                      disabled={generatingCode}
+                      className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#D9D9E2]/70 hover:text-white transition"
+                      title="Обновить код"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${generatingCode ? "animate-spin" : ""}`} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGenerateCode}
+                    disabled={generatingCode}
+                    className="px-4 py-2.5 rounded-xl bg-[#00F0FF]/15 border border-[#00F0FF]/40 text-[#00F0FF] font-mono text-xs font-bold hover:bg-[#00F0FF]/25 transition flex items-center gap-2 shrink-0"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${generatingCode ? "animate-spin" : ""}`} />
+                    <span>Сгенерировать код</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Evidence URLs */}
-          <div className="space-y-4">
-            <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-white">
-              Ссылки для проверки владения
-            </h4>
-
-            <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1">
-                Основная карточка артиста (Spotify / Яндекс Музыка / Apple Music) *
+          {/* Evidence Links */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono text-[#D9D9E2]/60">
+                Карточка в Яндекс Музыке / Spotify *
               </label>
               <input
                 type="url"
-                required
                 value={dspUrl1}
                 onChange={(e) => setDspUrl1(e.target.value)}
                 placeholder="https://music.yandex.ru/artist/..."
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                required
+                className="w-full px-4 py-2.5 rounded-xl bg-[#050407] border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-[#8737FF]"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1">
-                Вторая музыкальная площадка (по желанию)
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono text-[#D9D9E2]/60">
+                Вторая площадка (Spotify / Apple Music / VK Музыка)
               </label>
               <input
                 type="url"
                 value={dspUrl2}
                 onChange={(e) => setDspUrl2(e.target.value)}
                 placeholder="https://open.spotify.com/artist/..."
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[#050407] border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-[#8737FF]"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1">
-                Официальная соцсеть артиста (VK, Instagram, Telegram)
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono text-[#D9D9E2]/60">
+                Официальный паблик VK / Telegram-канал / Instagram *
               </label>
               <input
                 type="url"
                 value={socialUrl}
                 onChange={(e) => setSocialUrl(e.target.value)}
-                placeholder="https://vk.com/... или https://t.me/..."
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                placeholder="https://t.me/... или https://vk.com/..."
+                required
+                className="w-full px-4 py-2.5 rounded-xl bg-[#050407] border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-[#8737FF]"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1">
-                Комментарий для модератора (по желанию)
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono text-[#D9D9E2]/60">
+                Ссылки на релизы / UPC / SmartLink (необязательно)
               </label>
-              <textarea
-                rows={2}
-                value={evidenceNotes}
-                onChange={(e) => setEvidenceNotes(e.target.value)}
-                placeholder="Укажите, где размещён проверочный код или другие детали..."
-                className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/15 text-white text-xs outline-none"
+              <input
+                type="text"
+                value={releaseLinks}
+                onChange={(e) => setReleaseLinks(e.target.value)}
+                placeholder="UPC-код или ссылка на последний релиз"
+                className="w-full px-4 py-2.5 rounded-xl bg-[#050407] border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-[#8737FF]"
               />
             </div>
           </div>
 
-          <div className="pt-2 flex justify-end">
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono text-[#D9D9E2]/60">
+              Краткая информация об артисте / биография (отображается в профиле и у администратора)
+            </label>
+            <textarea
+              rows={2}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Расскажите о проекте, релизах и достижениях..."
+              className="w-full px-4 py-2.5 rounded-xl bg-[#050407] border border-white/10 text-white text-xs focus:outline-none focus:border-[#8737FF] resize-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono text-[#D9D9E2]/60">
+              Комментарий для администратора (где размещён код, скриншоты личного кабинета и т.д.)
+            </label>
+            <textarea
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Например: Проверочный код размещён в описании Telegram-канала и в паблике VK. Дистрибьютор через CXRNER..."
+              className="w-full px-4 py-2.5 rounded-xl bg-[#050407] border border-white/10 text-white text-xs focus:outline-none focus:border-[#8737FF] resize-none"
+            />
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <p className="text-[11px] font-mono text-[#D9D9E2]/50">
+              🔒 Подтверждение статуса артиста производится исключительно администратором лейбла после проверки анкеты.
+            </p>
             <button
               type="submit"
               disabled={submitting}
-              className="btn-energy inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider font-bold"
+              className="px-7 py-3.5 rounded-full bg-gradient-to-r from-[#8737FF] to-[#5E17EB] text-white font-display font-bold text-sm hover:opacity-95 transition shadow-[0_0_25px_rgba(135,55,255,0.4)] disabled:opacity-50 shrink-0"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>{submitting ? "Отправка..." : "Отправить заявку"}</span>
+              {submitting ? "Отправка анкеты..." : "Отправить на проверку администратору"}
             </button>
           </div>
         </form>

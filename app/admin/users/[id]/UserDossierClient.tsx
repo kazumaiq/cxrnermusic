@@ -396,19 +396,159 @@ export default function UserDossierClient({ userId }: UserDossierClientProps) {
 
       {/* TAB 3: ARTIST IDENTITY */}
       {activeTab === "artist" && (
-        <div className="p-6 rounded-3xl bg-[#090611] border border-white/10 space-y-4 animate-fadeIn">
-          <h3 className="font-display font-bold text-lg text-white">Музыкальные площадки и верификация</h3>
+        <div className="p-6 rounded-3xl bg-[#090611] border border-white/10 space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div>
+              <h3 className="font-display font-bold text-lg text-white">
+                Анкета верификации и площадки артиста
+              </h3>
+              <p className="text-xs text-[#D9D9E2]/60 mt-0.5">
+                Все данные, указанные артистом при подаче заявки на верификацию и в профиле CXRNER ID.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {overview.isArtistVerified ? (
+                <button
+                  type="button"
+                  onClick={() => handleSetVerification("not_verified")}
+                  className="px-4 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold transition"
+                >
+                  Отозвать верификацию
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleSetVerification("verified")}
+                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-mono text-xs font-extrabold transition flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Подтвердить и верифицировать (+100 CXP)</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {artistIdentity.verification ? (
+            <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4 text-xs font-mono">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[#00F0FF] uppercase font-bold">
+                  // Заявка на верификацию ({artistIdentity.verification.status})
+                </div>
+                {artistIdentity.verification.verification_code && (
+                  <div className="px-3 py-1 rounded-lg bg-[#00F0FF]/15 border border-[#00F0FF]/30 text-[#00F0FF] font-bold">
+                    Код: {artistIdentity.verification.verification_code}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                  Сценическое имя:{" "}
+                  <span className="text-white font-bold">
+                    {artistIdentity.verification.stage_name}
+                  </span>
+                </div>
+                <div>
+                  Способ:{" "}
+                  <span className="text-[#B46BFF] uppercase">
+                    {artistIdentity.verification.method === "code"
+                      ? "Проверочный код"
+                      : "Ручная анкета"}
+                  </span>
+                </div>
+                <div>
+                  Telegram для связи:{" "}
+                  <span className="text-white">
+                    {artistIdentity.verification.contact_telegram
+                      ? `@${artistIdentity.verification.contact_telegram}`
+                      : overview.telegramUsername
+                      ? `@${overview.telegramUsername}`
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+
+              {artistIdentity.verification.evidence_notes && (
+                <div className="p-3 rounded-xl bg-black/40 border border-white/5">
+                  <div className="text-[#D9D9E2]/50 mb-1">Комментарий артиста:</div>
+                  <div className="text-white font-sans">
+                    {artistIdentity.verification.evidence_notes}
+                  </div>
+                </div>
+              )}
+
+              {artistIdentity.verification.evidence_links?.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="text-[#D9D9E2]/50">Прикреплённые ссылки в заявке:</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {artistIdentity.verification.evidence_links.map((l: any, idx: number) => (
+                      <a
+                        key={idx}
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between gap-2 text-xs text-[#00F0FF] transition"
+                      >
+                        <span className="truncate">
+                          <strong className="text-white mr-1.5">{l.title}:</strong>
+                          {l.url}
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs font-mono text-[#D9D9E2]/50">
+              Заявка через форму верификации ещё не подавалась. Администратор может верифицировать аккаунт вручную кнопкой выше.
+            </div>
+          )}
+
           {artistIdentity.artistProfile ? (
             <div className="space-y-3 text-xs font-mono">
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>Сценическое имя: <span className="text-white font-bold">{artistIdentity.artistProfile.stage_name}</span></div>
-                <div>Тип проекта: <span className="text-[#00F0FF]">{artistIdentity.artistProfile.project_type}</span></div>
-                <div>Spotify: <span className="text-white">{artistIdentity.artistProfile.spotify_url || "—"}</span></div>
-                <div>Яндекс Музыка: <span className="text-white">{artistIdentity.artistProfile.yandex_music_url || "—"}</span></div>
+                <div>
+                  Сценическое имя:{" "}
+                  <span className="text-white font-bold">
+                    {artistIdentity.artistProfile.stage_name}
+                  </span>
+                </div>
+                <div>
+                  Тип проекта:{" "}
+                  <span className="text-[#00F0FF]">{artistIdentity.artistProfile.project_type}</span>
+                </div>
+                <div>
+                  Spotify:{" "}
+                  <span className="text-white">
+                    {artistIdentity.artistProfile.spotify_url || "—"}
+                  </span>
+                </div>
+                <div>
+                  Яндекс Музыка:{" "}
+                  <span className="text-white">
+                    {artistIdentity.artistProfile.yandex_music_url || "—"}
+                  </span>
+                </div>
+                <div>
+                  Apple Music:{" "}
+                  <span className="text-white">
+                    {artistIdentity.artistProfile.apple_music_url || "—"}
+                  </span>
+                </div>
+                <div>
+                  VK Музыка:{" "}
+                  <span className="text-white">
+                    {artistIdentity.artistProfile.vk_music_url || "—"}
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="text-xs text-[#D9D9E2]/50">Отдельный артистический профиль не создан.</div>
+            <div className="text-xs text-[#D9D9E2]/50">
+              Отдельный артистический профиль ещё не создан.
+            </div>
           )}
         </div>
       )}

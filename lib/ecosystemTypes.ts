@@ -166,13 +166,40 @@ export interface CxrnerArtistVerification {
   verification_code_status: "active" | "verified" | "expired";
   evidence_links: Array<{ title: string; url: string }>;
   evidence_notes?: string | null;
+  project_type?: "solo" | "duo" | "band" | "collective";
+  genres?: string[];
+  country?: string;
+  city?: string | null;
+  contact_telegram?: string | null;
+  bio?: string | null;
+  release_links?: string | null;
   status: VerificationStatus;
   reviewer_notes?: string | null;
   reject_reason?: string | null;
   reward_claimed: boolean;
   created_at: string;
+  updated_at?: string | null;
   reviewed_at?: string | null;
   reviewed_by?: string | null;
+  account_summary?: {
+    username: string;
+    display_name: string;
+    email?: string | null;
+    avatar_url?: string | null;
+    telegram_username?: string | null;
+    telegram_id?: string | null;
+    telegram_linked?: boolean;
+    is_artist_verified: boolean;
+    completion_percentage: number;
+    country?: string | null;
+    city?: string | null;
+    bio?: string | null;
+    genres: string[];
+    music_roles: string[];
+    social_links: Array<{ platform: string; url: string }>;
+    music_links: Array<{ platform: string; url: string }>;
+  };
+  artist_profile?: CxrnerArtistProfile | null;
 }
 
 export interface DropInventoryItem {

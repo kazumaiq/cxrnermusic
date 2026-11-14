@@ -16,9 +16,21 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get("status") || "all";
 
-    const applications = await getAllVerifications(statusFilter);
+    const allApplications = await getAllVerifications("all");
+    const applications =
+      statusFilter === "all"
+        ? allApplications
+        : allApplications.filter((a) => a.status === statusFilter);
 
-    return NextResponse.json({ ok: true, applications });
+    const stats = {
+      total: allApplications.length,
+      pending: allApplications.filter((a) => a.status === "pending").length,
+      needs_info: allApplications.filter((a) => a.status === "needs_info").length,
+      verified: allApplications.filter((a) => a.status === "verified").length,
+      rejected: allApplications.filter((a) => a.status === "rejected").length,
+    };
+
+    return NextResponse.json({ ok: true, applications, stats });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }

@@ -52,7 +52,20 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { stageName, method, evidenceLinks, evidenceNotes, verificationCode } = body;
+    const {
+      stageName,
+      method,
+      evidenceLinks,
+      evidenceNotes,
+      verificationCode,
+      projectType,
+      genres,
+      country,
+      city,
+      contactTelegram,
+      bio,
+      releaseLinks,
+    } = body;
 
     if (!stageName || !stageName.trim()) {
       return NextResponse.json(
@@ -61,16 +74,36 @@ export async function POST(request: Request) {
       );
     }
 
+    const cleanLinks = Array.isArray(evidenceLinks)
+      ? evidenceLinks.filter((l: any) => l && typeof l.url === "string" && l.url.trim().length > 0)
+      : [];
+
+    if (cleanLinks.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "Укажите хотя бы одну ссылку на карточку артиста или официальную соцсеть" },
+        { status: 400 }
+      );
+    }
+
     const application = await submitVerificationApplication({
       userId: user.id,
       stageName: stageName.trim(),
-      method: method || "manual",
-      evidenceLinks: Array.isArray(evidenceLinks) ? evidenceLinks : [],
+      method: method === "code" ? "code" : "manual",
+      evidenceLinks: cleanLinks,
       evidenceNotes: evidenceNotes || "",
       verificationCode: verificationCode || null,
+      projectType: projectType || "solo",
+      genres: Array.isArray(genres) ? genres : [],
+      country: country || "RU",
+      city: city || "",
+      contactTelegram: contactTelegram || "",
+      bio: bio || "",
+      releaseLinks: releaseLinks || "",
     });
 
-    return NextResponse.json({ ok: true, application });
+    const artistProfile = await getArtistProfileByUserId(user.id);
+
+    return NextResponse.json({ ok: true, application, artistProfile });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Container from "../../components/Container";
 import AdminNav from "../../components/admin/AdminNav";
 import GlowButton from "../../components/GlowButton";
+import VerificationAdminClient from "./verifications/VerificationAdminClient";
 import { stats } from "../../data/site";
 import type { FeaturedRelease } from "../../lib/featured";
 import type { ReleaseItem, ReleaseLink } from "../../lib/releases";
@@ -37,7 +38,14 @@ import {
   Boxes,
 } from "lucide-react";
 
-type Tab = "moderation" | "users" | "featured" | "releases" | "artists" | "system";
+type Tab =
+  | "moderation"
+  | "verifications"
+  | "users"
+  | "featured"
+  | "releases"
+  | "artists"
+  | "system";
 type NoticeType = "success" | "error" | "info";
 type Notice = { type: NoticeType; text: string } | null;
 
@@ -88,6 +96,7 @@ export default function AdminPage() {
 
   // Moderation state
   const [moderationForms, setModerationForms] = useState<ModerationForm[]>([]);
+  const [pendingVerificationsCount, setPendingVerificationsCount] = useState(0);
   const [moderationStats, setModerationStats] = useState({
     total: 0,
     pending: 0,
@@ -174,12 +183,13 @@ export default function AdminPage() {
   async function loadAdminData() {
     setLoading(true);
     try {
-      const [modRes, usersRes, featRes, relRes, artRes] = await Promise.all([
+      const [modRes, usersRes, featRes, relRes, artRes, verRes] = await Promise.all([
         fetch("/api/admin/moderation").then((r) => r.json()).catch(() => ({})),
         fetch("/api/admin/users").then((r) => r.json()).catch(() => ({})),
         fetch("/api/featured").then((r) => r.json()).catch(() => ({})),
         fetch("/api/releases").then((r) => r.json()).catch(() => ({})),
         fetch("/api/artists").then((r) => r.json()).catch(() => ({})),
+        fetch("/api/admin/verifications?status=all").then((r) => r.json()).catch(() => ({})),
       ]);
 
       if (modRes.ok) {
@@ -188,6 +198,9 @@ export default function AdminPage() {
       }
       if (usersRes.ok) {
         setCabinetUsers(usersRes.users || []);
+      }
+      if (verRes.ok && verRes.stats) {
+        setPendingVerificationsCount(verRes.stats.pending || 0);
       }
       setFeatured(featRes?.title ? featRes : emptyFeatured);
       setReleases(relRes?.items ?? []);
@@ -536,6 +549,7 @@ export default function AdminPage() {
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5 flex flex-wrap items-center gap-1.5">
           {[
             { id: "moderation", label: "Модерация треков", badge: moderationStats.pending, icon: Headphones },
+            { id: "verifications", label: "Верификация артистов", badge: pendingVerificationsCount, icon: ShieldCheck },
             { id: "users", label: "Артисты и Telegram", badge: cabinetUsers.length, icon: Users },
             { id: "featured", label: "Главная новинка", icon: Sparkles },
             { id: "releases", label: "Каталог релизов", icon: Disc },
@@ -905,6 +919,16 @@ export default function AdminPage() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tab 1.5: ARTIST VERIFICATIONS & QUESTIONNAIRES */}
+        {tab === "verifications" && (
+          <div className="mt-8">
+            <VerificationAdminClient
+              embedded
+              onStatsChange={(s) => setPendingVerificationsCount(s.pending)}
+            />
           </div>
         )}
 
