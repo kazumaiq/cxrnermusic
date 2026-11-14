@@ -352,18 +352,31 @@ export default function DropAdminClient({
               >
                 <div className="aspect-[3/4] w-20 mx-auto overflow-hidden">
                   <img
-                    src={`/drop/items/${specimen.item_id}.svg`}
+                    src={specimen.image_url || `/drop/items/${specimen.item_id}.jpg`}
                     alt={specimen.item_name}
                     className="w-full h-full object-contain"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (!target.src.endsWith(".svg")) {
+                        target.src = `/drop/items/${specimen.item_id}.svg`;
+                      }
+                    }}
                   />
                 </div>
                 <div>
                   <h4 className="font-display font-black text-xs uppercase text-white truncate">
                     {specimen.item_name}
                   </h4>
-                  <span className="font-mono text-[9px] text-[#00F0FF] uppercase block">
-                    {specimen.rarity}
-                  </span>
+                  <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                    {specimen.specimen_code && (
+                      <span className="font-mono text-[8px] text-[#00F0FF] font-bold">
+                        {specimen.specimen_code}
+                      </span>
+                    )}
+                    <span className="font-mono text-[9px] text-amber-300 font-bold">
+                      {specimen.drop_chance}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}

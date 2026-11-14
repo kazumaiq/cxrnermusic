@@ -125,14 +125,46 @@ export default function DropRatesModal({
               </div>
 
               {/* Available Items in this Tier */}
-              <div className="flex flex-wrap gap-1.5 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                 {tier.items.map((it) => (
-                  <span
+                  <div
                     key={it.item_id}
-                    className="px-2 py-0.5 rounded-md bg-black/60 border border-white/10 font-mono text-[9px] text-[#D9D9E2]/85"
+                    className="flex items-center gap-2.5 p-2 rounded-xl bg-black/60 border border-white/10 hover:border-white/25 transition"
                   >
-                    {it.item_name}
-                  </span>
+                    <div className="relative w-10 h-12 rounded-lg overflow-hidden bg-black/80 border border-white/10 shrink-0 flex items-center justify-center p-0.5">
+                      <img
+                        src={it.image_url || `/drop/items/${it.item_id}.jpg`}
+                        alt={it.item_name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (!target.src.endsWith(".svg")) {
+                            target.src = `/drop/items/${it.item_id}.svg`;
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        {it.specimen_code && (
+                          <span className="px-1.5 py-0.2 rounded bg-white/10 font-mono text-[8px] text-[#00F0FF] font-bold">
+                            {it.specimen_code}
+                          </span>
+                        )}
+                        <span className="font-mono text-[8px] text-white/50 uppercase">
+                          {it.specimen_class || "SPECIMEN"}
+                        </span>
+                      </div>
+                      <h4 className="font-display font-black text-[11px] uppercase tracking-wide text-white truncate">
+                        {it.item_name}
+                      </h4>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="font-mono text-[10px] font-bold" style={{ color: tier.color }}>
+                        {it.drop_chance || `${(tier.rate / tier.items.length).toFixed(2)}%`}
+                      </span>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

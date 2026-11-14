@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Pin, Sparkles, ExternalLink, RotateCw, Check } from "lucide-react";
 import type { DropInventoryItem, ItemRarity } from "@/lib/ecosystemTypes";
+import { DROP_SPECIMENS } from "@/lib/ecosystemTypes";
 import CollectionItem3DViewer from "@/components/3d/CollectionItem3DViewer";
 import SpecimenVisual, { RARITY_THEMES } from "./SpecimenVisual";
 
@@ -24,18 +25,38 @@ export default function ItemInspectModal({
   const theme = RARITY_THEMES[item.rarity as ItemRarity] || RARITY_THEMES.common;
   const isSpecial = item.rarity === "special_reward";
 
+  const specimenDef = DROP_SPECIMENS.find((s) => s.item_id === item.item_id);
+  const specimenCode = item.specimen_code || specimenDef?.specimen_code;
+  const specimenClass = item.specimen_class || specimenDef?.specimen_class;
+  const dropChance = item.drop_chance || specimenDef?.drop_chance;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in">
       <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-[#B46BFF]/45 bg-[#090611] p-6 sm:p-8 shadow-[0_0_80px_rgba(135,55,255,0.35)] space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={`px-2.5 py-0.5 rounded-full font-display font-black text-[9px] uppercase tracking-wider border backdrop-blur-md ${theme.pillBg}`}
               >
                 {theme.name}
               </span>
+              {specimenCode && (
+                <span className="px-2 py-0.5 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/40 font-mono text-[9px] text-[#00F0FF] font-bold uppercase">
+                  {specimenCode}
+                </span>
+              )}
+              {specimenClass && (
+                <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 font-mono text-[9px] text-white/70 uppercase">
+                  {specimenClass}
+                </span>
+              )}
+              {dropChance && (
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 font-mono text-[9px] text-amber-300 font-bold uppercase">
+                  ШАНС: {dropChance}
+                </span>
+              )}
               <span className="font-mono text-xs text-[#D9D9E2]/60 uppercase tracking-widest">
                 №{String(item.serial_number).padStart(6, "0")}
               </span>
@@ -97,6 +118,8 @@ export default function ItemInspectModal({
                 itemName={item.item_name}
                 rarity={item.rarity}
                 imageUrl={item.image_url}
+                specimenCode={specimenCode}
+                dropChance={dropChance}
                 serialNumber={item.serial_number}
                 collectionName={item.collection_name}
                 isSpecialReward={isSpecial}

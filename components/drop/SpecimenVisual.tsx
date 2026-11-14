@@ -9,6 +9,8 @@ interface SpecimenVisualProps {
   itemName: string;
   rarity: ItemRarity;
   imageUrl?: string;
+  specimenCode?: string;
+  dropChance?: string;
   serialNumber?: number;
   collectionName?: string;
   isSpecialReward?: boolean;
@@ -83,6 +85,8 @@ export default function SpecimenVisual({
   itemName,
   rarity,
   imageUrl,
+  specimenCode,
+  dropChance,
   serialNumber,
   collectionName,
   isSpecialReward = false,
@@ -91,9 +95,11 @@ export default function SpecimenVisual({
 }: SpecimenVisualProps) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [imageError, setImageError] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState<string>(
+    imageUrl || `/drop/items/${itemId}.jpg`
+  );
 
   const theme = RARITY_THEMES[rarity] || RARITY_THEMES.common;
-  const resolvedSrc = imageUrl || `/drop/items/${itemId}.svg`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!interactiveTilt) return;
@@ -129,10 +135,16 @@ export default function SpecimenVisual({
       <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-black/40 flex items-center justify-center">
         {!imageError ? (
           <img
-            src={resolvedSrc}
+            src={currentSrc}
             alt={itemName}
             className="w-full h-full object-contain p-1 filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] group-hover:scale-[1.03] transition-transform duration-300"
-            onError={() => setImageError(true)}
+            onError={() => {
+              if (!currentSrc.endsWith(".svg")) {
+                setCurrentSrc(`/drop/items/${itemId}.svg`);
+              } else {
+                setImageError(true);
+              }
+            }}
           />
         ) : (
           <div className="flex flex-col items-center justify-center p-6 text-center">
@@ -147,7 +159,11 @@ export default function SpecimenVisual({
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 border border-white/20 backdrop-blur-md">
           <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
           <span className="font-mono text-[8px] uppercase tracking-wider text-white font-bold">
-            {isSpecialReward ? "VIP VOUCHER" : `№${serialNumber ? String(serialNumber).padStart(6, "0") : "ARCHIVE"}`}
+            {isSpecialReward
+              ? "VIP VOUCHER"
+              : specimenCode
+              ? specimenCode
+              : `№${serialNumber ? String(serialNumber).padStart(6, "0") : "ARCHIVE"}`}
           </span>
         </div>
 
@@ -159,6 +175,15 @@ export default function SpecimenVisual({
             {theme.name}
           </span>
         </div>
+
+        {/* Drop Chance Tag (Bottom Right if provided) */}
+        {dropChance && (
+          <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/85 border border-[#00F0FF]/40 backdrop-blur-md">
+            <span className="font-mono text-[8px] uppercase tracking-wider text-[#00F0FF] font-bold">
+              {dropChance}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

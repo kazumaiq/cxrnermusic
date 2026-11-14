@@ -179,8 +179,11 @@ export interface DropInventoryItem {
   user_id: string;
   item_id: string;
   item_name: string;
+  specimen_code?: string;
+  specimen_class?: string;
   collection_name: string;
   rarity: ItemRarity;
+  drop_chance?: string;
   serial_number: number;
   description: string;
   image_url: string;
@@ -289,9 +292,14 @@ export interface AdminAuditLog {
 export interface DropSpecimenDef {
   item_id: string;
   item_name: string;
+  specimen_code?: string;
+  specimen_class?: "ACCESSORY" | "MEDIA" | "ORGANIC" | "OBJECT" | "ARTIFACT" | "REWARD";
   collection_name: string;
   rarity: ItemRarity;
+  drop_chance: string;
+  drop_rate_number: number;
   description: string;
+  image_url: string;
   model_color: string;
   shape: "cylinder" | "box" | "torus" | "octahedron" | "dodecahedron" | "icosahedron";
   case_id?: string;
@@ -363,34 +371,34 @@ export const DROP_CASES: DropCaseConfig[] = [
 
 export const DROP_SPECIMENS: DropSpecimenDef[] = [
   // -------------------------------------------------------------------------
-  // COMMON (55% Base)
+  // COMMON (55% Base — 13.75% each in Case 001)
   // -------------------------------------------------------------------------
   {
     item_id: "specimen_cyber_vinyl_01",
     item_name: "CYBER VINYL GENESIS",
+    specimen_code: "VN-001",
+    specimen_class: "MEDIA",
     collection_name: "GENESIS ARCHIVE",
     rarity: "common",
+    drop_chance: "13.75%",
+    drop_rate_number: 13.75,
     description: "Первый серийный релиз винила с гравировкой лазером CXRNER-001.",
+    image_url: "/drop/items/specimen_cyber_vinyl_01.svg",
     model_color: "#A855F7",
     shape: "cylinder",
     case_id: "case_001_archive",
   },
   {
-    item_id: "specimen_archive_cassette_02",
-    item_name: "ARCHIVE CASSETTE",
-    collection_name: "GENESIS ARCHIVE",
-    rarity: "common",
-    description: "Коллекционная кассета в прозрачной упаковке с магнитной лентой высокой плотности.",
-    model_color: "#06B6D4",
-    shape: "box",
-    case_id: "case_001_archive",
-  },
-  {
     item_id: "specimen_data_key_03",
     item_name: "DATA KEY",
+    specimen_code: "DK-003",
+    specimen_class: "OBJECT",
     collection_name: "SPECIMEN ARCHIVE",
     rarity: "common",
+    drop_chance: "13.75%",
+    drop_rate_number: 13.75,
     description: "Металлический цифровой ключ с защищённым чипом доступа к звуковым дорожкам.",
+    image_url: "/drop/items/specimen_data_key_03.svg",
     model_color: "#94A3B8",
     shape: "box",
     case_id: "case_001_archive",
@@ -398,9 +406,14 @@ export const DROP_SPECIMENS: DropSpecimenDef[] = [
   {
     item_id: "specimen_basic_specimen_04",
     item_name: "BASIC SPECIMEN",
+    specimen_code: "BS-004",
+    specimen_class: "OBJECT",
     collection_name: "SPECIMEN ARCHIVE",
     rarity: "common",
+    drop_chance: "13.75%",
+    drop_rate_number: 13.75,
     description: "Базовый образец коллекции. Запечатанная полимерная капсула архива.",
+    image_url: "/drop/items/specimen_basic_specimen_04.svg",
     model_color: "#64748B",
     shape: "cylinder",
     case_id: "case_001_archive",
@@ -408,210 +421,189 @@ export const DROP_SPECIMENS: DropSpecimenDef[] = [
   {
     item_id: "specimen_chrome_tag_05",
     item_name: "CHROME TAG",
+    specimen_code: "TG-005",
+    specimen_class: "OBJECT",
     collection_name: "CHROME AGE",
     rarity: "common",
+    drop_chance: "13.75%",
+    drop_rate_number: 13.75,
     description: "Металлическая маркировочная бирка с лазерной гравировкой серийного номера.",
+    image_url: "/drop/items/specimen_chrome_tag_05.svg",
     model_color: "#CBD5E1",
     shape: "box",
     case_id: "case_001_archive",
   },
 
   // -------------------------------------------------------------------------
-  // RARE (25% Base)
+  // RARE (25% Base in Case 001 — ~8.33% each)
   // -------------------------------------------------------------------------
   {
+    item_id: "specimen_archive_cassette_02",
+    item_name: "ARCHIVE CASSETTE (CA-037)",
+    specimen_code: "CA-037",
+    specimen_class: "MEDIA",
+    collection_name: "GENESIS ARCHIVE",
+    rarity: "rare",
+    drop_chance: "8.33%",
+    drop_rate_number: 8.33,
+    description: "Коллекционная аудиокассета CXRNER ARCHIVE в запечатанном вакуумном пакете с магнитной лентой высокой плотности.",
+    image_url: "/drop/items/specimen_archive_cassette_02.jpg",
+    model_color: "#00F0FF",
+    shape: "box",
+  },
+  {
     item_id: "specimen_chrome_disc_06",
-    item_name: "CHROME DISC",
+    item_name: "CHROME DISC (CD-001)",
+    specimen_code: "CD-001",
+    specimen_class: "MEDIA",
     collection_name: "CHROME AGE",
     rarity: "rare",
-    description: "Коллекционный металлический диск с радиальной лазерной шлифовкой.",
+    drop_chance: "8.33%",
+    drop_rate_number: 8.33,
+    description: "Металлический CD-диск с радужной голографической дифракцией и шипованным готическим узором CXRNER в стерильной герметичной капсуле.",
+    image_url: "/drop/items/specimen_chrome_disc_06.jpg",
     model_color: "#38BDF8",
     shape: "cylinder",
   },
   {
-    item_id: "specimen_dead_wing_07",
-    item_name: "DEAD WING",
-    collection_name: "BLACK SPECIMEN",
-    rarity: "rare",
-    description: "Металлические оксидированные титановые крылья с хитиновым рельефом.",
-    model_color: "#475569",
-    shape: "octahedron",
-  },
-  {
-    item_id: "specimen_void_core_08",
-    item_name: "VOID CORE",
-    collection_name: "BLACK SPECIMEN",
-    rarity: "rare",
-    description: "Чёрный металлический объект с геометрической формой глубокого суб-баса.",
-    model_color: "#6366F1",
-    shape: "torus",
-  },
-  {
-    item_id: "specimen_chrome_chain_09",
-    item_name: "CHROME CHAIN",
+    item_id: "specimen_chrome_spike_16",
+    item_name: "CHROME SPIKE (CR-017)",
+    specimen_code: "CR-017",
+    specimen_class: "OBJECT",
     collection_name: "CHROME AGE",
     rarity: "rare",
-    description: "Коллекционная массивная металлическая цепь с зеркальной полировкой звеньев.",
+    drop_chance: "8.34%",
+    drop_rate_number: 8.34,
+    description: "Острый многогранный шипованный артефакт из жидкого хрома с зеркальным титановым напылением.",
+    image_url: "/drop/items/specimen_chrome_spike_16.jpg",
     model_color: "#E2E8F0",
-    shape: "torus",
-  },
-  {
-    item_id: "specimen_parasite_mini_10",
-    item_name: "PARASITE MINI",
-    collection_name: "BLACK SPECIMEN",
-    rarity: "rare",
-    description: "Небольшой механический организм, реагирующий на басовые колебания.",
-    model_color: "#A21CAF",
-    shape: "dodecahedron",
+    shape: "octahedron",
   },
 
   // -------------------------------------------------------------------------
-  // EPIC (13% Base)
+  // EPIC (13% Base in Case 001 — 6.50% each)
   // -------------------------------------------------------------------------
   {
-    item_id: "specimen_watcher_eye_11",
-    item_name: "WATCHER EYE",
-    collection_name: "SPECIMEN ARCHIVE",
-    rarity: "epic",
-    description: "Механический оптический сенсор с фиолетовой подсветкой и частотным спектром.",
-    model_color: "#C084FC",
-    shape: "dodecahedron",
-  },
-  {
-    item_id: "specimen_black_heart_12",
-    item_name: "BLACK HEART",
-    collection_name: "BLACK SPECIMEN",
-    rarity: "epic",
-    description: "Чёрное хромированное сердце с проводниками суб-басового импульса.",
-    model_color: "#831843",
-    shape: "octahedron",
-  },
-  {
     item_id: "specimen_violet_visor_13",
-    item_name: "VIOLET VISOR",
+    item_name: "VIOLET VISOR (VG-005)",
+    specimen_code: "VG-005",
+    specimen_class: "ACCESSORY",
     collection_name: "SPECIMEN ARCHIVE",
     rarity: "epic",
-    description: "Футуристическая маска-визор с неоновым HUD-интерфейсом звукорежиссёра.",
-    model_color: "#8B5CF6",
+    drop_chance: "6.50%",
+    drop_rate_number: 6.5,
+    description: "Футуристическая маска-визор с фиолетовыми неоновыми линзами и спектральным HUD-интерфейсом звукорежиссёра.",
+    image_url: "/drop/items/specimen_violet_visor_13.jpg",
+    model_color: "#C084FC",
     shape: "box",
   },
   {
-    item_id: "specimen_specimen_mask_14",
-    item_name: "SPECIMEN MASK",
+    item_id: "specimen_black_heart_12",
+    item_name: "BLACK HEART (HR-009)",
+    specimen_code: "HR-009",
+    specimen_class: "ORGANIC",
     collection_name: "BLACK SPECIMEN",
     rarity: "epic",
-    description: "Коллекционная ритуальная маска биомеханического архива CXRNER.",
-    model_color: "#701A75",
+    drop_chance: "6.50%",
+    drop_rate_number: 6.5,
+    description: "Литое зеркально-чёрное механическое сердце с шипами и сосудами, генерирующее суб-басовые импульсы архива.",
+    image_url: "/drop/items/specimen_black_heart_12.jpg",
+    model_color: "#A855F7",
     shape: "octahedron",
-  },
-  {
-    item_id: "specimen_dark_wings_15",
-    item_name: "DARK WINGS",
-    collection_name: "BLACK SPECIMEN",
-    rarity: "epic",
-    description: "Чёрные титановые крылья с интенсивными фиолетовыми неоновыми акцентами.",
-    model_color: "#9333EA",
-    shape: "icosahedron",
   },
 
   // -------------------------------------------------------------------------
-  // LEGENDARY (5.5% Base)
+  // LEGENDARY (5.5% Base in Case 001 — 1.375% each)
   // -------------------------------------------------------------------------
   {
-    item_id: "specimen_chrome_spike_16",
-    item_name: "CHROME SPIKE",
-    collection_name: "CHROME AGE",
+    item_id: "specimen_watcher_eye_11",
+    item_name: "WATCHER EYE (EY-004)",
+    specimen_code: "EY-004",
+    specimen_class: "ORGANIC",
+    collection_name: "BLACK SPECIMEN",
     rarity: "legendary",
-    description: "Металлический артефакт с агрессивной зубчатой конструкцией и зеркальным блеском.",
-    model_color: "#F8FAFC",
-    shape: "octahedron",
+    drop_chance: "1.375%",
+    drop_rate_number: 1.375,
+    description: "Биомеханическое око в венце острых хромированных шипов, непрерывно сканирующее звуковое пространство.",
+    image_url: "/drop/items/specimen_watcher_eye_11.jpg",
+    model_color: "#F59E0B",
+    shape: "dodecahedron",
   },
   {
     item_id: "specimen_void_crown_17",
-    item_name: "VOID CROWN",
+    item_name: "VOID CROWN (CR-003)",
+    specimen_code: "CR-003",
+    specimen_class: "ACCESSORY",
     collection_name: "BLACK SPECIMEN",
     rarity: "legendary",
-    description: "Чёрная металлическая корона правителя подземной звуковой сцены.",
-    model_color: "#1E1B4B",
+    drop_chance: "1.375%",
+    drop_rate_number: 1.375,
+    description: "Готическая корона из застывшего жидкого хрома с агрессивными пиками правителя звуковой сцены CXRNER.",
+    image_url: "/drop/items/specimen_void_crown_17.jpg",
+    model_color: "#FCD34D",
     shape: "torus",
-  },
-  {
-    item_id: "specimen_parasite_18",
-    item_name: "PARASITE",
-    collection_name: "BLACK SPECIMEN",
-    rarity: "legendary",
-    description: "Полноразмерный биомеханический организм с сегментированной бронёй.",
-    model_color: "#7E22CE",
-    shape: "icosahedron",
   },
   {
     item_id: "specimen_chrome_fang_19",
-    item_name: "CHROME FANG",
+    item_name: "CHROME FANG BLACK (C1/S-B)",
+    specimen_code: "C1/S-B",
+    specimen_class: "ARTIFACT",
     collection_name: "CHROME AGE",
     rarity: "legendary",
-    description: "Коллекционная металлическая челюсть из аэрокосмического титанового сплава.",
-    model_color: "#F1F5F9",
+    drop_chance: "1.375%",
+    drop_rate_number: 1.375,
+    description: "Чёрная металлическая челюсть хищника с острыми зеркальными клыками в мокром вакуумном пакете архива.",
+    image_url: "/drop/items/specimen_chrome_fang_19.jpg",
+    model_color: "#FBBF24",
     shape: "dodecahedron",
   },
   {
-    item_id: "specimen_black_relic_20",
-    item_name: "BLACK RELIC",
-    collection_name: "BLACK SPECIMEN",
+    item_id: "specimen_white_fang_20",
+    item_name: "WHITE FANG SPECIMEN (C1/S-W)",
+    specimen_code: "C1/S-W",
+    specimen_class: "ARTIFACT",
+    collection_name: "CHROME AGE",
     rarity: "legendary",
-    description: "Уникальный металлический артефакт, содержащий первичный звуковой код лейбла.",
-    model_color: "#312E81",
-    shape: "icosahedron",
+    drop_chance: "1.375%",
+    drop_rate_number: 1.375,
+    description: "Матово-белая челюсть хищного образца C1/S в стерильной вакуумной оболочке. Уникальная редкая альбинос-мутация.",
+    image_url: "/drop/items/specimen_white_fang_20.jpg",
+    model_color: "#FFFFFF",
+    shape: "dodecahedron",
   },
 
   // -------------------------------------------------------------------------
-  // MYTHIC (1.4% Base)
+  // MYTHIC (1.4% Base in Case 001 — 1.40%)
   // -------------------------------------------------------------------------
   {
-    item_id: "specimen_unknown_001_21",
-    item_name: "UNKNOWN-001",
-    collection_name: "RESTRICTED VAULT",
+    item_id: "specimen_cxrner_original_24",
+    item_name: "CHROMATIC FANG // CXRNER ORIGINAL (GLITCH-01)",
+    specimen_code: "GLITCH-01",
+    specimen_class: "ARTIFACT",
+    collection_name: "FOUNDERS EDITION",
     rarity: "mythic",
-    description: "Неизвестный объект с секретной маркировкой и гравитационным искажением пространства.",
+    drop_chance: "1.40%",
+    drop_rate_number: 1.4,
+    description: "Сверхредкий хроматический глитч-артефакт. Разложение цветового спектра на клыках хищника — символ основания CXRNER.",
+    image_url: "/drop/items/specimen_cxrner_original_24.jpg",
     model_color: "#F43F5E",
     shape: "icosahedron",
   },
-  {
-    item_id: "specimen_forbidden_22",
-    item_name: "FORBIDDEN",
-    collection_name: "RESTRICTED VAULT",
-    rarity: "mythic",
-    description: "Запечатанный запрещённый образец, изъятый из закрытого архива спецпроектов.",
-    model_color: "#BE123C",
-    shape: "dodecahedron",
-  },
-  {
-    item_id: "specimen_last_signal_23",
-    item_name: "LAST SIGNAL",
-    collection_name: "RESTRICTED VAULT",
-    rarity: "mythic",
-    description: "Уникальный артефакт, непрерывно транслирующий закодированный мастер-сигнал CXRNER.",
-    model_color: "#E11D48",
-    shape: "octahedron",
-  },
-  {
-    item_id: "specimen_cxrner_original_24",
-    item_name: "CXRNER ORIGINAL",
-    collection_name: "FOUNDERS EDITION",
-    rarity: "mythic",
-    description: "Фирменный эксклюзивный артефакт основателей лейбла. Абсолютный статус совершенства.",
-    model_color: "#FB7185",
-    shape: "torus",
-  },
 
   // -------------------------------------------------------------------------
-  // SPECIAL REWARD (0.1% Base) - CXRNER COVER VOUCHER
+  // SPECIAL REWARD (0.1% Base in All Cases) - CXRNER COVER VOUCHER
   // -------------------------------------------------------------------------
   {
     item_id: "specimen_cover_voucher_25",
-    item_name: "CXRNER COVER VOUCHER",
+    item_name: "CXRNER COVER VOUCHER (CV-2026)",
+    specimen_code: "CV-2026",
+    specimen_class: "REWARD",
     collection_name: "SPECIAL REWARDS",
     rarity: "special_reward",
-    description: "Эксклюзивный ваучер на бесплатную обложку для релиза от @kazumaiq. Шанс 0.1%!",
+    drop_chance: "0.10%",
+    drop_rate_number: 0.1,
+    description: "Эксклюзивный сертификат на бесплатную разработку официальной обложки релиза лично от креативного директора @kazumaiq. Шанс 0.1%!",
+    image_url: "/drop/items/specimen_cover_voucher_25.svg",
     model_color: "#F59E0B",
     shape: "box",
     is_special_reward: true,

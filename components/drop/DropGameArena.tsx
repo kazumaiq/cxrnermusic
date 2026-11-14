@@ -43,7 +43,7 @@ interface DropGameArenaProps {
   initialHistory: DropHistoryEntry[];
   username: string;
   isLoggedIn: boolean;
-  defaultTab?: "play" | "inventory";
+  defaultTab?: "play" | "inventory" | "prizes";
 }
 
 export default function DropGameArena({
@@ -54,7 +54,7 @@ export default function DropGameArena({
   isLoggedIn,
   defaultTab = "play",
 }: DropGameArenaProps) {
-  const [activeTab, setActiveTab] = useState<"play" | "inventory">(defaultTab);
+  const [activeTab, setActiveTab] = useState<"play" | "inventory" | "prizes">(defaultTab);
   const [items, setItems] = useState<DropInventoryItem[]>(initialItems);
   const [balance, setBalance] = useState<number>(initialBalance);
   const [history, setHistory] = useState<DropHistoryEntry[]>(initialHistory);
@@ -66,6 +66,7 @@ export default function DropGameArena({
 
   // Inventory filtering
   const [inventoryRarityFilter, setInventoryRarityFilter] = useState<string>("all");
+  const [catalogRarityFilter, setCatalogRarityFilter] = useState<string>("all");
 
   // Modals state
   const [isOpeningModalOpen, setIsOpeningModalOpen] = useState(false);
@@ -144,6 +145,32 @@ export default function DropGameArena({
     }
   };
 
+  const handleInspectSpecimen = (specimen: (typeof DROP_SPECIMENS)[number]) => {
+    playClickSound();
+    const dummyItem: DropInventoryItem = {
+      id: specimen.item_id,
+      user_id: username,
+      item_id: specimen.item_id,
+      item_name: specimen.item_name,
+      specimen_code: specimen.specimen_code,
+      specimen_class: specimen.specimen_class,
+      collection_name: specimen.collection_name,
+      rarity: specimen.rarity,
+      drop_chance: specimen.drop_chance,
+      serial_number: 1,
+      description: specimen.description,
+      image_url: specimen.image_url,
+      model_3d_type: "procedural",
+      model_color: specimen.model_color,
+      obtained_via: "specimen_archive",
+      is_equipped: false,
+      is_pinned: false,
+      is_hidden: false,
+      created_at: new Date().toISOString(),
+    };
+    setInspectingItem(dummyItem);
+  };
+
   const filteredItems =
     inventoryRarityFilter === "all"
       ? items
@@ -201,6 +228,22 @@ export default function DropGameArena({
                 }`}
               >
                 КЕЙСЫ // PLAY
+              </button>
+              <button
+                onClick={() => {
+                  playClickSound();
+                  setActiveTab("prizes");
+                }}
+                className={`px-3 py-1.5 rounded-full font-mono text-xs uppercase tracking-wider transition flex items-center gap-1.5 ${
+                  activeTab === "prizes"
+                    ? "bg-[#8737FF] text-white font-bold shadow-[0_0_15px_#8737FF]"
+                    : "text-[#D9D9E2]/70 hover:text-white"
+                }`}
+              >
+                <span>ПРИЗЫ И ШАНСЫ</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-[#00F0FF]/20 text-[#00F0FF] text-[9px] font-bold">
+                  10+1
+                </span>
               </button>
               <button
                 onClick={() => {
@@ -487,6 +530,74 @@ export default function DropGameArena({
               </div>
             </div>
 
+            {/* Top Prizes Showcase Gallery */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#00F0FF]/30 bg-[#00F0FF]/10 font-mono text-[10px] uppercase tracking-widest text-[#00F0FF] mb-1">
+                    <Sparkles className="w-3 h-3" />
+                    <span>PRIZE POOL // PHYSICAL SPECIMENS</span>
+                  </div>
+                  <h3 className="font-display font-black text-xl sm:text-2xl uppercase tracking-tight text-white">
+                    ТОПОВЫЕ ПРИЗЫ АРХИВА (10 ПРЕДМЕТОВ + ВАУЧЕР)
+                  </h3>
+                </div>
+                <button
+                  onClick={() => {
+                    playClickSound();
+                    setActiveTab("prizes");
+                  }}
+                  className="px-4 py-2 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/10 font-mono text-xs uppercase tracking-wider text-[#00F0FF] flex items-center gap-1.5 transition self-start"
+                >
+                  <span>Все предметы и шансы</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Grid of the 10 real prizes + voucher */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                {DROP_SPECIMENS.filter((s) => s.rarity !== "common").map((specimen) => {
+                  const theme = RARITY_THEMES[specimen.rarity] || RARITY_THEMES.common;
+                  return (
+                    <div
+                      key={specimen.item_id}
+                      onClick={() => handleInspectSpecimen(specimen)}
+                      className={`cursor-pointer rounded-2xl p-2.5 bg-gradient-to-b ${theme.bg} border ${theme.border} ${theme.glow} hover:scale-[1.03] transition-all duration-300 group flex flex-col justify-between`}
+                    >
+                      <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden bg-black/60 mb-2 p-1 flex items-center justify-center">
+                        <img
+                          src={specimen.image_url}
+                          alt={specimen.item_name}
+                          className="w-full h-full object-contain filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.6)] group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/80 border border-white/20 font-mono text-[7px] text-[#00F0FF] font-bold">
+                          {specimen.specimen_code || "SPECIMEN"}
+                        </div>
+                        <div className="absolute top-1.5 right-1.5">
+                          <span className={`px-1.5 py-0.5 rounded font-display font-black text-[7px] uppercase border ${theme.pillBg}`}>
+                            {theme.name}
+                          </span>
+                        </div>
+                        <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/90 border border-white/20 font-mono text-[8px] font-bold text-amber-300">
+                          {specimen.drop_chance}
+                        </div>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <h4 className="font-display font-black text-[10px] sm:text-xs uppercase tracking-tight text-white line-clamp-1">
+                          {specimen.item_name}
+                        </h4>
+                        <div className="flex items-center justify-between text-[9px] font-mono text-white/50">
+                          <span>{specimen.specimen_class || "OBJECT"}</span>
+                          <span className="text-[#00F0FF] font-bold">{specimen.drop_chance}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* HOW TO PLAY Compact Guide Grid */}
             <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 sm:p-8 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -565,6 +676,134 @@ export default function DropGameArena({
         {/* ===================================================================
             TAB 2: INVENTORY & SHOWCASE
             =================================================================== */}
+        {/* ===================================================================
+            TAB: PRIZES & ODDS CATALOG
+            =================================================================== */}
+        {activeTab === "prizes" && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Catalog Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#00F0FF]/30 bg-[#00F0FF]/10 font-mono text-[10px] uppercase tracking-widest text-[#00F0FF] mb-1">
+                  <Percent className="w-3 h-3" />
+                  <span>TRANSPARENT PROBABILITIES & SPECIMEN VAULT</span>
+                </div>
+                <h2 className="font-display font-black text-2xl sm:text-3xl uppercase tracking-tight text-white">
+                  КАТАЛОГ ПРИЗОВ И ШАНСЫ ВЫПАДЕНИЯ
+                </h2>
+                <p className="text-xs text-[#D9D9E2]/70 font-sans mt-1">
+                  Полный список из 10 физических образцов в вакуумных ZIP-пакетах архива лейбла и суперприза (0.1% Ваучер на обложку).
+                </p>
+              </div>
+
+              {/* Rarity Filter Tabs */}
+              <div className="flex items-center gap-1.5 flex-wrap p-1 rounded-2xl bg-white/[0.03] border border-white/10">
+                {[
+                  { key: "all", label: "ВСЕ ПРИЗЫ" },
+                  { key: "special_reward", label: "SPECIAL (0.1%)" },
+                  { key: "mythic", label: "MYTHIC (1.4%)" },
+                  { key: "legendary", label: "LEGENDARY (5.5%)" },
+                  { key: "epic", label: "EPIC (13%)" },
+                  { key: "rare", label: "RARE (25%)" },
+                  { key: "common", label: "COMMON (55%)" },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => {
+                      playClickSound();
+                      setCatalogRarityFilter(f.key);
+                    }}
+                    className={`px-3 py-1 rounded-xl font-mono text-[10px] uppercase tracking-wider transition ${
+                      catalogRarityFilter === f.key
+                        ? "bg-[#8737FF] text-white font-bold shadow-[0_0_12px_#8737FF]"
+                        : "text-[#D9D9E2]/60 hover:text-white"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Catalog Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {DROP_SPECIMENS.filter(
+                (s) =>
+                  catalogRarityFilter === "all" || s.rarity === catalogRarityFilter
+              ).map((specimen) => {
+                const theme = RARITY_THEMES[specimen.rarity] || RARITY_THEMES.common;
+                return (
+                  <div
+                    key={specimen.item_id}
+                    className={`rounded-3xl p-4 bg-gradient-to-b ${theme.bg} border ${theme.border} ${theme.glow} flex flex-col justify-between space-y-3 transition-all duration-300 hover:scale-[1.02]`}
+                  >
+                    <div className="space-y-3">
+                      {/* Top Specimen Header */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          {specimen.specimen_code && (
+                            <span className="px-2 py-0.5 rounded-full bg-black/80 border border-white/20 font-mono text-[9px] text-[#00F0FF] font-bold">
+                              {specimen.specimen_code}
+                            </span>
+                          )}
+                          <span className="font-mono text-[9px] text-white/50 uppercase">
+                            {specimen.specimen_class || "OBJECT"}
+                          </span>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-full font-display font-black text-[9px] uppercase border ${theme.pillBg}`}>
+                          {theme.name}
+                        </span>
+                      </div>
+
+                      {/* Photo Pouch Image */}
+                      <div
+                        onClick={() => handleInspectSpecimen(specimen)}
+                        className="cursor-pointer relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-black/60 border border-white/10 p-2 flex items-center justify-center group"
+                      >
+                        <img
+                          src={specimen.image_url}
+                          alt={specimen.item_name}
+                          className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.7)] group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-black/90 border border-amber-500/40 font-mono text-[10px] font-bold text-amber-300">
+                          ШАНС: {specimen.drop_chance}
+                        </div>
+                      </div>
+
+                      {/* Title & Description */}
+                      <div>
+                        <h3 className="font-display font-black text-sm uppercase tracking-wide text-white">
+                          {specimen.item_name}
+                        </h3>
+                        <p className="font-mono text-[10px] text-[#00F0FF] uppercase mt-0.5">
+                          КОЛЛЕКЦИЯ: {specimen.collection_name}
+                        </p>
+                        <p className="text-xs text-[#D9D9E2]/75 font-sans mt-2 line-clamp-3 leading-relaxed">
+                          {specimen.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bottom Actions */}
+                    <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+                      <span className="font-mono text-[11px] font-bold text-amber-300">
+                        Шанс: {specimen.drop_chance}
+                      </span>
+                      <button
+                        onClick={() => handleInspectSpecimen(specimen)}
+                        className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 font-mono text-[10px] uppercase text-white transition flex items-center gap-1"
+                      >
+                        <Eye className="w-3 h-3 text-[#00F0FF]" />
+                        <span>3D Осмотр</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {activeTab === "inventory" && (
           <div className="space-y-8">
             {/* Inventory Header */}
