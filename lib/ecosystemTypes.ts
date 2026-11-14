@@ -756,6 +756,14 @@ export const CXP_QUESTS_CATALOG: CxpQuestItem[] = [
 
 export const ACHIEVEMENTS_CATALOG: AchievementItem[] = [
   {
+    key: "FOUNDER_SOVEREIGN",
+    name: "FOUNDER & CEO // CXRNER",
+    description: "Основатель, владелец и главный архитектор музыкальной экосистемы CXRNER MUSIC.",
+    icon: "Crown",
+    rarity: "special_reward",
+    cxp_reward: 1000,
+  },
+  {
     key: "FIRST_DROP",
     name: "FIRST DROP",
     description: "Первое открытие кейса и получение коллекционного предмета в CXRNER DROP.",
@@ -836,7 +844,39 @@ export const ACHIEVEMENTS_CATALOG: AchievementItem[] = [
   },
 ];
 
+export const CEO_USERNAME = "kazumaiq";
+export const CEO_EMAIL = "kazumaiq.music@gmail.com";
+
+export function isCeoAccount(input?: {
+  username?: string | null;
+  email?: string | null;
+  badge?: string | null;
+  title?: string | null;
+}): boolean {
+  if (!input) return false;
+  const u = String(input.username || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, "");
+  const e = String(input.email || "")
+    .trim()
+    .toLowerCase();
+  const b = String(input.badge || "")
+    .trim()
+    .toLowerCase();
+  const t = String(input.title || "")
+    .trim()
+    .toLowerCase();
+  return (
+    u === CEO_USERNAME ||
+    e === CEO_EMAIL ||
+    b === "ceo_founder" ||
+    t.includes("founder & ceo")
+  );
+}
+
 export const COSMETIC_FRAMES = [
+  { id: "frame-ceo-sovereign", name: "👑 Sovereign Founder Crown", previewColor: "#FBBF24", ceoOnly: true },
   { id: "frame-cyber-chrome", name: "Cyber Chrome Halo", previewColor: "#E2E8F0" },
   { id: "frame-neon-purple", name: "Neon Void Pulse", previewColor: "#8737FF" },
   { id: "frame-mythic-gold", name: "Underground Mythic", previewColor: "#F59E0B" },
@@ -844,12 +884,20 @@ export const COSMETIC_FRAMES = [
 ];
 
 export const COSMETIC_EFFECTS = [
+  {
+    id: "effect-ceo-crown",
+    name: "👑 Founder Imperial Aura",
+    className:
+      "ring-4 ring-amber-400/90 shadow-[0_0_40px_rgba(251,191,36,0.75),0_0_80px_rgba(0,240,255,0.45)]",
+    ceoOnly: true,
+  },
   { id: "effect-purple-aura", name: "Cosmic Purple Aura", className: "ring-2 ring-[#B46BFF]/70 shadow-[0_0_24px_rgba(180,107,255,0.6)]" },
   { id: "effect-cyan-pulse", name: "Electric Cyan Pulse", className: "ring-2 ring-[#00F0FF]/70 shadow-[0_0_24px_rgba(0,240,255,0.6)]" },
   { id: "effect-chrome-sheen", name: "Liquid Chrome Sheen", className: "ring-2 ring-white/80 shadow-[0_0_20px_rgba(255,255,255,0.7)]" },
 ];
 
 export const COSMETIC_TITLES = [
+  "FOUNDER & CEO // CXRNER MUSIC",
   "CXRNER Pioneer",
   "Underground Prodigy",
   "Sound Alchemist",

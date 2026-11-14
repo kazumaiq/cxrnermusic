@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Check, Copy, QrCode, RotateCw, ShieldCheck, Sparkles, X } from "lucide-react";
 import type { CxrnerProfile, DropInventoryItem } from "@/lib/ecosystemTypes";
+import { isCeoAccount } from "@/lib/ecosystemTypes";
 
 interface HolographicPassModalProps {
   isOpen: boolean;
@@ -51,10 +52,18 @@ export default function HolographicPassModal({
     }
   };
 
-  const serialNumber = `CXR-${String(profile.id || "0001")
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .slice(0, 6)
-    .toUpperCase()}`;
+  const isCeo = isCeoAccount({
+    username: profile.username,
+    badge: profile.equipped_badge,
+    title: profile.equipped_title,
+  });
+
+  const serialNumber = isCeo
+    ? "CXR-CEO-0001"
+    : `CXR-${String(profile.id || "0001")
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .slice(0, 6)
+        .toUpperCase()}`;
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in">
@@ -89,7 +98,11 @@ export default function HolographicPassModal({
           style={{ perspective: "1200px" }}
         >
           <div
-            className="relative w-full h-full rounded-[28px] border border-white/30 bg-gradient-to-b from-[#150D2A] via-[#090612] to-[#050409] p-6 flex flex-col justify-between overflow-hidden shadow-[0_30px_90px_rgba(135,55,255,0.45)] transition-transform duration-200 ease-out"
+            className={`relative w-full h-full rounded-[28px] p-6 flex flex-col justify-between overflow-hidden transition-transform duration-200 ease-out ${
+              isCeo
+                ? "border-2 border-amber-300/80 bg-gradient-to-b from-[#231507] via-[#0B0719] to-[#040D12] shadow-[0_30px_95px_rgba(251,191,36,0.45)]"
+                : "border border-white/30 bg-gradient-to-b from-[#150D2A] via-[#090612] to-[#050409] shadow-[0_30px_90px_rgba(135,55,255,0.45)]"
+            }`}
             style={{
               transform: `rotateX(${tilt.x}deg) rotateY(${
                 tilt.y + (flipped ? 180 : 0)
@@ -102,9 +115,11 @@ export default function HolographicPassModal({
 
             {/* Iridescent Holographic Foil Overlay */}
             <div
-              className="pointer-events-none absolute inset-0 opacity-35 mix-blend-screen transition-opacity"
+              className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen transition-opacity"
               style={{
-                background: `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(0,240,255,0.55) 0%, rgba(180,107,255,0.35) 35%, rgba(255,46,147,0.2) 65%, transparent 85%)`,
+                background: isCeo
+                  ? `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(251,191,36,0.65) 0%, rgba(0,240,255,0.45) 40%, rgba(180,107,255,0.25) 70%, transparent 90%)`
+                  : `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(0,240,255,0.55) 0%, rgba(180,107,255,0.35) 35%, rgba(255,46,147,0.2) 65%, transparent 85%)`,
               }}
             />
 
@@ -116,11 +131,21 @@ export default function HolographicPassModal({
                     <div className="font-display font-black text-xs tracking-wider text-white">
                       CXRNER MUSIC
                     </div>
-                    <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-[#00F0FF]">
-                      ALL-ACCESS RESIDENT ID
+                    <div
+                      className={`font-mono text-[9px] uppercase tracking-[0.22em] ${
+                        isCeo ? "text-amber-300 font-bold" : "text-[#00F0FF]"
+                      }`}
+                    >
+                      {isCeo ? "👑 SOVEREIGN FOUNDER PASS" : "ALL-ACCESS RESIDENT ID"}
                     </div>
                   </div>
-                  <div className="px-2.5 py-1 rounded-lg bg-[#8737FF]/25 border border-[#B46BFF]/50 font-mono text-[9px] font-bold text-[#E9D5FF]">
+                  <div
+                    className={`px-2.5 py-1 rounded-lg font-mono text-[9px] font-bold ${
+                      isCeo
+                        ? "bg-amber-500/25 border border-amber-300/60 text-amber-200"
+                        : "bg-[#8737FF]/25 border border-[#B46BFF]/50 text-[#E9D5FF]"
+                    }`}
+                  >
                     {serialNumber}
                   </div>
                 </div>
@@ -168,7 +193,9 @@ export default function HolographicPassModal({
 
                 {/* Bottom Metallic Security Strip */}
                 <div className="pt-3 border-t border-white/15 flex items-center justify-between font-mono text-[9px] text-white/60">
-                  <span>CLEARANCE: LEVEL 09</span>
+                  <span className={isCeo ? "text-amber-300 font-bold" : ""}>
+                    {isCeo ? "CLEARANCE: ROOT 00 // CEO" : "CLEARANCE: LEVEL 09"}
+                  </span>
                   <span className="text-[#00F0FF] font-bold">НАЖМИТЕ ДЛЯ ОБОРОТА ↻</span>
                 </div>
               </div>

@@ -119,10 +119,17 @@ export default async function DashboardPage() {
       "Не удалось подключиться к базе данных. Проверьте настройки NEXT_PUBLIC_SUPABASE_URL.";
   }
 
-  const artistName =
-    profileRow?.profile?.artist_name ||
-    user?.email?.split("@")[0] ||
-    "Артист";
+  const isCeoSovereign =
+    user?.email?.trim().toLowerCase() === "kazumaiq.music@gmail.com" ||
+    String((profileRow?.profile as any)?.username || "")
+      .trim()
+      .toLowerCase() === "kazumaiq";
+
+  const artistName = isCeoSovereign
+    ? "KAZUMA // CEO"
+    : profileRow?.profile?.artist_name ||
+      user?.email?.split("@")[0] ||
+      "Артист";
 
   // Calculate stats
   const totalReleases = forms.length;
@@ -151,11 +158,18 @@ export default async function DashboardPage() {
               />
             </div>
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className="w-2 h-2 rounded-full bg-[#B46BFF] animate-pulse" />
                 <p className="font-sans text-xs uppercase tracking-wider text-[#B46BFF] font-semibold">
-                  ЛИЧНЫЙ КАБИНЕТ АРТИСТА
+                  {isCeoSovereign
+                    ? "SOVEREIGN FOUNDER & CEO CABINET // ROOT #000001"
+                    : "ЛИЧНЫЙ КАБИНЕТ АРТИСТА"}
                 </p>
+                {isCeoSovereign && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#F59E0B]/25 via-[#8737FF]/25 to-[#00F0FF]/25 border border-[#F59E0B]/50 text-[10px] font-mono font-bold text-[#FDE68A] uppercase tracking-widest">
+                    👑 FOUNDER & CEO · kazumaiq.music@gmail.com
+                  </span>
+                )}
               </div>
               <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight">
                 {artistName}

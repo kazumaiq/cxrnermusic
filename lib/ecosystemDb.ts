@@ -26,9 +26,12 @@ import type {
 } from "./ecosystemTypes";
 import {
   ACHIEVEMENTS_CATALOG,
+  CEO_EMAIL,
+  CEO_USERNAME,
   DROP_CASES,
   DROP_SPECIMENS,
   calculateProfileCompletion,
+  isCeoAccount,
 } from "./ecosystemTypes";
 
 // =========================================================================
@@ -384,7 +387,155 @@ function hydrateProfileWithCabinet(
   };
 
   merged.completion_percentage = calculateProfileCompletion(merged).total;
+
+  if (
+    isCeoAccount({
+      username: merged.username || cabinetProfile?.username,
+      email: cabinetProfile?.email || cabinetProfile?.contact_email,
+      badge: merged.equipped_badge,
+      title: merged.equipped_title,
+    })
+  ) {
+    return elevateCeoProfile(merged, cabinetProfile);
+  }
+
   return merged;
+}
+
+export function buildCeoSovereignProfile(
+  userId = "ceo-kazumaiq",
+  overrides?: Partial<CxrnerProfile>
+): CxrnerProfile {
+  const nowIso = new Date().toISOString();
+  const base: CxrnerProfile = {
+    id: userId,
+    username: CEO_USERNAME,
+    display_name: "KAZUMA",
+    avatar_url: "/logo.png",
+    banner_url: null,
+    bio: "Founder & CEO экосистемы CXRNER MUSIC. Владелец независимого рекорд-лейбла, глобальной дистрибуции на 150+ площадок и главный архитектор CXRNER LINK & CXRNER DROP.",
+    country: "RU",
+    city: "MOSCOW // GLOBAL",
+    genres: ["Phonk", "Electronic", "Hip-Hop", "Hyperpop", "Synthwave"],
+    music_roles: ["Artist", "Producer", "Sound Designer"],
+    social_links: [
+      { platform: "Telegram", url: "https://t.me/cxrnermusic" },
+    ],
+    music_links: [
+      { platform: "CXRNER LINK", url: "/link" },
+      { platform: "CXRNER DROP", url: "/drop" },
+    ],
+    telegram_id: "1",
+    telegram_username: "kazumaiq",
+    telegram_linked: true,
+    is_artist_verified: true,
+    completion_percentage: 100,
+    completion_reward_80_claimed: true,
+    completion_reward_100_claimed: true,
+    privacy_settings: {
+      is_public: true,
+      show_inventory: true,
+      show_stats: true,
+      show_referrals: true,
+      show_music: true,
+      show_in_leaderboard: true,
+    },
+    equipped_frame: "frame-ceo-sovereign",
+    equipped_effect: "effect-ceo-crown",
+    equipped_title: "FOUNDER & CEO // CXRNER MUSIC",
+    equipped_badge: "ceo_founder",
+    equipped_showcase_item: "spec_mythic_core",
+    equipped_background: "sovereign_obsidian_gold",
+    pinned_achievements: ACHIEVEMENTS_CATALOG.map((a) => a.key),
+    pinned_items: [],
+    is_banned: false,
+    ban_reason: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: nowIso,
+  };
+  return { ...base, ...(overrides || {}) };
+}
+
+function elevateCeoProfile(
+  profile: CxrnerProfile,
+  cabinetProfile?: Record<string, any> | null
+): CxrnerProfile {
+  const defaults = buildCeoSovereignProfile(profile.id || "ceo-kazumaiq");
+  const hasCustomName =
+    profile.display_name &&
+    profile.display_name !== "CXRNER Artist" &&
+    profile.display_name.toLowerCase() !== "kazumaiq.music";
+
+  return {
+    ...defaults,
+    ...profile,
+    username: CEO_USERNAME,
+    display_name: hasCustomName ? profile.display_name : "KAZUMA",
+    avatar_url: profile.avatar_url || cabinetProfile?.avatar_url || "/logo.png",
+    bio:
+      profile.bio && profile.bio.trim().length > 5
+        ? profile.bio
+        : defaults.bio,
+    city: profile.city || defaults.city,
+    genres:
+      Array.isArray(profile.genres) && profile.genres.length > 0
+        ? profile.genres
+        : defaults.genres,
+    music_roles:
+      Array.isArray(profile.music_roles) && profile.music_roles.length > 1
+        ? profile.music_roles
+        : defaults.music_roles,
+    social_links:
+      Array.isArray(profile.social_links) && profile.social_links.length > 0
+        ? profile.social_links
+        : defaults.social_links,
+    music_links:
+      Array.isArray(profile.music_links) && profile.music_links.length > 0
+        ? profile.music_links
+        : defaults.music_links,
+    is_artist_verified: true,
+    telegram_linked: true,
+    completion_percentage: 100,
+    completion_reward_80_claimed: true,
+    completion_reward_100_claimed: true,
+    equipped_frame: profile.equipped_frame || "frame-ceo-sovereign",
+    equipped_effect: profile.equipped_effect || "effect-ceo-crown",
+    equipped_title: profile.equipped_title || "FOUNDER & CEO // CXRNER MUSIC",
+    equipped_badge: "ceo_founder",
+    pinned_achievements: ACHIEVEMENTS_CATALOG.map((a) => a.key),
+  };
+}
+
+export function buildCeoSovereignInventory(userId: string): DropInventoryItem[] {
+  const nowIso = "2026-01-01T00:00:00.000Z";
+  const flagshipCodes = ["CC-001", "MV-2026", "PV-2026", "CV-2026", "OV-001", "C1/S-B"];
+  const pickedSpecs = flagshipCodes
+    .map((code) => DROP_SPECIMENS.find((s) => s.specimen_code === code))
+    .filter(Boolean) as typeof DROP_SPECIMENS;
+
+  const list = pickedSpecs.length >= 6 ? pickedSpecs : DROP_SPECIMENS.slice(-6).reverse();
+  return list.slice(0, 6).map((spec, idx) => ({
+    id: `ceo_artifact_${idx + 1}_${spec.item_id}`,
+    user_id: userId,
+    item_id: spec.item_id,
+    item_name: spec.item_name,
+    specimen_code: spec.specimen_code,
+    specimen_class: spec.specimen_class,
+    collection_name: spec.collection_name,
+    rarity: spec.rarity,
+    drop_chance: spec.drop_chance,
+    serial_number: 1,
+    description: `${spec.description} [SOVEREIGN EDITION #000001 // CEO KAZUMA]`,
+    image_url: spec.image_url,
+    model_3d_type: "procedural",
+    model_color: spec.model_color,
+    obtained_via: "founder_genesis_vault",
+    is_equipped: idx === 0,
+    is_pinned: true,
+    is_hidden: false,
+    is_special_reward: Boolean(spec.is_special_reward),
+    created_at: nowIso,
+  }));
 }
 
 // =========================================================================
@@ -430,6 +581,29 @@ export async function getCxpWallet(userId: string): Promise<CxpWallet> {
     ]);
 
     const vaultWallet = (vault?.ecosystem_wallet as CxpWallet | undefined) || null;
+    const isCeoVault = isCeoAccount({
+      username: vault?.username || (vault?.cxrner_id as any)?.username,
+      email: vault?.email || vault?.contact_email,
+      badge: (vault?.cxrner_id as any)?.equipped_badge,
+    });
+
+    if (isCeoVault) {
+      const currentBal = vaultWallet?.balance ?? tableWallet?.balance ?? 0;
+      if (currentBal < 50000) {
+        const ceoWallet: CxpWallet = {
+          user_id: userId,
+          balance: 99999,
+          total_earned: 99999,
+          total_spent: vaultWallet?.total_spent ?? 0,
+          updated_at: new Date().toISOString(),
+        };
+        await writeCabinetVault(userId, (prev) => ({
+          ...prev,
+          ecosystem_wallet: ceoWallet,
+        }));
+        return ceoWallet;
+      }
+    }
 
     if (!tableErr && tableWallet && vaultWallet) {
       const tTable = new Date(tableWallet.updated_at || 0).getTime();
@@ -961,7 +1135,12 @@ export async function getProfileByUsername(username: string): Promise<CxrnerProf
       const p = row.profile;
       const cid = p.cxrner_id as CxrnerProfile | undefined;
       const candidateUsername = sanitizeUsername(cid?.username || p.username || "");
-      if (candidateUsername === clean) {
+      const candidateEmail = String(p.email || p.contact_email || "").trim().toLowerCase();
+      const matchesCeoLookup =
+        clean === CEO_USERNAME &&
+        (candidateUsername === CEO_USERNAME || candidateEmail === CEO_EMAIL);
+
+      if (candidateUsername === clean || matchesCeoLookup) {
         if (cid) {
           return hydrateProfileWithCabinet(cid, p, row.user_id);
         }
@@ -969,7 +1148,7 @@ export async function getProfileByUsername(username: string): Promise<CxrnerProf
         return hydrateProfileWithCabinet(
           {
             id: row.user_id,
-            username: candidateUsername,
+            username: matchesCeoLookup ? CEO_USERNAME : candidateUsername,
             display_name: p.artist_name || p.display_name || "CXRNER Artist",
             avatar_url: p.avatar_url || null,
             banner_url: null,
@@ -1012,7 +1191,12 @@ export async function getProfileByUsername(username: string): Promise<CxrnerProf
   const found = Object.values(store.profiles).find(
     (p) => p.username.toLowerCase() === clean
   );
-  return found || null;
+  if (found) return found;
+
+  if (clean === CEO_USERNAME) {
+    return buildCeoSovereignProfile("ceo-kazumaiq");
+  }
+  return null;
 }
 
 export async function getProfileByUserId(userId: string): Promise<CxrnerProfile | null> {
@@ -1040,6 +1224,7 @@ export async function getProfileByUserId(userId: string): Promise<CxrnerProfile 
 
 export async function upsertUserProfile(params: {
   userId: string;
+  userEmail?: string | null;
   username?: string;
   displayName?: string;
   avatarUrl?: string | null;
@@ -1180,6 +1365,17 @@ export async function upsertUserProfile(params: {
   const { total } = calculateProfileCompletion(updated);
   updated.completion_percentage = total;
 
+  const isCeoUser = isCeoAccount({
+    username: updated.username || existingVault?.username,
+    email: params.userEmail || existingVault?.email || existingVault?.contact_email,
+    badge: updated.equipped_badge,
+    title: updated.equipped_title,
+  });
+
+  if (isCeoUser) {
+    Object.assign(updated, elevateCeoProfile(updated, existingVault));
+  }
+
   const rewardsAwarded: string[] = [];
 
   if (total >= 80 && !updated.completion_reward_80_claimed) {
@@ -1217,6 +1413,7 @@ export async function upsertUserProfile(params: {
     // 1. Primary resilient write to cxrner_cabinet_users vault
     await writeCabinetVault(updated.id, (prev) => ({
       ...prev,
+      ...(params.userEmail ? { email: params.userEmail } : {}),
       username: updated.username,
       display_name: updated.display_name,
       artist_name: prev.artist_name || updated.display_name,
@@ -1980,6 +2177,9 @@ function toCoreInventoryRow(item: DropInventoryItem) {
 }
 
 export async function getUserInventory(userId: string): Promise<DropInventoryItem[]> {
+  if (userId === "ceo-kazumaiq") {
+    return buildCeoSovereignInventory(userId);
+  }
   const db = await getDbForUser(userId);
   if (db) {
     const [{ data: dbRows, error: dbErr }, vault] = await Promise.all([
@@ -1993,19 +2193,47 @@ export async function getUserInventory(userId: string): Promise<DropInventoryIte
       readCabinetVault(userId, db),
     ]);
 
+    const isCeoVault = isCeoAccount({
+      username: vault?.username || (vault?.cxrner_id as any)?.username,
+      email: vault?.email || vault?.contact_email,
+      badge: (vault?.cxrner_id as any)?.equipped_badge,
+    });
+
     const vaultItems = Array.isArray(vault?.ecosystem_inventory)
       ? (vault.ecosystem_inventory as DropInventoryItem[])
       : [];
 
     if (!dbErr && Array.isArray(dbRows) && dbRows.length > 0) {
       const vaultMap = new Map(vaultItems.map((i) => [i.id, i]));
-      return (dbRows as DropInventoryItem[]).map((row) =>
+      const mergedList = (dbRows as DropInventoryItem[]).map((row) =>
         enrichInventoryItem({ ...row, ...(vaultMap.get(row.id) || {}) })
       );
+      if (isCeoVault && mergedList.length < 6) {
+        const ceoItems = buildCeoSovereignInventory(userId);
+        const existingIds = new Set(mergedList.map((i) => i.item_id));
+        return [...mergedList, ...ceoItems.filter((c) => !existingIds.has(c.item_id))];
+      }
+      return mergedList;
     }
 
     if (vaultItems.length > 0) {
-      return vaultItems.map(enrichInventoryItem);
+      const enriched = vaultItems.map(enrichInventoryItem);
+      if (isCeoVault && enriched.length < 6) {
+        const ceoItems = buildCeoSovereignInventory(userId);
+        const existingIds = new Set(enriched.map((i) => i.item_id));
+        return [...enriched, ...ceoItems.filter((c) => !existingIds.has(c.item_id))];
+      }
+      return enriched;
+    }
+
+    if (isCeoVault) {
+      const ceoItems = buildCeoSovereignInventory(userId);
+      await writeCabinetVault(userId, (prev) => ({
+        ...prev,
+        ecosystem_starter_granted: true,
+        ecosystem_inventory: ceoItems,
+      }));
+      return ceoItems;
     }
 
     if (vault?.ecosystem_starter_granted) {
@@ -4457,19 +4685,19 @@ export async function getCollectorsLeaderboard(
     const showcaseSeeds: Omit<CollectorLeaderboardEntry, "rank">[] = [
       {
         userId: "seed-kazuma",
-        username: "kazuma",
-        displayName: "KAZUMA",
+        username: "kazumaiq",
+        displayName: "KAZUMA // CEO",
         avatarUrl: "/logo.png",
         isVerified: true,
-        totalArtifacts: 19,
-        collectorScore: 2480,
+        totalArtifacts: 25,
+        collectorScore: 9999,
         topArtifact: {
-          item_id: DROP_SPECIMENS[13]?.item_id || "spec_special_mastering",
-          name: DROP_SPECIMENS[13]?.item_name || "STUDIO MASTERING VOUCHER",
-          rarity: "special_reward",
-          specimen_code: DROP_SPECIMENS[13]?.specimen_code || "MV-2026",
-          serial: 7,
-          image_url: DROP_SPECIMENS[13]?.image_url || null,
+          item_id: DROP_SPECIMENS[11]?.item_id || "spec_mythic_core",
+          name: DROP_SPECIMENS[11]?.item_name || "CHROME CORE",
+          rarity: "mythic",
+          specimen_code: DROP_SPECIMENS[11]?.specimen_code || "CC-001",
+          serial: 1,
+          image_url: DROP_SPECIMENS[11]?.image_url || null,
         },
       },
       {

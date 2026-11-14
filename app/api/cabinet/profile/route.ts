@@ -10,6 +10,9 @@ import {
   recordReferralAttribution,
   evaluateReferralMilestones,
   getReferralStatsForUser,
+  isCeoAccount,
+  CEO_USERNAME,
+  CEO_EMAIL,
 } from "@/lib/ecosystemDb";
 
 export async function GET() {
@@ -23,21 +26,28 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
 
+    const isCeoUser = isCeoAccount({ email: user.email });
     let profile = await getProfileByUserId(user.id);
-    if (!profile) {
-      // Create initial profile for user
+    if (!profile || (isCeoUser && profile.username !== CEO_USERNAME)) {
+      // Create or elevate initial profile for user
       const rawMeta = (user.user_metadata as any) || {};
-      const initialUsername =
-        sanitizeUsername(rawMeta.username || rawMeta.artist_name || user.email?.split("@")[0] || "") ||
-        `user_${user.id.slice(0, 6)}`;
+      const initialUsername = isCeoUser
+        ? CEO_USERNAME
+        : sanitizeUsername(rawMeta.username || rawMeta.artist_name || user.email?.split("@")[0] || "") ||
+          `user_${user.id.slice(0, 6)}`;
 
-      const initialName = rawMeta.artist_name || rawMeta.full_name || rawMeta.name || "CXRNER Artist";
+      const initialName = isCeoUser
+        ? profile?.display_name && profile.display_name !== "CXRNER Artist"
+          ? profile.display_name
+          : "KAZUMA"
+        : rawMeta.artist_name || rawMeta.full_name || rawMeta.name || "CXRNER Artist";
 
       const created = await upsertUserProfile({
         userId: user.id,
+        userEmail: user.email,
         username: initialUsername,
         displayName: initialName,
-        avatarUrl: rawMeta.avatar_url || rawMeta.picture || null,
+        avatarUrl: profile?.avatar_url || rawMeta.avatar_url || rawMeta.picture || null,
       });
       profile = created.profile;
     }
@@ -92,6 +102,8 @@ export async function PATCH(request: Request) {
 
     const body = await request.json();
 
+    const isCeoUser = isCeoAccount({ email: user.email });
+
     // Check username uniqueness if changing
     if (body.username) {
       const cleanUsername = sanitizeUsername(body.username);
@@ -101,8 +113,18 @@ export async function PATCH(request: Request) {
           { status: 400 }
         );
       }
+      if (cleanUsername === CEO_USERNAME && !isCeoUser) {
+        return NextResponse.json(
+          { ok: false, error: "Юзернейм @kazumaiq зарезервирован за основателем (CEO) CXRNER MUSIC" },
+          { status: 409 }
+        );
+      }
       const existing = await getProfileByUsername(cleanUsername);
-      if (existing && existing.id !== user.id) {
+      if (
+        existing &&
+        existing.id !== user.id &&
+        !(isCeoUser && cleanUsername === CEO_USERNAME)
+      ) {
         return NextResponse.json(
           { ok: false, error: "Этот username уже занят другим артистом" },
           { status: 409 }
@@ -131,7 +153,8 @@ export async function PATCH(request: Request) {
 
     const { profile, rewardsAwarded } = await upsertUserProfile({
       userId: user.id,
-      username: cleanUsernameInput,
+      userEmail: user.email,
+      username: isCeoUser ? CEO_USERNAME : cleanUsernameInput,
       displayName: rawDisplayName,
       avatarUrl: rawAvatarUrl,
       bannerUrl: rawBannerUrl,

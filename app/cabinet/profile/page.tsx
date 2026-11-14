@@ -5,6 +5,8 @@ import {
   calculateProfileCompletion,
   upsertUserProfile,
   sanitizeUsername,
+  isCeoAccount,
+  CEO_USERNAME,
 } from "@/lib/ecosystemDb";
 import CabinetNav from "@/components/CabinetNav";
 import ProfileEditorClient from "./ProfileEditorClient";
@@ -21,19 +23,26 @@ export default async function CabinetProfilePage() {
     redirect("/auth/login");
   }
 
+  const isCeoUser = isCeoAccount({ email: user.email });
   let profile = await getProfileByUserId(user.id);
-  if (!profile) {
+  if (!profile || (isCeoUser && profile.username !== CEO_USERNAME)) {
     const rawMeta = (user.user_metadata as any) || {};
-    const initialUsername =
-      sanitizeUsername(rawMeta.username || rawMeta.artist_name || user.email?.split("@")[0] || "") ||
-      `artist_${user.id.slice(0, 6)}`;
-    const initialName = rawMeta.artist_name || rawMeta.full_name || rawMeta.name || "CXRNER Artist";
+    const initialUsername = isCeoUser
+      ? CEO_USERNAME
+      : sanitizeUsername(rawMeta.username || rawMeta.artist_name || user.email?.split("@")[0] || "") ||
+        `artist_${user.id.slice(0, 6)}`;
+    const initialName = isCeoUser
+      ? profile?.display_name && profile.display_name !== "CXRNER Artist"
+        ? profile.display_name
+        : "KAZUMA"
+      : rawMeta.artist_name || rawMeta.full_name || rawMeta.name || "CXRNER Artist";
 
     const created = await upsertUserProfile({
       userId: user.id,
+      userEmail: user.email,
       username: initialUsername,
       displayName: initialName,
-      avatarUrl: rawMeta.avatar_url || rawMeta.picture || null,
+      avatarUrl: profile?.avatar_url || rawMeta.avatar_url || rawMeta.picture || null,
     });
     profile = created.profile;
   }

@@ -213,8 +213,50 @@ export default function ProfileEditorClient({
     }
   };
 
+  const isCeoSovereign =
+    userEmail.trim().toLowerCase() === "kazumaiq.music@gmail.com" ||
+    username.trim().toLowerCase() === "kazumaiq" ||
+    profile.equipped_badge === "ceo_founder";
+
   return (
     <div className="space-y-8 animate-fadeIn">
+      {isCeoSovereign && (
+        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#1A1105]/95 via-[#0E0720]/95 to-[#051821]/95 border border-[#F59E0B]/50 shadow-[0_0_45px_rgba(245,158,11,0.18)] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[10px] font-mono font-bold uppercase tracking-widest text-[#FDE68A]">
+              <span>👑 SOVEREIGN FOUNDER & CEO ACCOUNT</span>
+              <span className="text-[#00F0FF]">// ROOT #000001</span>
+            </div>
+            <h2 className="font-display font-black text-lg sm:text-xl text-white">
+              KAZUMA (@kazumaiq) · kazumaiq.music@gmail.com
+            </h2>
+            <p className="text-xs text-[#D9D9E2]/75">
+              Эксклюзивный резерв основателя активен: 99,999 CXP, все 6 флагманских артефактов с серийным номером #000001, золотая рамка Sovereign Gold и статус #1 в Зале Славы.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <Link
+              href="/admin"
+              className="px-3.5 py-2 rounded-xl bg-[#F59E0B]/20 hover:bg-[#F59E0B]/30 border border-[#F59E0B]/50 text-[11px] font-mono font-bold text-[#FDE68A] uppercase tracking-wider transition"
+            >
+              ⚡ Админ-панель
+            </Link>
+            <Link
+              href="/admin/verifications"
+              className="px-3.5 py-2 rounded-xl bg-[#00F0FF]/15 hover:bg-[#00F0FF]/25 border border-[#00F0FF]/40 text-[11px] font-mono font-bold text-[#00F0FF] uppercase tracking-wider transition"
+            >
+              ✓ Верификации артистов
+            </Link>
+            <Link
+              href="/profile/kazumaiq"
+              className="px-3.5 py-2 rounded-xl bg-[#8737FF]/25 hover:bg-[#8737FF]/35 border border-[#B46BFF]/50 text-[11px] font-mono font-bold text-white uppercase tracking-wider transition"
+            >
+              👑 Профиль @kazumaiq
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
         <div>

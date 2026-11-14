@@ -19,7 +19,7 @@ import {
   MapPin,
 } from "lucide-react";
 import type { CxrnerProfile, DropInventoryItem, CxrnerArtistProfile } from "@/lib/ecosystemTypes";
-import { ACHIEVEMENTS_CATALOG } from "@/lib/ecosystemTypes";
+import { ACHIEVEMENTS_CATALOG, isCeoAccount } from "@/lib/ecosystemTypes";
 import SpecimenVisual from "@/components/drop/SpecimenVisual";
 import ItemInspectModal from "@/components/drop/ItemInspectModal";
 import HolographicPassModal from "@/components/profile/HolographicPassModal";
@@ -49,8 +49,16 @@ export default function ProfileClientView({
     }
   };
 
+  const isCeo = isCeoAccount({
+    username: profile.username,
+    badge: profile.equipped_badge,
+    title: profile.equipped_title,
+  });
+
   const equippedEffectClass =
-    profile.equipped_effect === "effect-purple-aura"
+    isCeo || profile.equipped_effect === "effect-ceo-crown"
+      ? "ring-4 ring-amber-400/90 shadow-[0_0_45px_rgba(251,191,36,0.75),0_0_85px_rgba(0,240,255,0.45)]"
+      : profile.equipped_effect === "effect-purple-aura"
       ? "ring-4 ring-[#B46BFF]/70 shadow-[0_0_30px_rgba(180,107,255,0.7)]"
       : profile.equipped_effect === "effect-cyan-pulse"
       ? "ring-4 ring-[#00F0FF]/70 shadow-[0_0_30px_rgba(0,240,255,0.7)]"
@@ -59,7 +67,9 @@ export default function ProfileClientView({
       : "ring-2 ring-white/10";
 
   const equippedFrameBorder =
-    profile.equipped_frame === "frame-cyber-chrome"
+    isCeo || profile.equipped_frame === "frame-ceo-sovereign"
+      ? "border-2 border-amber-300 shadow-[0_0_30px_rgba(251,191,36,0.65)]"
+      : profile.equipped_frame === "frame-cyber-chrome"
       ? "border-2 border-white/70 shadow-[0_0_20px_rgba(255,255,255,0.4)]"
       : profile.equipped_frame === "frame-neon-purple"
       ? "border-2 border-[#8737FF] shadow-[0_0_20px_rgba(135,55,255,0.6)]"
@@ -73,25 +83,53 @@ export default function ProfileClientView({
     <div className="min-h-screen bg-[#050407] text-[#D9D9E2] pt-20 pb-28 selection:bg-[#8737FF] selection:text-white">
       {/* Background Ambience */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[#8737FF]/15 blur-[120px] rounded-full" />
-        <div className="absolute top-[450px] right-10 w-[450px] h-[450px] bg-[#00F0FF]/10 blur-[130px] rounded-full" />
+        <div
+          className={`absolute top-0 left-1/2 -translate-x-1/2 w-[780px] h-[380px] blur-[130px] rounded-full ${
+            isCeo ? "bg-amber-500/20" : "bg-[#8737FF]/15"
+          }`}
+        />
+        <div className="absolute top-[450px] right-10 w-[450px] h-[450px] bg-[#00F0FF]/12 blur-[130px] rounded-full" />
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile Card Shell */}
-        <div className="rounded-3xl bg-[#090611]/80 border border-white/10 shadow-[0_16px_48px_rgba(0,0,0,0.85)] overflow-hidden backdrop-blur-2xl">
+        <div
+          className={`rounded-3xl bg-[#090611]/85 overflow-hidden backdrop-blur-2xl ${
+            isCeo
+              ? "border-2 border-amber-400/50 shadow-[0_24px_80px_rgba(245,158,11,0.28),0_0_50px_rgba(0,240,255,0.16)]"
+              : "border border-white/10 shadow-[0_16px_48px_rgba(0,0,0,0.85)]"
+          }`}
+        >
           {/* Header Banner */}
-          <div className="relative h-44 sm:h-64 w-full bg-gradient-to-r from-[#160B28] via-[#090611] to-[#12081C] overflow-hidden">
+          <div
+            className={`relative h-48 sm:h-68 w-full overflow-hidden ${
+              isCeo
+                ? "bg-gradient-to-r from-[#1F1205] via-[#120926] to-[#061A24]"
+                : "bg-gradient-to-r from-[#160B28] via-[#090611] to-[#12081C]"
+            }`}
+          >
             {profile.banner_url ? (
               <img
                 src={profile.banner_url}
                 alt="Banner"
                 className="w-full h-full object-cover opacity-80"
               />
+            ) : isCeo ? (
+              <div className="w-full h-full opacity-85 bg-[radial-gradient(circle_at_25%_35%,rgba(251,191,36,0.38)_0%,rgba(135,55,255,0.28)_45%,rgba(0,240,255,0.22)_80%,transparent_100%)]" />
             ) : (
               <div className="w-full h-full opacity-40 bg-[radial-gradient(circle_at_center,_rgba(135,55,255,0.25)_0%,_transparent_70%)]" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-[#090611] via-transparent to-black/30" />
+
+            {/* Exclusive CEO Sovereign Crest on Top-Left */}
+            {isCeo && (
+              <div className="absolute top-4 left-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/30 via-[#8737FF]/35 to-[#00F0FF]/30 border border-amber-300/60 backdrop-blur-md shadow-[0_0_25px_rgba(251,191,36,0.45)]">
+                <span className="text-sm">👑</span>
+                <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-amber-200">
+                  FOUNDER & CEO // ROOT ID #000001
+                </span>
+              </div>
+            )}
 
             {/* Share & 3D VIP Pass floating buttons */}
             <div className="absolute top-4 right-4 flex items-center gap-2">
@@ -139,8 +177,12 @@ export default function ProfileClientView({
                 </div>
                 {profile.is_artist_verified && (
                   <div
-                    className="absolute -bottom-2 -right-2 p-1.5 rounded-full bg-[#8737FF] border-2 border-[#090611] text-white shadow-[0_0_12px_#8737FF]"
-                    title="CXRNER VERIFIED ARTIST"
+                    className={`absolute -bottom-2 -right-2 p-1.5 rounded-full border-2 border-[#090611] text-white ${
+                      isCeo
+                        ? "bg-gradient-to-r from-amber-400 to-[#00F0FF] text-[#050407] shadow-[0_0_18px_rgba(251,191,36,0.9)]"
+                        : "bg-[#8737FF] shadow-[0_0_12px_#8737FF]"
+                    }`}
+                    title={isCeo ? "FOUNDER & CEO // CXRNER MUSIC" : "CXRNER VERIFIED ARTIST"}
                   >
                     <ShieldCheck className="w-4 h-4" />
                   </div>
@@ -150,9 +192,21 @@ export default function ProfileClientView({
               {/* Title & Stats */}
               <div className="flex-1 sm:ml-4">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="font-display font-black text-2xl sm:text-3xl text-white tracking-wide">
+                  <h1
+                    className={`font-display font-black text-2xl sm:text-4xl tracking-wide ${
+                      isCeo
+                        ? "bg-gradient-to-r from-amber-200 via-white to-[#00F0FF] bg-clip-text text-transparent"
+                        : "text-white"
+                    }`}
+                  >
                     {profile.display_name}
                   </h1>
+                  {isCeo && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-500/25 via-[#8737FF]/25 to-[#00F0FF]/25 border border-amber-300/70 text-amber-200 text-[10px] font-mono font-black uppercase tracking-wider shadow-[0_0_20px_rgba(251,191,36,0.35)]">
+                      <span>👑</span>
+                      <span>FOUNDER & CEO</span>
+                    </span>
+                  )}
                   {profile.is_artist_verified && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#8737FF]/20 border border-[#8737FF]/60 text-[#B46BFF] text-[10px] font-mono font-bold uppercase tracking-wider">
                       <ShieldCheck className="w-3 h-3 text-[#00F0FF]" />
@@ -160,7 +214,13 @@ export default function ProfileClientView({
                     </span>
                   )}
                   {profile.equipped_title && (
-                    <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/80 font-mono text-[10px] uppercase tracking-wider">
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] uppercase tracking-wider ${
+                        isCeo
+                          ? "bg-[#00F0FF]/15 border border-[#00F0FF]/45 text-[#00F0FF] font-bold"
+                          : "bg-white/5 border border-white/10 text-white/80"
+                      }`}
+                    >
                       {profile.equipped_title}
                     </span>
                   )}
@@ -242,6 +302,53 @@ export default function ProfileClientView({
                       <ExternalLink className="w-2.5 h-2.5 opacity-50" />
                     </a>
                   ))}
+                </div>
+              )}
+              {/* Exclusive CEO Executive Telemetry Strip */}
+              {isCeo && (
+                <div className="pt-4 border-t border-amber-400/25 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-300 font-bold">
+                      👑 EXECUTIVE COMMAND // ТЕЛЕМЕТРИЯ ОСНОВАТЕЛЯ ЭКОСИСТЕМЫ
+                    </span>
+                    <span className="font-mono text-[10px] text-[#00F0FF] font-bold">
+                      CLEARANCE: ROOT 00
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500/15 via-black/60 to-transparent border border-amber-400/35">
+                      <div className="font-mono text-[9px] uppercase tracking-wider text-amber-200/70">
+                        СТАТУС РЕЗИДЕНТА
+                      </div>
+                      <div className="font-display font-black text-sm text-amber-300 mt-1">
+                        FOUNDER & CEO
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-gradient-to-br from-[#00F0FF]/15 via-black/60 to-transparent border border-[#00F0FF]/35">
+                      <div className="font-mono text-[9px] uppercase tracking-wider text-[#00F0FF]/75">
+                        СЕТЬ ДИСТРИБУЦИИ
+                      </div>
+                      <div className="font-display font-black text-sm text-white mt-1">
+                        150+ DSP · 70/30
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-gradient-to-br from-[#8737FF]/20 via-black/60 to-transparent border border-[#B46BFF]/40">
+                      <div className="font-mono text-[9px] uppercase tracking-wider text-[#E9D5FF]/75">
+                        СЕРИЙНЫЙ ПРОПУСК
+                      </div>
+                      <div className="font-display font-black text-sm text-[#00F0FF] mt-1">
+                        GENESIS #000001
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-black/60 to-transparent border border-emerald-400/35">
+                      <div className="font-mono text-[9px] uppercase tracking-wider text-emerald-200/75">
+                        РЕЙТИНГ КОЛЛЕКЦИИ
+                      </div>
+                      <div className="font-display font-black text-sm text-emerald-300 mt-1">
+                        RANK #01 // 9,999 PTS
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -337,12 +444,24 @@ export default function ProfileClientView({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {ACHIEVEMENTS_CATALOG.slice(0, 3).map((ach) => (
+            {(isCeo ? ACHIEVEMENTS_CATALOG : ACHIEVEMENTS_CATALOG.slice(0, 3)).map((ach) => (
               <div
                 key={ach.key}
-                className="p-4 rounded-2xl bg-[#090611]/70 border border-white/10 backdrop-blur-md flex items-start gap-3"
+                className={`p-4 rounded-2xl backdrop-blur-md flex items-start gap-3 ${
+                  isCeo && ach.key === "FOUNDER_SOVEREIGN"
+                    ? "bg-gradient-to-r from-amber-500/20 via-[#090611]/90 to-[#00F0FF]/15 border-2 border-amber-400/60 shadow-[0_0_25px_rgba(251,191,36,0.25)] sm:col-span-3"
+                    : isCeo
+                    ? "bg-[#090611]/85 border border-amber-400/25"
+                    : "bg-[#090611]/70 border border-white/10"
+                }`}
               >
-                <div className="w-10 h-10 rounded-xl bg-[#8737FF]/20 border border-[#8737FF]/40 flex items-center justify-center shrink-0 text-[#B46BFF]">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    isCeo && ach.key === "FOUNDER_SOVEREIGN"
+                      ? "bg-amber-500/25 border border-amber-300/60 text-amber-300"
+                      : "bg-[#8737FF]/20 border border-[#8737FF]/40 text-[#B46BFF]"
+                  }`}
+                >
                   <Award className="w-5 h-5" />
                 </div>
                 <div>
