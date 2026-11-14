@@ -23,15 +23,15 @@ function buildSpecimenEnv(renderer: THREE.WebGLRenderer, accentHex: string): THR
   const envScene = new THREE.Scene();
   envScene.background = new THREE.Color(0x141222);
 
-  // Large frontal studio softbox so silver/chrome front face always reflects rich highlights
+  // Angled upper-right studio softbox so front face stays high-contrast without white washout
   const frontSoftbox = new THREE.Mesh(
-    new THREE.PlaneGeometry(14, 10),
+    new THREE.PlaneGeometry(11, 7),
     new THREE.MeshBasicMaterial({
-      color: new THREE.Color(2.2, 2.25, 2.5),
+      color: new THREE.Color(1.85, 1.9, 2.2),
       side: THREE.DoubleSide,
     })
   );
-  frontSoftbox.position.set(0, 1.5, 8);
+  frontSoftbox.position.set(3.8, 3.4, 7.5);
   frontSoftbox.lookAt(0, 0, 0);
   envScene.add(frontSoftbox);
 
@@ -438,13 +438,13 @@ export default function ZipPacket3DViewer({
     bodyGeo.computeVertexNormals();
 
     const bodyMat = new THREE.MeshPhysicalMaterial({
-      color: 0x1e1b2e,
-      metalness: 0.88,
-      roughness: 0.16,
+      color: 0x0d0917,
+      metalness: 0.9,
+      roughness: 0.15,
       clearcoat: 1.0,
       clearcoatRoughness: 0.08,
-      iridescence: 0.42,
-      envMapIntensity: 2.4,
+      iridescence: 0.45,
+      envMapIntensity: 2.1,
     });
     const pouchBody = new THREE.Mesh(bodyGeo, bodyMat);
     pouchRoot.add(pouchBody);
@@ -482,13 +482,13 @@ export default function ZipPacket3DViewer({
     backTex.anisotropy = 4;
 
     const createCurvedLabelGeo = (zOffset: number, bulgeSign: number) => {
-      const geo = new THREE.PlaneGeometry(2.08, 2.7, 18, 22);
+      const geo = new THREE.PlaneGeometry(2.3, 2.94, 20, 24);
       const pos = geo.attributes.position;
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const y = pos.getY(i);
-        const nx = x / 1.04;
-        const ny = y / 1.35;
+        const nx = x / 1.15;
+        const ny = y / 1.47;
         const bulge = Math.max(0, 1 - (nx * nx * 0.68 + ny * ny * 0.58));
         pos.setZ(i, zOffset + bulgeSign * bulge * 0.128);
       }
@@ -499,28 +499,28 @@ export default function ZipPacket3DViewer({
     const frontGeo = createCurvedLabelGeo(0.145, 1);
     const frontMat = new THREE.MeshPhysicalMaterial({
       map: frontTex,
-      roughness: 0.16,
-      metalness: 0.24,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.06,
-      iridescence: 0.35,
-      envMapIntensity: 1.75,
+      roughness: 0.22,
+      metalness: 0.08,
+      clearcoat: 0.72,
+      clearcoatRoughness: 0.1,
+      iridescence: 0.25,
+      envMapIntensity: 0.78,
     });
     const frontPlane = new THREE.Mesh(frontGeo, frontMat);
-    frontPlane.position.set(0, -0.05, 0);
+    frontPlane.position.set(0, -0.02, 0);
     pouchRoot.add(frontPlane);
 
     const backGeo = createCurvedLabelGeo(0.145, 1);
     const backMat = new THREE.MeshPhysicalMaterial({
       map: backTex,
-      roughness: 0.2,
-      metalness: 0.32,
-      clearcoat: 0.9,
-      envMapIntensity: 1.65,
+      roughness: 0.24,
+      metalness: 0.12,
+      clearcoat: 0.7,
+      envMapIntensity: 0.82,
     });
     const backPlane = new THREE.Mesh(backGeo, backMat);
     backPlane.rotation.y = Math.PI;
-    backPlane.position.set(0, -0.05, 0);
+    backPlane.position.set(0, -0.02, 0);
     pouchRoot.add(backPlane);
 
     // Load actual JPG / SVG via Image -> Canvas rasterization (bulletproof on iPhone WebGL!)

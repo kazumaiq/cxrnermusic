@@ -48,15 +48,15 @@ function buildStudioEnvMap(
   topBox.rotation.x = Math.PI / 2;
   envScene.add(topBox);
 
-  // Front key reflection strip
+  // Angled upper-front key reflection strip (offset so it never washes out flat front faces)
   const frontStrip = new THREE.Mesh(
-    new THREE.PlaneGeometry(14, 6),
+    new THREE.PlaneGeometry(10, 4.5),
     new THREE.MeshBasicMaterial({
-      color: new THREE.Color(2.4, 2.5, 2.8),
+      color: new THREE.Color(1.9, 2.0, 2.3),
       side: THREE.DoubleSide,
     })
   );
-  frontStrip.position.set(0, 2.2, 9);
+  frontStrip.position.set(3.5, 3.8, 7.5);
   frontStrip.lookAt(0, 0, 0);
   envScene.add(frontStrip);
 
@@ -263,7 +263,11 @@ function buildSculpturalArtifact(
     return obj;
   };
 
-  const accentColor = new THREE.Color(accentHex);
+  const vibrantHex =
+    rarity === "common" || accentHex.toLowerCase() === "#a1a1aa"
+      ? "#00F0FF"
+      : accentHex;
+  const accentColor = new THREE.Color(vibrantHex);
   const idLower = `${itemId} ${specimenCode} ${itemName}`.toLowerCase();
 
   // Shared High-Grade PBR Materials
@@ -916,50 +920,265 @@ function buildSculpturalArtifact(
     };
   }
   // =========================================================================
-  // 11. DATA KEY / CHROME TAG / BASIC SPECIMEN (Default Sculptural Relic)
+  // 11. DATA KEY (DK-003) — Machined Cryptographic Cyber-Key & Neural Blade
+  // =========================================================================
+  else if (idLower.includes("data_key") || idLower.includes("data key") || idLower.includes("dk-003")) {
+    const keyGroup = new THREE.Group();
+    keyGroup.rotation.z = -Math.PI / 6; // Dynamic 30-degree diagonal presentation
+    root.add(keyGroup);
+
+    // Upper Armored Hexagonal Key Bow (Grip Ring)
+    const bowOuterGeo = track(new THREE.TorusGeometry(0.68, 0.14, 20, 6));
+    const bowOuter = new THREE.Mesh(bowOuterGeo, mirrorChromeMat);
+    bowOuter.position.y = 0.92;
+    bowOuter.rotation.z = Math.PI / 6;
+    keyGroup.add(bowOuter);
+
+    const bowInnerGeo = track(new THREE.CylinderGeometry(0.52, 0.52, 0.16, 6));
+    const bowInner = new THREE.Mesh(bowInnerGeo, darkObsidianMat);
+    bowInner.rotation.x = Math.PI / 2;
+    bowInner.position.y = 0.92;
+    keyGroup.add(bowInner);
+
+    // Spinning encrypted holographic core inside the key bow
+    const coreCrystalGeo = track(new THREE.OctahedronGeometry(0.26, 0));
+    const coreCrystal = new THREE.Mesh(coreCrystalGeo, neonAccentMat);
+    coreCrystal.position.set(0, 0.92, 0);
+    keyGroup.add(coreCrystal);
+
+    // Collar junction between bow and blade
+    const collarGeo = track(new THREE.CylinderGeometry(0.28, 0.22, 0.28, 24));
+    const collar = new THREE.Mesh(collarGeo, mirrorChromeMat);
+    collar.position.y = 0.22;
+    keyGroup.add(collar);
+
+    // Main Milled Key Blade Shaft
+    const shaftGeo = track(new THREE.BoxGeometry(0.26, 1.75, 0.14));
+    const shaft = new THREE.Mesh(shaftGeo, mirrorChromeMat);
+    shaft.position.y = -0.68;
+    keyGroup.add(shaft);
+
+    // Dark obsidian recessed data channel along the shaft
+    const grooveGeo = track(new THREE.BoxGeometry(0.1, 1.55, 0.16));
+    const groove = new THREE.Mesh(grooveGeo, darkObsidianMat);
+    groove.position.y = -0.68;
+    keyGroup.add(groove);
+
+    // Glowing neon data-bus trace inside the shaft
+    const busGeo = track(new THREE.BoxGeometry(0.04, 1.45, 0.175));
+    const bus = new THREE.Mesh(busGeo, neonAccentMat);
+    bus.position.y = -0.68;
+    keyGroup.add(bus);
+
+    // Precision Laser-Cut Bit Teeth on the Key Blade
+    const teethSpecs = [
+      { y: -0.52, w: 0.34, h: 0.14 },
+      { y: -0.78, w: 0.48, h: 0.18 },
+      { y: -1.06, w: 0.28, h: 0.14 },
+      { y: -1.32, w: 0.52, h: 0.2 },
+    ];
+    teethSpecs.forEach((t, idx) => {
+      const toothGeo = track(new THREE.BoxGeometry(t.w, t.h, 0.13));
+      const tooth = new THREE.Mesh(toothGeo, mirrorChromeMat);
+      tooth.position.set(0.13 + t.w / 2 - 0.04, t.y, 0);
+      keyGroup.add(tooth);
+
+      const tipGeo = track(new THREE.BoxGeometry(0.08, t.h * 0.6, 0.15));
+      const tip = new THREE.Mesh(tipGeo, idx % 2 === 0 ? neonAccentMat : darkObsidianMat);
+      tip.position.set(0.13 + t.w - 0.06, t.y, 0);
+      keyGroup.add(tip);
+    });
+
+    // Dual Orbiting Security Halo Rings around the shaft
+    const ringGeo = track(new THREE.TorusGeometry(0.62, 0.022, 16, 64));
+    const ring1 = new THREE.Mesh(ringGeo, neonAccentMat);
+    ring1.rotation.x = Math.PI / 2;
+    ring1.position.y = -0.55;
+    keyGroup.add(ring1);
+
+    const ring2 = new THREE.Mesh(ringGeo, mirrorChromeMat);
+    ring2.rotation.x = Math.PI / 2.3;
+    ring2.position.y = -0.95;
+    keyGroup.add(ring2);
+
+    customUpdate = (t) => {
+      coreCrystal.rotation.y = t * 2.4;
+      coreCrystal.rotation.z = t * 1.6;
+      ring1.rotation.z = t * 1.8;
+      ring2.rotation.z = -t * 1.4;
+    };
+  }
+  // =========================================================================
+  // 12. ARCHIVE PASS (AP-002) — Armored Titanium & Obsidian VIP Security Badge
+  // =========================================================================
+  else if (idLower.includes("archive_pass") || idLower.includes("archive pass") || idLower.includes("ap-002")) {
+    // Outer beveled chrome frame
+    const frameGeo = track(new THREE.BoxGeometry(1.78, 2.52, 0.14));
+    const frame = new THREE.Mesh(frameGeo, mirrorChromeMat);
+    root.add(frame);
+
+    // Recessed dark obsidian carbon face
+    const plateGeo = track(new THREE.BoxGeometry(1.56, 2.28, 0.165));
+    const plate = new THREE.Mesh(plateGeo, darkObsidianMat);
+    root.add(plate);
+
+    // Top metallic lanyard clasp shackle
+    const shackleGeo = track(new THREE.TorusGeometry(0.24, 0.05, 16, 48));
+    const shackle = new THREE.Mesh(shackleGeo, mirrorChromeMat);
+    shackle.position.set(0, 1.38, 0);
+    root.add(shackle);
+
+    // Raised gold/neon cryptographic smart-chip
+    const chipGeo = track(new THREE.BoxGeometry(0.42, 0.34, 0.19));
+    const chip = new THREE.Mesh(chipGeo, neonAccentMat);
+    chip.position.set(-0.42, 0.35, 0);
+    root.add(chip);
+
+    // Center holographic CXRNER hexagon crest
+    const crestGeo = track(new THREE.CylinderGeometry(0.46, 0.46, 0.19, 6));
+    const crest = new THREE.Mesh(crestGeo, mirrorChromeMat);
+    crest.rotation.x = Math.PI / 2;
+    crest.position.set(0.18, -0.15, 0);
+    root.add(crest);
+
+    // Scanning laser strip across badge
+    const laserGeo = track(new THREE.BoxGeometry(1.48, 0.045, 0.2));
+    const laser = new THREE.Mesh(laserGeo, neonAccentMat);
+    root.add(laser);
+
+    customUpdate = (t) => {
+      laser.position.y = Math.sin(t * 2.2) * 0.92;
+      crest.rotation.z = t * 0.8;
+    };
+  }
+  // =========================================================================
+  // 13. CHROME TAG (CT-012) — Twin Mirror-Chrome Military Dog-Tags
+  // =========================================================================
+  else if (idLower.includes("chrome_tag") || idLower.includes("chrome tag") || idLower.includes("ct-012")) {
+    const buildDogTag = () => {
+      const g = new THREE.Group();
+      const rimGeo = track(new THREE.BoxGeometry(1.28, 2.05, 0.1));
+      const rim = new THREE.Mesh(rimGeo, darkObsidianMat);
+      g.add(rim);
+
+      const metalGeo = track(new THREE.BoxGeometry(1.14, 1.9, 0.12));
+      const metal = new THREE.Mesh(metalGeo, mirrorChromeMat);
+      g.add(metal);
+
+      const stripeGeo = track(new THREE.BoxGeometry(0.88, 0.12, 0.14));
+      const stripe = new THREE.Mesh(stripeGeo, neonAccentMat);
+      stripe.position.y = 0.28;
+      g.add(stripe);
+
+      const barGeo = track(new THREE.BoxGeometry(0.88, 0.06, 0.135));
+      const bar = new THREE.Mesh(barGeo, darkObsidianMat);
+      bar.position.y = -0.25;
+      g.add(bar);
+      return g;
+    };
+
+    const tagFront = buildDogTag();
+    tagFront.position.set(-0.22, -0.08, 0.18);
+    tagFront.rotation.z = 0.12;
+    tagFront.rotation.y = 0.18;
+    root.add(tagFront);
+
+    const tagBack = buildDogTag();
+    tagBack.position.set(0.28, 0.06, -0.16);
+    tagBack.rotation.z = -0.16;
+    tagBack.rotation.y = -0.22;
+    root.add(tagBack);
+
+    // Upper chrome ball-chain loop
+    const chainLoopGeo = track(new THREE.TorusGeometry(0.65, 0.045, 16, 48));
+    const chainLoop = new THREE.Mesh(chainLoopGeo, mirrorChromeMat);
+    chainLoop.position.set(0, 1.05, 0);
+    chainLoop.rotation.x = 0.35;
+    root.add(chainLoop);
+
+    customUpdate = (t) => {
+      tagFront.position.y = -0.08 + Math.sin(t * 2) * 0.05;
+      tagBack.position.y = 0.06 - Math.sin(t * 2) * 0.05;
+    };
+  }
+  // =========================================================================
+  // 14. BASIC SPECIMEN (BS-001) & DEFAULT — Cryo-Containment Ferrofluid Reactor
   // =========================================================================
   else {
-    // Cryo-Magnetic Relic Core + Precision Titanium Cage
-    const capsuleGeo = track(new THREE.CylinderGeometry(0.68, 0.68, 1.95, 36));
+    // Smoked dark-violet containment cylinder
+    const capsuleGeo = track(new THREE.CylinderGeometry(0.72, 0.72, 1.95, 40));
     const glassMat = track(
       new THREE.MeshPhysicalMaterial({
-        color: accentColor,
-        metalness: 0.25,
-        roughness: 0.08,
+        color: new THREE.Color(0x140d26),
+        metalness: 0.2,
+        roughness: 0.06,
         transparent: true,
-        opacity: 0.52,
+        opacity: 0.42,
         clearcoat: 1.0,
       })
     );
     const capsule = new THREE.Mesh(capsuleGeo, glassMat);
     root.add(capsule);
 
-    const capGeo = track(new THREE.CylinderGeometry(0.76, 0.76, 0.24, 36));
+    // Heavy Machined Chrome End-Caps + Neon Seal Gaskets
+    const capGeo = track(new THREE.CylinderGeometry(0.84, 0.84, 0.24, 36));
+    const gasketGeo = track(new THREE.TorusGeometry(0.76, 0.035, 16, 64));
+
     const topCap = new THREE.Mesh(capGeo, mirrorChromeMat);
     topCap.position.y = 1.02;
     root.add(topCap);
+
+    const topGasket = new THREE.Mesh(gasketGeo, neonAccentMat);
+    topGasket.rotation.x = Math.PI / 2;
+    topGasket.position.y = 0.88;
+    root.add(topGasket);
 
     const botCap = new THREE.Mesh(capGeo, mirrorChromeMat);
     botCap.position.y = -1.02;
     root.add(botCap);
 
-    const crystalGeo = track(new THREE.OctahedronGeometry(0.44, 0));
-    const crystal = new THREE.Mesh(crystalGeo, neonAccentMat);
-    root.add(crystal);
+    const botGasket = new THREE.Mesh(gasketGeo, neonAccentMat);
+    botGasket.rotation.x = Math.PI / 2;
+    botGasket.position.y = -0.88;
+    root.add(botGasket);
 
-    const ringGeo = track(new THREE.TorusGeometry(1.05, 0.03, 16, 72));
+    // 4 Exterior Titanium Guard Rods around the chamber
+    const rodGeo = track(new THREE.CylinderGeometry(0.045, 0.045, 2.05, 16));
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2 + Math.PI / 4;
+      const rod = new THREE.Mesh(rodGeo, mirrorChromeMat);
+      rod.position.set(Math.cos(a) * 0.78, 0, Math.sin(a) * 0.78);
+      root.add(rod);
+    }
+
+    // Inner Levitating Ferrofluid Chrome Cluster + Glowing Core
+    const ferroGroup = new THREE.Group();
+    root.add(ferroGroup);
+
+    const coreGeo = track(new THREE.IcosahedronGeometry(0.42, 1));
+    const coreMesh = new THREE.Mesh(coreGeo, mirrorChromeMat);
+    ferroGroup.add(coreMesh);
+
+    const innerGlowGeo = track(new THREE.OctahedronGeometry(0.5, 0));
+    const innerGlow = new THREE.Mesh(innerGlowGeo, neonAccentMat);
+    ferroGroup.add(innerGlow);
+
+    // Dual Orbiting Plasma Rings
+    const ringGeo = track(new THREE.TorusGeometry(1.08, 0.032, 16, 72));
     const ring1 = new THREE.Mesh(ringGeo, mirrorChromeMat);
+    ring1.rotation.x = Math.PI / 3;
     root.add(ring1);
 
     const ring2 = new THREE.Mesh(ringGeo, neonAccentMat);
-    ring2.rotation.x = Math.PI / 2;
+    ring2.rotation.x = -Math.PI / 3;
     root.add(ring2);
 
     customUpdate = (t) => {
-      crystal.rotation.y = t * 1.8;
-      crystal.position.y = Math.sin(t * 2.4) * 0.18;
-      ring1.rotation.y = t * 0.9;
-      ring2.rotation.z = t * 1.1;
+      ferroGroup.rotation.y = t * 1.8;
+      ferroGroup.rotation.x = Math.sin(t * 1.4) * 0.4;
+      ferroGroup.position.y = Math.sin(t * 2.4) * 0.14;
+      ring1.rotation.y = t * 1.1;
+      ring2.rotation.z = t * 1.3;
     };
   }
 
@@ -1176,22 +1395,22 @@ export default function Artifact3DInspector({
       capsuleDisposables.push(cushionGeo);
 
       const sideChromeMat = new THREE.MeshPhysicalMaterial({
-        color: 0xdbeafe,
+        color: 0x161224,
         metalness: 0.92,
         roughness: 0.14,
         clearcoat: 1.0,
         iridescence: 0.45,
-        envMapIntensity: 2.4,
+        envMapIntensity: 2.1,
       });
       const faceMat = new THREE.MeshPhysicalMaterial({
         map: frontTex,
         color: 0xffffff,
-        metalness: 0.28,
-        roughness: 0.16,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.06,
-        iridescence: 0.32,
-        envMapIntensity: 1.85,
+        metalness: 0.08,
+        roughness: 0.24,
+        clearcoat: 0.65,
+        clearcoatRoughness: 0.12,
+        iridescence: 0.22,
+        envMapIntensity: 0.72,
       });
       capsuleDisposables.push(sideChromeMat, faceMat);
 
@@ -1204,6 +1423,30 @@ export default function Artifact3DInspector({
         faceMat,
       ]);
       capsuleGroup.add(cushionMesh);
+
+      // Top Chrome Heat-Seal Header Strip + Hang Hole + Neon Zipper Rail on Capsule
+      const headerGeo = new THREE.BoxGeometry(2.58, 0.26, 0.12);
+      const headerMat = new THREE.MeshPhysicalMaterial({
+        color: 0xf1f5f9,
+        metalness: 0.96,
+        roughness: 0.09,
+        clearcoat: 1.0,
+        envMapIntensity: 2.5,
+      });
+      const headerMesh = new THREE.Mesh(headerGeo, headerMat);
+      headerMesh.position.set(0, 1.38, 0);
+      capsuleGroup.add(headerMesh);
+
+      const zipRailGeo = new THREE.BoxGeometry(2.52, 0.045, 0.16);
+      const zipRailMat = new THREE.MeshStandardMaterial({
+        color: accentColor,
+        emissive: accentColor,
+        emissiveIntensity: 1.4,
+      });
+      const zipRail = new THREE.Mesh(zipRailGeo, zipRailMat);
+      zipRail.position.set(0, 1.22, 0);
+      capsuleGroup.add(zipRail);
+      capsuleDisposables.push(headerGeo, headerMat, zipRailGeo, zipRailMat);
     }
 
     // Holographic Cryo-Levitation Pedestal Below Object (Positioned at y = -1.95 so it NEVER clips!)
@@ -1396,16 +1639,17 @@ export default function Artifact3DInspector({
         }}
       />
 
-      {/* Top HUD Telemetry Bar + Mode Switcher */}
-      <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/65 border border-white/15 backdrop-blur-md font-mono text-[9px] uppercase tracking-wider text-white/85">
-          <Sparkles className="w-3 h-3" style={{ color: themeColor }} />
-          <span>360° STUDIO INSPECTOR</span>
-          {specimenCode && <span className="text-white/45">· {specimenCode}</span>}
+      {/* Top HUD Telemetry Bar + Mode Switcher (Single-Row Compact on Mobile) */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between gap-1.5 pointer-events-none">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 border border-white/15 backdrop-blur-md font-mono text-[9px] uppercase tracking-wider text-white/90 truncate">
+          <Sparkles className="w-3 h-3 shrink-0" style={{ color: themeColor }} />
+          <span className="hidden sm:inline">360° STUDIO</span>
+          <span className="sm:hidden">360°</span>
+          {specimenCode && <span className="text-[#00F0FF] font-bold">· {specimenCode}</span>}
         </div>
 
         {/* Sub-mode switcher: 3D Sculpture vs 3D Capsule */}
-        <div className="pointer-events-auto inline-flex p-0.5 rounded-full bg-black/75 border border-white/15 backdrop-blur-md font-mono text-[9px] uppercase">
+        <div className="pointer-events-auto inline-flex p-0.5 rounded-full bg-black/80 border border-white/15 backdrop-blur-md font-mono text-[9px] uppercase shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -1446,11 +1690,16 @@ export default function Artifact3DInspector({
       />
 
       {/* Bottom Interactive Studio Controls HUD */}
-      <div className="absolute bottom-3 left-3 right-3 z-20 flex items-center justify-between gap-2 pointer-events-none">
-        <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/55 truncate">
-          {serialNumber !== undefined
-            ? `№${String(serialNumber).padStart(6, "0")} · ВРАЩАЙ ПАЛЬЦЕМ / МЫШЬЮ`
-            : collectionName || "DRAG TO ROTATE 360°"}
+      <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between gap-2 pointer-events-none">
+        <div className="px-2.5 py-1 rounded-full bg-black/65 border border-white/10 backdrop-blur-md font-mono text-[9px] uppercase tracking-wider text-white/75 truncate">
+          {serialNumber !== undefined ? (
+            <>
+              <span>№{String(serialNumber).padStart(6, "0")}</span>
+              <span className="hidden sm:inline"> · ВРАЩАЙ 360°</span>
+            </>
+          ) : (
+            collectionName || "360° VIEW"
+          )}
         </div>
 
         <div className="pointer-events-auto flex items-center gap-1 bg-black/75 border border-white/15 rounded-full p-1 backdrop-blur-md">

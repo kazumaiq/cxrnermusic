@@ -22,6 +22,7 @@ import type { CxrnerProfile, DropInventoryItem, CxrnerArtistProfile } from "@/li
 import { ACHIEVEMENTS_CATALOG } from "@/lib/ecosystemTypes";
 import SpecimenVisual from "@/components/drop/SpecimenVisual";
 import ItemInspectModal from "@/components/drop/ItemInspectModal";
+import HolographicPassModal from "@/components/profile/HolographicPassModal";
 
 interface ProfileClientViewProps {
   profile: CxrnerProfile;
@@ -37,6 +38,7 @@ export default function ProfileClientView({
   artistProject,
 }: ProfileClientViewProps) {
   const [selectedItem, setSelectedItem] = useState<DropInventoryItem | null>(null);
+  const [isPassModalOpen, setIsPassModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleShare = () => {
@@ -91,8 +93,16 @@ export default function ProfileClientView({
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-[#090611] via-transparent to-black/30" />
 
-            {/* Share button floating */}
+            {/* Share & 3D VIP Pass floating buttons */}
             <div className="absolute top-4 right-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPassModalOpen(true)}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#8737FF]/80 hover:bg-[#8737FF] border border-[#00F0FF]/50 text-xs font-mono font-bold text-white shadow-[0_0_20px_rgba(135,55,255,0.6)] backdrop-blur-md transition active:scale-95 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#00F0FF]" />
+                <span>🪪 3D VIP-ПРОПУСК</span>
+              </button>
               <button
                 type="button"
                 onClick={handleShare}
@@ -372,6 +382,15 @@ export default function ProfileClientView({
           onClose={() => setSelectedItem(null)}
         />
       )}
+
+      {/* 3D Holographic VIP Pass Modal */}
+      <HolographicPassModal
+        isOpen={isPassModalOpen}
+        onClose={() => setIsPassModalOpen(false)}
+        profile={profile}
+        topArtifact={pinnedItems[0] || null}
+        totalArtifacts={totalInventoryCount}
+      />
     </div>
   );
 }

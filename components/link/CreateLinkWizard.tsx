@@ -205,6 +205,10 @@ export default function CreateLinkWizard() {
 
   const [previewAudioUrl, setPreviewAudioUrl] = useState("");
   const [lyricsSnippet, setLyricsSnippet] = useState("");
+  const [collabArtist, setCollabArtist] = useState("");
+  const [fanGateTarget, setFanGateTarget] = useState("");
+  const [fanGateTitle, setFanGateTitle] = useState("");
+  const [fanGateContent, setFanGateContent] = useState("");
 
   // Step 1: Perform UPC Lookup (supports unreleased Pre-saves smoothly)
   const handleUpcLookup = async (e?: React.FormEvent) => {
@@ -404,6 +408,10 @@ export default function CreateLinkWizard() {
         description,
         preview_audio_url: previewAudioUrl.trim() || null,
         lyrics_snippet: lyricsSnippet.trim() || null,
+        collab_artist: collabArtist.trim() || null,
+        fan_gate_target: fanGateTarget ? Number(fanGateTarget) : null,
+        fan_gate_title: fanGateTitle.trim() || null,
+        fan_gate_content: fanGateContent.trim() || null,
         status,
         template,
         is_out_now: isOutNow,
@@ -1149,6 +1157,69 @@ export default function CreateLinkWizard() {
                     placeholder={"Вставьте припев или главные панчлайны трека...\nСлушатели смогут раскрыть карточку текста прямо на странице."}
                     className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none resize-none"
                   />
+                </div>
+
+                {/* Collab Artist Split Link */}
+                <div className="pt-2 border-t border-white/10">
+                  <label className="font-mono text-[11px] uppercase tracking-wider text-[#00F0FF] font-bold block mb-1">
+                    🤝 COLLAB LINK — Второй артист на фите (опционально):
+                  </label>
+                  <input
+                    type="text"
+                    value={collabArtist}
+                    onChange={(e) => setCollabArtist(e.target.value)}
+                    placeholder="Например: KIZARU или @username резидента CXRNER"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:border-[#00F0FF] focus:outline-none font-mono"
+                  />
+                </div>
+
+                {/* Viral Fan-Unlock Gate */}
+                <div className="pt-2 border-t border-white/10 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-[#F59E0B] font-bold">
+                      🔓 FAN-UNLOCK GOAL — Секретный бонус за 🔥 реакции фанатов:
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="font-mono text-[10px] uppercase tracking-wider text-white/60 block mb-1">
+                        Цель (кол-во 🔥):
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100000}
+                        value={fanGateTarget}
+                        onChange={(e) => setFanGateTarget(e.target.value)}
+                        placeholder="Например: 50"
+                        className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#F59E0B] focus:outline-none font-mono"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="font-mono text-[10px] uppercase tracking-wider text-white/60 block mb-1">
+                        Что откроется фанатам (заголовок цели):
+                      </label>
+                      <input
+                        type="text"
+                        value={fanGateTitle}
+                        onChange={(e) => setFanGateTitle(e.target.value)}
+                        placeholder="Например: Unreleased Demo / TG-канал / Промокод на мерч"
+                        className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#F59E0B] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="font-mono text-[10px] uppercase tracking-wider text-white/60 block mb-1">
+                      Секретная ссылка или бонус-код (появится когда шкала 🔥 достигнет 100%):
+                    </label>
+                    <input
+                      type="text"
+                      value={fanGateContent}
+                      onChange={(e) => setFanGateContent(e.target.value)}
+                      placeholder="https://t.me/+secret... или промокод CXRNER-VIP"
+                      className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#F59E0B] focus:outline-none font-mono"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

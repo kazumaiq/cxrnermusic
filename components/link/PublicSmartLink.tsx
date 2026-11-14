@@ -62,6 +62,10 @@ export interface SmartLinkData {
   template: string;
   preview_audio_url?: string | null;
   lyrics_snippet?: string | null;
+  collab_artist?: string | null;
+  fan_gate_target?: number | null;
+  fan_gate_title?: string | null;
+  fan_gate_content?: string | null;
   hype_count?: number;
   presaves_count?: number;
   social_links?: Array<{ platform: string; url: string }>;
@@ -550,6 +554,22 @@ export default function PublicSmartLink({
           <div className="space-y-2 px-2">
             <div className="inline-flex flex-wrap items-center justify-center gap-1.5 text-xs sm:text-sm font-mono uppercase tracking-[0.16em] text-white/85">
               <span>{link.artist}</span>
+              {link.collab_artist && (
+                <>
+                  <span className="text-[#00F0FF] font-bold">×</span>
+                  <Link
+                    href={
+                      link.collab_artist.startsWith("@")
+                        ? `/profile/${link.collab_artist.slice(1)}`
+                        : `/auth/register?collab=${encodeURIComponent(link.collab_artist)}`
+                    }
+                    className="text-[#00F0FF] hover:underline inline-flex items-center gap-1"
+                    title="Совместный релиз (Collab Link)"
+                  >
+                    <span>{link.collab_artist}</span>
+                  </Link>
+                </>
+              )}
               {(link.is_verified_artist || link.owner_profile?.is_artist_verified) && (
                 <span
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider border"
@@ -658,6 +678,74 @@ export default function PublicSmartLink({
                 </button>
               )}
             </div>
+
+            {/* Viral Fan-Unlock Goal Progress Card */}
+            {Boolean(link.fan_gate_target && Number(link.fan_gate_target) > 0) && (
+              <div className="w-full max-w-sm mx-auto mt-3 p-3.5 rounded-2xl border border-[#F59E0B]/35 bg-gradient-to-br from-[#F59E0B]/12 via-[#090612]/90 to-[#8737FF]/12 text-left space-y-2.5 shadow-[0_12px_35px_rgba(0,0,0,0.65)]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#FBBF24] font-bold">
+                    {hypeCount >= Number(link.fan_gate_target)
+                      ? "🔓 БОНУС РАЗБЛОКИРОВАН ФАНАТАМИ!"
+                      : "🔒 FAN-UNLOCK // ЦЕЛЬ СООБЩЕСТВА"}
+                  </span>
+                  <span className="font-mono text-[10px] font-bold text-white tabular-nums px-2 py-0.5 rounded-full bg-black/50 border border-white/10">
+                    🔥 {hypeCount} / {link.fan_gate_target}
+                  </span>
+                </div>
+
+                <p className="text-xs font-bold text-white leading-snug">
+                  {link.fan_gate_title || "Секретный эксклюзив от артиста"}
+                </p>
+
+                <div className="h-2 w-full rounded-full bg-black/60 border border-white/10 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#F59E0B] via-[#FF2E93] to-[#00F0FF] transition-all duration-500"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round((hypeCount / Math.max(1, Number(link.fan_gate_target))) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+
+                {hypeCount >= Number(link.fan_gate_target) ? (
+                  <div className="p-2.5 rounded-xl bg-black/65 border border-[#00F0FF]/40 flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs text-[#00F0FF] font-bold truncate select-all">
+                      {link.fan_gate_content || "CXRNER-SECRET-UNLOCKED"}
+                    </span>
+                    {link.fan_gate_content?.startsWith("http") ? (
+                      <a
+                        href={link.fan_gate_content}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 rounded-lg bg-[#00F0FF] text-[#050407] font-mono text-[10px] font-bold uppercase tracking-wider shrink-0"
+                      >
+                        Открыть
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(link.fan_gate_content || "");
+                        }}
+                        className="px-3 py-1 rounded-lg bg-[#00F0FF]/20 border border-[#00F0FF]/40 text-[#00F0FF] font-mono text-[10px] font-bold uppercase tracking-wider shrink-0 cursor-pointer"
+                      >
+                        Копировать
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="font-mono text-[10px] text-white/60">
+                    Жми «🔥 ОГОНЬ РЕЛИЗУ» и делись ссылкой с друзьями — осталось{" "}
+                    <span className="text-[#FBBF24] font-bold">
+                      {Math.max(0, Number(link.fan_gate_target) - hypeCount)} 🔥
+                    </span>{" "}
+                    до открытия!
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Expandable Lyrics / Punchline Card */}
             {link.lyrics_snippet && showLyrics && (

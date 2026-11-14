@@ -302,47 +302,47 @@ export default function CaseOpeningModal({
       } catch {}
     };
 
-    // Multi-beat choreographed timeline tight-synced with physical 3D zipper + foley sound
+    // Multi-beat choreographed timeline tight-synced with physical 3D zipper + foley sound (fast 1.72s total!)
     const beats: Array<{ ms: number; fn: () => void }> = [
       {
-        ms: 380,
+        ms: 220,
         fn: () => {
           setStepIndex(1);
-          setProgress(24);
+          setProgress(28);
           playScannerTickSound(1);
         },
       },
       {
-        ms: 820,
+        ms: 480,
         fn: () => {
           setStepIndex(2);
-          setProgress(42);
+          setProgress(48);
           playScannerTickSound(2);
         },
       },
       {
-        ms: 1320,
+        ms: 760,
         fn: () => {
           setStepIndex(3);
-          setProgress(58);
+          setProgress(66);
           playScannerTickSound(3);
         },
       },
       {
-        ms: 1850,
+        ms: 1050,
         fn: () => {
           setStepIndex(4);
-          setProgress(76);
+          setProgress(84);
           setZipPhase("ripping");
           playZipTearSound();
           triggerHaptic([18, 35, 22]);
         },
       },
       {
-        ms: 2580,
+        ms: 1380,
         fn: () => {
           setStepIndex(5);
-          setProgress(93);
+          setProgress(96);
           setZipPhase("bloom");
           triggerHaptic(32);
         },
@@ -357,7 +357,7 @@ export default function CaseOpeningModal({
       const [result] = await Promise.all([
         apiPromise,
         new Promise((r) => {
-          timersRef.current.push(window.setTimeout(r, 3280));
+          timersRef.current.push(window.setTimeout(r, 1720));
         }),
       ]);
 

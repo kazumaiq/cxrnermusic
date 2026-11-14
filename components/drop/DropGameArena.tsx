@@ -86,20 +86,29 @@ export default function DropGameArena({
   isLoggedIn,
   defaultTab = "play",
 }: DropGameArenaProps) {
-  const [activeTab, setActiveTab] = useState<"play" | "inventory" | "prizes" | "fusion">(defaultTab);
+  const [activeTab, setActiveTab] = useState<
+    "play" | "battle" | "leaderboard" | "inventory" | "prizes" | "fusion"
+  >(defaultTab);
   const [items, setItems] = useState<DropInventoryItem[]>(initialItems);
   const [balance, setBalance] = useState<number>(initialBalance);
   const [animatedBalance, setAnimatedBalance] = useState<number>(initialBalance);
   const [sfxOn, setSfxOn] = useState<boolean>(true);
   const [history, setHistory] = useState<DropHistoryEntry[]>(initialHistory);
 
-  // Live Feed, Daily Scan & Fusion Lab state
+  // Live Feed, Daily Scan, Fusion Lab, 1v1 Battle, Leaderboard & Gift/Promo state
   const [liveFeed, setLiveFeed] = useState<LiveFeedEntry[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [dailyScan, setDailyScan] = useState<DailyScanState | null>(null);
   const [isClaimingDaily, setIsClaimingDaily] = useState(false);
   const [fusionRarity, setFusionRarity] = useState<"common" | "rare" | "epic" | "legendary">("common");
   const [selectedFusionIds, setSelectedFusionIds] = useState<string[]>([]);
   const [isFusing, setIsFusing] = useState(false);
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [isClaimingPromo, setIsClaimingPromo] = useState(false);
+  const [giftShareUrl, setGiftShareUrl] = useState<string | null>(null);
+  const [battleOpponent, setBattleOpponent] = useState("CYBER-BOT // ARCHIVE-09");
+  const [isBattling, setIsBattling] = useState(false);
+  const [battleResult, setBattleResult] = useState<any | null>(null);
 
   // Case selection
   const [selectedCaseId, setSelectedCaseId] = useState<string>("case_001_archive");
@@ -150,10 +159,180 @@ export default function DropGameArena({
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d?.liveFeed)) setLiveFeed(d.liveFeed);
+        if (Array.isArray(d?.feed) && !d?.liveFeed) setLiveFeed(d.feed);
+        if (Array.isArray(d?.leaderboard)) setLeaderboard(d.leaderboard);
         if (d?.dailyScan) setDailyScan(d.dailyScan);
       })
       .catch(() => {});
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const giftParam = params.get("gift");
+      if (giftParam) {
+        setPromoCodeInput(giftParam);
+      }
+    }
   }, []);
+
+  const handleClaimPromoCode = async (overrideCode?: string) => {
+    const code = (overrideCode ?? promoCodeInput).trim();
+    if (!code || isClaimingPromo) return;
+    if (!isLoggedIn) {
+      setStatusNotice("Войдите в аккаунт CXRNER ID, чтобы активировать промокод или подарок");
+      setTimeout(() => setStatusNotice(null), 3500);
+      return;
+    }
+    setIsClaimingPromo(true);
+    try {
+      const res = await fetch("/api/cabinet/drop/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "claim_promo", code }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusNotice(data.error || "Не удалось активировать код");
+        setTimeout(() => setStatusNotice(null), 3500);
+        return;
+      }
+      if (typeof data.newBalance === "number") setBalance(data.newBalance);
+      setPromoCodeInput("");
+      if (data.droppedItem) {
+        const mapped: DropInventoryItem = {
+          id: crypto.randomUUID(),
+          user_id: username,
+          item_id: data.droppedItem.id,
+          item_name: data.droppedItem.name,
+          specimen_code: data.droppedItem.specimen_code,
+          rarity: data.droppedItem.rarity,
+          serial_number: data.droppedItem.serial || 101,
+          image_url: data.droppedItem.image_url,
+          description: data.droppedItem.description,
+          collection_name: data.droppedItem.collection_name || "SPECIMEN ARCHIVE",
+          model_3d_type: "procedural",
+          model_color: "#00F0FF",
+          obtained_via: "promo_gift",
+          is_equipped: false,
+          is_pinned: false,
+          is_hidden: false,
+          created_at: new Date().toISOString(),
+        };
+        setItems((prev) => [mapped, ...prev]);
+        setInspectingItem(mapped);
+      }
+      setStatusNotice(`🎁 ${data.message || "Бонус успешно получен!"}`);
+      setTimeout(() => setStatusNotice(null), 4500);
+    } catch {
+      setStatusNotice("Ошибка сети при проверке кода");
+      setTimeout(() => setStatusNotice(null), 3500);
+    } finally {
+      setIsClaimingPromo(false);
+    }
+  };
+
+  const handleCreateGiftLink = async (item: DropInventoryItem) => {
+    if (!isLoggedIn) return;
+    playClickSound();
+    try {
+      const res = await fetch("/api/cabinet/drop/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create_gift", inventoryItemId: item.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusNotice(data.error || "Не удалось упаковать подарок");
+        setTimeout(() => setStatusNotice(null), 3500);
+        return;
+      }
+      const fullUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}${data.giftUrl}`
+          : data.giftUrl;
+      setGiftShareUrl(fullUrl);
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      navigator.clipboard?.writeText(fullUrl).catch(() => {});
+      setStatusNotice(
+        `🎁 Ссылка-подарок на «${item.item_name}» скопирована! Отправьте её другу.`
+      );
+      setTimeout(() => setStatusNotice(null), 5000);
+    } catch {
+      setStatusNotice("Ошибка создания подарочной капсулы");
+      setTimeout(() => setStatusNotice(null), 3500);
+    }
+  };
+
+  const handleRunCaseBattle = async () => {
+    if (isBattling) return;
+    if (!isLoggedIn) {
+      setStatusNotice("Войдите в аккаунт CXRNER ID для участия в 1v1 Дуэли");
+      setTimeout(() => setStatusNotice(null), 3500);
+      return;
+    }
+    playClickSound();
+    setIsBattling(true);
+    setBattleResult(null);
+    const backendCaseId =
+      selectedCase.id === "case_003_blackout"
+        ? "case-003"
+        : selectedCase.id === "case_002_chrome"
+        ? "case-002"
+        : "case-001";
+    try {
+      const res = await fetch("/api/cabinet/drop/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "case_battle",
+          caseId: backendCaseId,
+          opponentName: battleOpponent,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusNotice(data.error || "Не удалось запустить дуэль");
+        setTimeout(() => setStatusNotice(null), 3500);
+        return;
+      }
+      if (typeof data.newBalance === "number") setBalance(data.newBalance);
+      setBattleResult(data);
+      if (data.won && data.userRoll && data.botRoll) {
+        const toInv = (roll: any): DropInventoryItem => ({
+          id: crypto.randomUUID(),
+          user_id: username,
+          item_id: roll.id,
+          item_name: roll.name,
+          specimen_code: roll.specimen_code,
+          rarity: roll.rarity,
+          serial_number: roll.serial || 101,
+          image_url: roll.image_url,
+          description: roll.description,
+          collection_name: roll.collection_name || "SPECIMEN ARCHIVE",
+          model_3d_type: "procedural",
+          model_color: "#8737FF",
+          obtained_via: "case_battle_1v1",
+          is_equipped: false,
+          is_pinned: false,
+          is_hidden: false,
+          created_at: new Date().toISOString(),
+        });
+        setItems((prev) => [toInv(data.botRoll), toInv(data.userRoll), ...prev]);
+        setStatusNotice(
+          `🏆 ПОБЕДА В ДУЭЛИ! Вы забрали ОБА артефакта: «${data.userRoll.name}» и «${data.botRoll.name}»!`
+        );
+      } else {
+        setStatusNotice(
+          `⚔️ Соперник выбил старший образец. Вам начислен кэшбэк +${data.cashbackCxp || 20} CXP!`
+        );
+      }
+      setTimeout(() => setStatusNotice(null), 5000);
+    } catch {
+      setStatusNotice("Сбой сети при проведении дуэли");
+      setTimeout(() => setStatusNotice(null), 3500);
+    } finally {
+      setIsBattling(false);
+    }
+  };
 
   const handleSalvageItem = async (item: DropInventoryItem) => {
     if (!item?.id || item.id === "preview" || item.id.startsWith("seed_")) return;
@@ -451,6 +630,32 @@ export default function DropGameArena({
               <button
                 onClick={() => {
                   playClickSound();
+                  setActiveTab("battle");
+                }}
+                className={`px-3 py-1.5 rounded-full font-mono text-xs uppercase tracking-wider transition flex items-center gap-1.5 ${
+                  activeTab === "battle"
+                    ? "bg-[#8737FF] text-white font-bold shadow-[0_0_15px_#8737FF]"
+                    : "text-[#D9D9E2]/70 hover:text-white"
+                }`}
+              >
+                <span>⚔️ ДУЭЛЬ 1v1</span>
+              </button>
+              <button
+                onClick={() => {
+                  playClickSound();
+                  setActiveTab("leaderboard");
+                }}
+                className={`px-3 py-1.5 rounded-full font-mono text-xs uppercase tracking-wider transition flex items-center gap-1.5 ${
+                  activeTab === "leaderboard"
+                    ? "bg-[#8737FF] text-white font-bold shadow-[0_0_15px_#8737FF]"
+                    : "text-[#D9D9E2]/70 hover:text-white"
+                }`}
+              >
+                <span>🏆 ЗАЛ СЛАВЫ</span>
+              </button>
+              <button
+                onClick={() => {
+                  playClickSound();
                   setActiveTab("fusion");
                 }}
                 className={`px-3 py-1.5 rounded-full font-mono text-xs uppercase tracking-wider transition flex items-center gap-1.5 ${
@@ -636,8 +841,8 @@ export default function DropGameArena({
             </div>
           </div>
 
-          {/* Bottom row: Mode Tabs (Full Width 4 equal segments) */}
-          <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 font-mono text-[9px] uppercase tracking-wider">
+          {/* Bottom row: Mode Tabs (6 compact segments on mobile) */}
+          <div className="grid grid-cols-6 gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 font-mono text-[8px] uppercase tracking-wider">
             <button
               onClick={() => {
                 playClickSound();
@@ -654,47 +859,67 @@ export default function DropGameArena({
             <button
               onClick={() => {
                 playClickSound();
+                setActiveTab("battle");
+              }}
+              className={`py-1.5 rounded-lg text-center transition font-bold ${
+                activeTab === "battle"
+                  ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
+                  : "text-[#D9D9E2]/70 hover:text-white"
+              }`}
+            >
+              ⚔️ 1v1
+            </button>
+            <button
+              onClick={() => {
+                playClickSound();
+                setActiveTab("leaderboard");
+              }}
+              className={`py-1.5 rounded-lg text-center transition font-bold ${
+                activeTab === "leaderboard"
+                  ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
+                  : "text-[#D9D9E2]/70 hover:text-white"
+              }`}
+            >
+              🏆 ТОП
+            </button>
+            <button
+              onClick={() => {
+                playClickSound();
                 setActiveTab("prizes");
               }}
-              className={`py-1.5 rounded-lg text-center transition font-bold flex items-center justify-center gap-1 ${
+              className={`py-1.5 rounded-lg text-center transition font-bold flex items-center justify-center gap-0.5 ${
                 activeTab === "prizes"
                   ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
                   : "text-[#D9D9E2]/70 hover:text-white"
               }`}
             >
               <span>ПРИЗЫ</span>
-              <span className="px-1 py-0.2 rounded bg-[#00F0FF]/25 text-[#00F0FF] text-[7px] font-bold">
-                18
-              </span>
             </button>
             <button
               onClick={() => {
                 playClickSound();
                 setActiveTab("fusion");
               }}
-              className={`py-1.5 rounded-lg text-center transition font-bold flex items-center justify-center gap-1 ${
+              className={`py-1.5 rounded-lg text-center transition font-bold flex items-center justify-center gap-0.5 ${
                 activeTab === "fusion"
                   ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
                   : "text-[#D9D9E2]/70 hover:text-white"
               }`}
             >
               <span>СИНТЕЗ</span>
-              <span className="px-1 py-0.2 rounded bg-[#B46BFF]/25 text-[#E9D5FF] text-[7px] font-bold">
-                5→1
-              </span>
             </button>
             <button
               onClick={() => {
                 playClickSound();
                 setActiveTab("inventory");
               }}
-              className={`py-1.5 rounded-lg text-center transition font-bold flex items-center justify-center gap-1 ${
+              className={`py-1.5 rounded-lg text-center transition font-bold flex items-center justify-center gap-0.5 ${
                 activeTab === "inventory"
                   ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
                   : "text-[#D9D9E2]/70 hover:text-white"
               }`}
             >
-              <span>ИНВЕНТАРЬ</span>
+              <span>СКЛАД</span>
               <span className="px-1 py-0.2 rounded bg-black/60 text-white text-[7px] font-bold">
                 {items.length}
               </span>
@@ -1710,21 +1935,344 @@ export default function DropGameArena({
                         <span>{item.is_pinned ? "Витрина" : "+ Витрина"}</span>
                       </button>
                       {!item.is_special_reward && item.rarity !== "special_reward" && (
-                        <button
-                          type="button"
-                          onClick={() => handleSalvageItem(item)}
-                          className="col-span-2 py-1.5 px-2 rounded-lg border border-[#00F0FF]/35 bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 font-mono text-[9px] uppercase tracking-wider font-bold text-[#00F0FF] flex items-center justify-center gap-1 transition cursor-pointer"
-                          title="Распылить предмет и вернуть CXP"
-                        >
-                          <Sparkles className="w-3 h-3" />
-                          <span>⚡ Распылить (+{SALVAGE_CXP_BY_RARITY[item.rarity] || 15} CXP)</span>
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleSalvageItem(item)}
+                            className="col-span-2 py-1.5 px-2 rounded-lg border border-[#00F0FF]/35 bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 font-mono text-[9px] uppercase tracking-wider font-bold text-[#00F0FF] flex items-center justify-center gap-1 transition cursor-pointer"
+                            title="Распылить предмет и вернуть CXP"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>⚡ Распылить (+{SALVAGE_CXP_BY_RARITY[item.rarity] || 15} CXP)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCreateGiftLink(item)}
+                            className="col-span-2 py-1.5 px-2 rounded-lg border border-[#B46BFF]/40 bg-[#8737FF]/15 hover:bg-[#8737FF]/25 font-mono text-[9px] uppercase tracking-wider font-bold text-[#E9D5FF] flex items-center justify-center gap-1 transition cursor-pointer"
+                            title="Упаковать артефакт в подарочную ссылку для друга"
+                          >
+                            <span>🎁 Подарить другу (ссылка)</span>
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ===================================================================
+            TAB: 1v1 CASE BATTLE ARENA
+            =================================================================== */}
+        {activeTab === "battle" && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="p-6 sm:p-8 rounded-3xl border border-[#8737FF]/40 bg-gradient-to-b from-[#110A22]/95 via-[#080510]/95 to-[#050408] shadow-[0_24px_80px_rgba(0,0,0,0.85)] space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF2E93]/15 border border-[#FF2E93]/40 font-mono text-[10px] uppercase tracking-[0.2em] text-[#FF73B5]">
+                    <span>⚔️ PVP UNSEALING // CASE BATTLE 1v1</span>
+                  </div>
+                  <h2 className="font-display font-black text-2xl sm:text-4xl uppercase tracking-tight text-white">
+                    ДУЭЛЬ КАПСУЛ <span className="text-chrome-gradient">1 НА 1</span>
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#D9D9E2]/75 max-w-2xl">
+                    Одновременное вскрытие выбранного кейса против соперника. Тот, кому выпадает более ценный образец,{" "}
+                    <span className="text-[#00F0FF] font-bold">забирает ОБА артефакта</span>! При поражении вы получаете{" "}
+                    <span className="text-[#B46BFF] font-bold">кэшбэк +20 CXP</span>.
+                  </p>
+                </div>
+
+                {/*Promo Code Quick Bar inside Battle/Drop */}
+                <div className="flex items-center gap-2 bg-black/55 border border-white/15 rounded-2xl p-1.5">
+                  <input
+                    type="text"
+                    value={promoCodeInput}
+                    onChange={(e) => setPromoCodeInput(e.target.value)}
+                    placeholder="Промокод (напр. CXRNER2026)"
+                    className="bg-transparent px-3 py-1.5 text-xs font-mono text-white placeholder-white/35 focus:outline-none w-44 sm:w-52"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleClaimPromoCode()}
+                    disabled={isClaimingPromo}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#00F0FF] text-[#050407] font-mono text-[10px] font-bold uppercase tracking-wider cursor-pointer shrink-0"
+                  >
+                    {isClaimingPromo ? "..." : "🎁 Ввести"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Select Case & Opponent */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2.5">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-white/55 block">
+                    1. ВЫБЕРИТЕ КАПСУЛУ ДЛЯ ДУЭЛИ:
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {DROP_CASES.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSelectedCaseId(c.id)}
+                        className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                          selectedCaseId === c.id
+                            ? "border-[#00F0FF] bg-[#00F0FF]/15 text-white shadow-[0_0_20px_rgba(0,240,255,0.2)]"
+                            : "border-white/10 bg-black/40 text-white/65 hover:text-white"
+                        }`}
+                      >
+                        <div className="font-display font-bold text-xs uppercase truncate">
+                          {c.name.replace("CASE ", "")}
+                        </div>
+                        <div className="font-mono text-[10px] text-[#00F0FF] font-bold mt-1">
+                          {c.price_cxp} CXP
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2.5">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-white/55 block">
+                    2. ВЫБЕРИТЕ СОПЕРНИКА:
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      "CYBER-BOT // ARCHIVE-09",
+                      "KAZUMA // PHANTOM",
+                      "VOID HUNTER // X7",
+                    ].map((opp) => (
+                      <button
+                        key={opp}
+                        type="button"
+                        onClick={() => setBattleOpponent(opp)}
+                        className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                          battleOpponent === opp
+                            ? "border-[#B46BFF] bg-[#8737FF]/20 text-white"
+                            : "border-white/10 bg-black/40 text-white/65 hover:text-white"
+                        }`}
+                      >
+                        <div className="font-mono text-[10px] font-bold uppercase truncate">
+                          {opp.split(" // ")[0]}
+                        </div>
+                        <div className="font-mono text-[9px] text-white/45 mt-1 truncate">
+                          {opp.split(" // ")[1]}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Battle Stage */}
+              <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center pt-2">
+                {/* Player Card */}
+                <div className="md:col-span-5 p-5 rounded-2xl border border-[#00F0FF]/35 bg-black/55 text-center space-y-3">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#00F0FF] font-bold">
+                    ВЫ · @{username}
+                  </span>
+                  {battleResult?.userRoll ? (
+                    <div className="space-y-2">
+                      <img
+                        src={battleResult.userRoll.image_url || "/drop/items/common-chip.svg"}
+                        alt={battleResult.userRoll.name}
+                        className="w-28 h-28 mx-auto object-contain"
+                      />
+                      <div className="font-display font-black text-base text-white uppercase">
+                        {battleResult.userRoll.name}
+                      </div>
+                      <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#00F0FF]/20 border border-[#00F0FF]/40 font-mono text-[10px] uppercase text-[#00F0FF] font-bold">
+                        {String(battleResult.userRoll.rarity).toUpperCase()} · №{battleResult.userRoll.serial}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="py-8 font-mono text-xs text-white/45">
+                      {isBattling ? "ВСКРЫТИЕ КАПСУЛЫ..." : "ГОТОВ К ДУЭЛИ"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Center VS Trigger */}
+                <div className="md:col-span-1 flex flex-col items-center justify-center gap-2">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8737FF] to-[#FF2E93] flex items-center justify-center font-display font-black text-sm text-white shadow-[0_0_25px_rgba(255,46,147,0.5)]">
+                    VS
+                  </div>
+                </div>
+
+                {/* Opponent Card */}
+                <div className="md:col-span-5 p-5 rounded-2xl border border-[#FF2E93]/35 bg-black/55 text-center space-y-3">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF73B5] font-bold">
+                    СОПЕРНИК · {battleOpponent}
+                  </span>
+                  {battleResult?.botRoll ? (
+                    <div className="space-y-2">
+                      <img
+                        src={battleResult.botRoll.image_url || "/drop/items/common-chip.svg"}
+                        alt={battleResult.botRoll.name}
+                        className="w-28 h-28 mx-auto object-contain"
+                      />
+                      <div className="font-display font-black text-base text-white uppercase">
+                        {battleResult.botRoll.name}
+                      </div>
+                      <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FF2E93]/20 border border-[#FF2E93]/40 font-mono text-[10px] uppercase text-[#FF73B5] font-bold">
+                        {String(battleResult.botRoll.rarity).toUpperCase()} · №{battleResult.botRoll.serial}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="py-8 font-mono text-xs text-white/45">
+                      {isBattling ? "СИНХРОННЫЙ ПРОТОКОЛ..." : "ОЖИДАЕТ ВЫЗОВА"}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {battleResult && (
+                <div
+                  className={`p-4 rounded-2xl border text-center font-mono text-xs font-bold ${
+                    battleResult.won
+                      ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-300"
+                      : "border-[#B46BFF]/45 bg-[#8737FF]/15 text-[#E9D5FF]"
+                  }`}
+                >
+                  {battleResult.won
+                    ? `🏆 ВЫ ПОБЕДИЛИ И ЗАБРАЛИ ОБА АРТЕФАКТА В СВОЙ ИНВЕНТАРЬ!`
+                    : `⚡ Соперник выбил старший ранг. Вам возвращён кэшбэк +${battleResult.cashbackCxp || 20} CXP!`}
+                </div>
+              )}
+
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleRunCaseBattle}
+                  disabled={isBattling}
+                  className="btn-energy px-10 py-4 rounded-full font-display font-black text-sm uppercase tracking-wider text-white shadow-[0_0_35px_rgba(135,55,255,0.6)] cursor-pointer disabled:opacity-50"
+                >
+                  {isBattling
+                    ? "⚔️ ИДЁТ ДУЭЛЬ КАПСУЛ..."
+                    : `⚔️ НАЧАТЬ ДУЭЛЬ 1v1 ЗА ${selectedCase.price_cxp} CXP`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            TAB: COLLECTORS HALL OF FAME (LEADERBOARD)
+            =================================================================== */}
+        {activeTab === "leaderboard" && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="p-6 sm:p-8 rounded-3xl border border-[#00F0FF]/35 bg-gradient-to-b from-[#0A111D]/95 via-[#07050F]/95 to-[#050409] shadow-[0_24px_80px_rgba(0,0,0,0.85)] space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/10 pb-5">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/40 font-mono text-[10px] uppercase tracking-[0.2em] text-[#00F0FF]">
+                    <span>🏆 COLLECTORS HALL OF FAME // TOP HUNTERS</span>
+                  </div>
+                  <h2 className="font-display font-black text-2xl sm:text-4xl uppercase tracking-tight text-white">
+                    ЗАЛ СЛАВЫ <span className="text-chrome-gradient">CXRNER DROP</span>
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#D9D9E2]/70 max-w-2xl">
+                    Рейтинг главных охотников за редкими цифровыми образцами архива. Нажмите «3D Осмотр», чтобы изучить лучший трофей любого резидента.
+                  </p>
+                </div>
+
+                {giftShareUrl && (
+                  <div className="p-3 rounded-2xl bg-[#8737FF]/20 border border-[#B46BFF]/50 font-mono text-[11px] text-white flex items-center gap-2">
+                    <span className="truncate max-w-xs">🎁 {giftShareUrl}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {leaderboard.map((hunter, idx) => {
+                  const rank = hunter.rank || idx + 1;
+                  return (
+                    <div
+                      key={hunter.userId || idx}
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border transition ${
+                        rank === 1
+                          ? "border-[#F59E0B]/50 bg-gradient-to-r from-[#F59E0B]/15 via-white/[0.03] to-transparent"
+                          : rank === 2
+                          ? "border-[#00F0FF]/40 bg-gradient-to-r from-[#00F0FF]/10 via-white/[0.02] to-transparent"
+                          : rank === 3
+                          ? "border-[#B46BFF]/40 bg-gradient-to-r from-[#8737FF]/12 via-white/[0.02] to-transparent"
+                          : "border-white/10 bg-white/[0.02]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div
+                          className={`w-10 h-10 rounded-xl font-mono text-sm font-black flex items-center justify-center shrink-0 border ${
+                            rank === 1
+                              ? "bg-[#F59E0B]/25 border-[#F59E0B]/60 text-[#FBBF24]"
+                              : rank === 2
+                              ? "bg-[#00F0FF]/20 border-[#00F0FF]/50 text-[#00F0FF]"
+                              : rank === 3
+                              ? "bg-[#8737FF]/25 border-[#B46BFF]/50 text-[#E9D5FF]"
+                              : "bg-black/50 border-white/10 text-white/60"
+                          }`}
+                        >
+                          #{String(rank).padStart(2, "0")}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/profile/${hunter.username}`}
+                              className="font-display font-black text-base text-white hover:text-[#00F0FF] uppercase truncate transition"
+                            >
+                              {hunter.displayName}
+                            </Link>
+                            {hunter.isVerified && (
+                              <span className="px-2 py-0.5 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/40 font-mono text-[9px] text-[#00F0FF] font-bold">
+                                VERIFIED
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-mono text-xs text-white/55">
+                            @{hunter.username} · {hunter.totalArtifacts} образцов ·{" "}
+                            <span className="text-[#00F0FF] font-bold">
+                              {hunter.collectorScore} PTS
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {hunter.topArtifact && (
+                        <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
+                          <div className="text-left sm:text-right">
+                            <div className="font-mono text-[9px] uppercase tracking-wider text-white/45">
+                              ГЛАВНЫЙ ТРОФЕЙ:
+                            </div>
+                            <div className="font-display font-bold text-xs text-[#E9D5FF] uppercase">
+                              {hunter.topArtifact.name}{" "}
+                              <span className="font-mono text-[10px] text-[#00F0FF]">
+                                ({hunter.topArtifact.specimen_code})
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const spec =
+                                DROP_SPECIMENS.find(
+                                  (s) =>
+                                    s.item_id === hunter.topArtifact.item_id ||
+                                    s.specimen_code === hunter.topArtifact.specimen_code
+                                ) || DROP_SPECIMENS[0];
+                              handleInspectSpecimen(spec);
+                            }}
+                            className="px-3.5 py-2 rounded-xl border border-[#00F0FF]/40 bg-[#00F0FF]/15 hover:bg-[#00F0FF]/25 font-mono text-[10px] font-bold uppercase tracking-wider text-[#00F0FF] shrink-0 cursor-pointer transition"
+                          >
+                            🧊 3D Осмотр
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </main>

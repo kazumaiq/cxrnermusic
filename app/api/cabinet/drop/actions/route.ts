@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import {
+  claimDailyDropScan,
   salvageInventoryItem,
   fuseInventoryItems,
-  getDailyDropScanStatus,
-  claimDailyDropScan,
   getGlobalLiveDrops,
+  getDailyDropScanStatus,
+  getCollectorsLeaderboard,
+  runCaseBattle,
+  createDropGift,
+  claimDropGiftOrPromo,
+  awardCxp,
 } from "@/lib/ecosystemDb";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/cabinet/drop/actions
+ * Returns live global drop feed + Hall of Fame leaderboard + daily scan status.
+ */
 export async function GET() {
   try {
     let userId: string | null = null;
@@ -21,91 +30,118 @@ export async function GET() {
       userId = user?.id || null;
     } catch {}
 
-    const [liveFeed, dailyScan] = await Promise.all([
-      getGlobalLiveDrops(16),
+    const [liveFeed, leaderboard, dailyScan] = await Promise.all([
+      getGlobalLiveDrops(15),
+      getCollectorsLeaderboard(10),
       userId ? getDailyDropScanStatus(userId) : Promise.resolve(null),
     ]);
-
     return NextResponse.json({
       ok: true,
+      feed: liveFeed,
       liveFeed,
+      leaderboard,
       dailyScan,
     });
   } catch (err: any) {
     return NextResponse.json(
-      { ok: false, error: err?.message || "Failed to load drop actions status" },
+      { ok: false, error: err?.message || "Failed to load drop feed", feed: [], liveFeed: [], leaderboard: [] },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
     const supabase = await getSupabaseServerClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user?.id) {
       return NextResponse.json(
-        { ok: false, error: "Требуется авторизация в аккаунте CXRNER ID" },
+        { ok: false, error: "Войдите в аккаунт для выполнения операции в CXRNER DROP" },
         { status: 401 }
       );
     }
 
-    const body = await request.json();
-    const action = body?.action;
-
-    if (action === "salvage") {
-      const inventoryItemId = String(body?.inventoryItemId || "").trim();
-      if (!inventoryItemId) {
-        return NextResponse.json(
-          { ok: false, error: "Не указан ID предмета для распыления" },
-          { status: 400 }
-        );
-      }
-
-      const res = await salvageInventoryItem({
-        userId: user.id,
-        inventoryItemId,
-      });
-
-      return NextResponse.json({
-        ok: true,
-        refundedCxp: res.refundedCxp,
-        newBalance: res.newBalance,
-        removedItem: res.removedItem,
-      });
-    }
-
-    if (action === "fuse") {
-      const itemIds = Array.isArray(body?.itemIds)
-        ? body.itemIds.map((x: unknown) => String(x))
-        : [];
-      const res = await fuseInventoryItems({
-        userId: user.id,
-        itemIds,
-      });
-      const liveFeed = await getGlobalLiveDrops(16);
-
-      return NextResponse.json({
-        ok: true,
-        fusedItem: res.fusedItem,
-        bonusCxp: res.bonusCxp,
-        newBalance: res.newBalance,
-        liveFeed,
-      });
-    }
+    const body = await req.json().catch(() => ({}));
+    const action = String(body?.action || "");
 
     if (action === "daily_scan") {
       const res = await claimDailyDropScan(user.id);
       return NextResponse.json({
-        ok: true,
-        streakDay: res.streakDay,
-        awardedCxp: res.awardedCxp,
-        newBalance: res.newBalance,
-        bonusItem: res.bonusItem,
+        ...res,
         dailyScan: res.status,
+      });
+    }
+
+    if (action === "salvage") {
+      const targetId = String(body?.inventoryItemId || body?.itemId || "");
+      const res = await salvageInventoryItem({
+        userId: user.id,
+        inventoryItemId: targetId,
+      });
+      return NextResponse.json(res);
+    }
+
+    if (action === "fuse") {
+      const itemIds = Array.isArray(body?.itemIds) ? body.itemIds.map(String) : [];
+      const res = await fuseInventoryItems({
+        userId: user.id,
+        itemIds,
+      });
+      const liveFeed = await getGlobalLiveDrops(15).catch(() => []);
+      return NextResponse.json({ ...res, liveFeed });
+    }
+
+    if (action === "case_battle") {
+      const caseId = String(body?.caseId || "case_001_archive");
+      const res = await runCaseBattle({
+        userId: user.id,
+        caseId,
+        opponentName: body?.opponentName,
+      });
+      if (!res.ok) {
+        return NextResponse.json(res, { status: 400 });
+      }
+      return NextResponse.json(res);
+    }
+
+    if (action === "create_gift") {
+      const res = await createDropGift({
+        userId: user.id,
+        inventoryItemId: body?.inventoryItemId,
+      });
+      if (!res.ok) {
+        return NextResponse.json(res, { status: 400 });
+      }
+      return NextResponse.json(res);
+    }
+
+    if (action === "claim_promo") {
+      const res = await claimDropGiftOrPromo({
+        userId: user.id,
+        code: String(body?.code || ""),
+      });
+      if (!res.ok) {
+        return NextResponse.json(res, { status: 400 });
+      }
+      return NextResponse.json(res);
+    }
+
+    if (action === "sound_scan_reward") {
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const res = await awardCxp({
+        userId: user.id,
+        amount: 25,
+        reason: "Анализ демо-трека в CXRNER SOUND LAB (+25 CXP)",
+        sourceEventType: "sound_scan_reward",
+        sourceEventId: `sound_scan_${todayKey}`,
+      });
+      return NextResponse.json({
+        ok: true,
+        cxpAwarded: res.ok ? 25 : 0,
+        newBalance: res.newBalance,
       });
     }
 
@@ -115,7 +151,7 @@ export async function POST(request: Request) {
     );
   } catch (err: any) {
     return NextResponse.json(
-      { ok: false, error: err?.message || "Ошибка выполнения операции" },
+      { ok: false, error: err?.message || "Внутренняя ошибка сервера" },
       { status: 400 }
     );
   }

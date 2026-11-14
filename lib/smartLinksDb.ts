@@ -45,6 +45,10 @@ export interface SmartLinkRecord {
   lyrics_snippet?: string | null;
   hype_count?: number;
   traffic_cxp_milestones?: number[];
+  collab_artist?: string | null;
+  fan_gate_target?: number | null;
+  fan_gate_title?: string | null;
+  fan_gate_content?: string | null;
   owner_profile?: {
     username: string;
     display_name: string;
@@ -172,6 +176,13 @@ function normalizeVaultLink(
     traffic_cxp_milestones: Array.isArray(l?.traffic_cxp_milestones)
       ? l.traffic_cxp_milestones
       : [],
+    collab_artist: l?.collab_artist ?? extra.collab_artist ?? null,
+    fan_gate_target:
+      l?.fan_gate_target ?? extra.fan_gate_target
+        ? Number(l?.fan_gate_target ?? extra.fan_gate_target)
+        : null,
+    fan_gate_title: l?.fan_gate_title ?? extra.fan_gate_title ?? null,
+    fan_gate_content: l?.fan_gate_content ?? extra.fan_gate_content ?? null,
     owner_profile: ownerProfile,
     platforms: Array.isArray(l?.platforms) ? l.platforms : [],
     social_links: Array.isArray(l?.social_links) ? l.social_links : [],
@@ -347,6 +358,10 @@ export async function createSmartLink(params: {
   auto_out_now?: boolean;
   preview_audio_url?: string | null;
   lyrics_snippet?: string | null;
+  collab_artist?: string | null;
+  fan_gate_target?: number | null;
+  fan_gate_title?: string | null;
+  fan_gate_content?: string | null;
 }): Promise<{ ok: boolean; link?: SmartLinkRecord; error?: string }> {
   try {
     const supabase = await getSmartLinksDb();
@@ -419,6 +434,10 @@ export async function createSmartLink(params: {
       preview_audio_url: params.preview_audio_url?.trim() || null,
       lyrics_snippet: params.lyrics_snippet?.trim() || null,
       hype_count: 0,
+      collab_artist: params.collab_artist?.trim() || null,
+      fan_gate_target: params.fan_gate_target && Number(params.fan_gate_target) > 0 ? Number(params.fan_gate_target) : null,
+      fan_gate_title: params.fan_gate_title?.trim() || null,
+      fan_gate_content: params.fan_gate_content?.trim() || null,
       traffic_cxp_milestones: [],
       views_count: 0,
       clicks_count: 0,
@@ -777,6 +796,19 @@ export async function updateSmartLinkById(params: {
       }
       if (body.lyrics_snippet !== undefined) {
         updates.lyrics_snippet = body.lyrics_snippet ? String(body.lyrics_snippet).trim() : null;
+      }
+      if (body.collab_artist !== undefined) {
+        updates.collab_artist = body.collab_artist ? String(body.collab_artist).trim() : null;
+      }
+      if (body.fan_gate_target !== undefined) {
+        const tgt = Number(body.fan_gate_target);
+        updates.fan_gate_target = tgt > 0 ? tgt : null;
+      }
+      if (body.fan_gate_title !== undefined) {
+        updates.fan_gate_title = body.fan_gate_title ? String(body.fan_gate_title).trim() : null;
+      }
+      if (body.fan_gate_content !== undefined) {
+        updates.fan_gate_content = body.fan_gate_content ? String(body.fan_gate_content).trim() : null;
       }
       if (body.is_out_now !== undefined) updates.is_out_now = body.is_out_now;
       if (body.auto_out_now !== undefined) updates.auto_out_now = body.auto_out_now;
@@ -1449,5 +1481,67 @@ export async function recordLinkClickEvent(params: {
   } catch (e) {
     console.warn("[analytics] record event error:", e);
     return {};
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// 13. CXRNER RADAR — LIVE TOP 20 RELEASE CHART
+// ---------------------------------------------------------------------------
+export async function getRadarSmartLinks(limit = 20): Promise<SmartLinkRecord[]> {
+  try {
+    const supabase = await getSmartLinksDb();
+    const collected = new Map<string, SmartLinkRecord>();
+
+    if (!isSmartLinksTableKnownMissing()) {
+      const { data: sqlLinks, error } = await supabase
+        .from("smart_links")
+        .select("*")
+        .is("deleted_at", null)
+        .eq("status", "active")
+        .limit(100);
+
+      if (!markSmartLinksTableMissingIfErr(error) && Array.isArray(sqlLinks)) {
+        for (const row of sqlLinks) {
+          const norm = normalizeVaultLink(row);
+          if (norm.slug) collected.set(norm.slug.toLowerCase(), norm);
+        }
+      }
+    }
+
+    const vaultRows = await listVaultUsers(supabase);
+    for (const row of vaultRows) {
+      const links = Array.isArray(row.profile?.smart_links) ? row.profile.smart_links : [];
+      for (const raw of links) {
+        if (raw?.deleted_at || raw?.status === "draft" || raw?.status === "archived") continue;
+        const norm = normalizeVaultLink(raw, row.profile);
+        if (norm.slug) {
+          const key = norm.slug.toLowerCase();
+          const prev = collected.get(key);
+          if (!prev || (norm.hype_count || 0) >= (prev.hype_count || 0)) {
+            collected.set(key, norm);
+          }
+        }
+      }
+    }
+
+    const list = Array.from(collected.values());
+    list.sort((a, b) => {
+      const scoreA =
+        (a.hype_count || 0) * 8 +
+        (a.clicks_count || 0) * 3 +
+        (a.presaves_count || 0) * 5 +
+        (a.views_count || 0);
+      const scoreB =
+        (b.hype_count || 0) * 8 +
+        (b.clicks_count || 0) * 3 +
+        (b.presaves_count || 0) * 5 +
+        (b.views_count || 0);
+      return scoreB - scoreA;
+    });
+
+    return list.slice(0, limit);
+  } catch {
+    return [];
   }
 }

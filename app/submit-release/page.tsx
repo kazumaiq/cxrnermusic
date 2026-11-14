@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import Container from "../../components/Container";
+import SoundScannerLab from "../../components/SoundScannerLab";
 import confetti from "canvas-confetti";
 import { playClickSound, playHoverSound, playReleaseChime } from "../../lib/soundFX";
 import {
@@ -930,6 +931,10 @@ export default function SubmitReleasePage() {
                 )}
               </div>
             </form>
+
+            <div className="mt-8">
+              <SoundScannerLab />
+            </div>
           </div>
         )}
       </Container>

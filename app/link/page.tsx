@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Container from "@/components/Container";
 import { SMART_LINK_THEMES } from "@/lib/smartLinkThemes";
+import RadarReleaseChart from "@/components/link/RadarReleaseChart";
 
 export const metadata = {
   title: "CXRNER LINK — Смарт-ссылки для музыкантов",
@@ -143,6 +144,8 @@ export default function CxrnerLinkLandingPage() {
         </div>
 
         {/* Capabilities Grid */}
+        <RadarReleaseChart />
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {FEATURES.map((f) => {
             const Icon = f.icon;

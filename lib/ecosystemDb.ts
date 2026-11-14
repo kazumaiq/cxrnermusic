@@ -2089,7 +2089,7 @@ export async function getUserInventory(userId: string): Promise<DropInventoryIte
 }
 
 export async function openDropCase(
-  userIdOrParams: string | { userId: string; caseId?: string }
+  userIdOrParams: string | { userId: string; caseId?: string; deductCost?: boolean }
 ): Promise<{
   ok: boolean;
   item: DropInventoryItem;
@@ -2099,12 +2099,15 @@ export async function openDropCase(
   claimCode?: string;
   historyEntry?: DropHistoryEntry;
   caseConfig: DropCaseConfig;
+  balanceAfter?: number;
 }> {
   const userId = typeof userIdOrParams === "string" ? userIdOrParams : userIdOrParams.userId;
   const targetCaseId =
     typeof userIdOrParams === "string"
       ? "case_001_archive"
       : userIdOrParams.caseId || "case_001_archive";
+  const deductCost =
+    typeof userIdOrParams === "object" && Boolean(userIdOrParams.deductCost);
 
   const caseConfig = DROP_CASES.find((c) => c.id === targetCaseId) || DROP_CASES[0];
 
@@ -2136,11 +2139,13 @@ export async function openDropCase(
     targetRarity = "common";
   }
 
-  // 2. Pick specimen
+  // 2. Pick specimen (randomly among all special_reward items if special)
   let picked: (typeof DROP_SPECIMENS)[number];
   if (isSpecialReward) {
+    const specialPool = DROP_SPECIMENS.filter((s) => s.is_special_reward);
     picked =
-      DROP_SPECIMENS.find((s) => s.is_special_reward) || DROP_SPECIMENS[DROP_SPECIMENS.length - 1];
+      specialPool[Math.floor(Math.random() * specialPool.length)] ||
+      DROP_SPECIMENS[DROP_SPECIMENS.length - 1];
   } else {
     let candidates = DROP_SPECIMENS.filter(
       (s) => s.rarity === targetRarity && (!s.case_id || s.case_id === caseConfig.id)
@@ -2151,9 +2156,6 @@ export async function openDropCase(
     picked = candidates[Math.floor(Math.random() * candidates.length)] || DROP_SPECIMENS[0];
   }
 
-  const currentInventory = await getUserInventory(userId);
-  const duplicate = currentInventory.some((i) => i.item_id === picked.item_id);
-  const pinnedCount = currentInventory.filter((i) => i.is_pinned).length;
   const serialNumber = Math.floor(100 + Math.random() * 8900);
   const nowIso = new Date().toISOString();
 
@@ -2173,6 +2175,10 @@ export async function openDropCase(
     };
   }
 
+  let duplicate = false;
+  let pinnedCount = 0;
+  let balanceAfter: number | undefined = undefined;
+
   const newItem: DropInventoryItem = {
     id: crypto.randomUUID(),
     user_id: userId,
@@ -2190,7 +2196,7 @@ export async function openDropCase(
     model_color: picked.model_color,
     obtained_via: caseConfig.slug,
     is_equipped: false,
-    is_pinned: pinnedCount < 6,
+    is_pinned: true,
     is_hidden: false,
     ...(isSpecialReward ? { is_special_reward: true, claim_code: claimCode } : {}),
     created_at: nowIso,
@@ -2213,11 +2219,51 @@ export async function openDropCase(
   const db = await getDbForUser(userId);
 
   if (db) {
-    // 1. Save atomically into cxrner_cabinet_users vault
+    let insufficientError: string | null = null;
+
+    // Single atomic vault read+write (eliminates 20+ sequential DB roundtrips!)
     await writeCabinetVault(userId, (prev) => {
       const inv = Array.isArray(prev.ecosystem_inventory)
         ? [...(prev.ecosystem_inventory as DropInventoryItem[])]
-        : [...currentInventory];
+        : [];
+      duplicate = inv.some((i) => i.item_id === picked.item_id);
+      pinnedCount = inv.filter((i) => i.is_pinned).length;
+      newItem.is_pinned = pinnedCount < 6;
+
+      let nextWallet = prev.ecosystem_wallet as CxpWallet | undefined;
+      let nextTxs = Array.isArray(prev.ecosystem_transactions)
+        ? [...(prev.ecosystem_transactions as CxpTransaction[])]
+        : [];
+
+      if (deductCost) {
+        const curBalance =
+          nextWallet && typeof nextWallet.balance === "number" ? nextWallet.balance : 100;
+        if (curBalance < caseConfig.price_cxp) {
+          insufficientError = `Недостаточно CXP для открытия ${caseConfig.name}. Требуется: ${caseConfig.price_cxp} CXP. Текущий баланс: ${curBalance} CXP.`;
+          balanceAfter = curBalance;
+          return prev;
+        }
+        const updatedBal = curBalance - caseConfig.price_cxp;
+        balanceAfter = updatedBal;
+        nextWallet = {
+          user_id: userId,
+          balance: updatedBal,
+          total_earned: nextWallet?.total_earned ?? 100,
+          total_spent: (nextWallet?.total_spent ?? 0) + caseConfig.price_cxp,
+          updated_at: nowIso,
+        };
+        nextTxs.unshift({
+          id: crypto.randomUUID(),
+          user_id: userId,
+          amount: -caseConfig.price_cxp,
+          operation_type: "debit",
+          reason: `Открытие кейса ${caseConfig.name}`,
+          source_event_type: "drop_case_open",
+          source_event_id: `case_${caseConfig.id}_${Date.now()}`,
+          created_at: nowIso,
+        });
+      }
+
       inv.unshift(newItem);
       totalInventoryList = inv;
 
@@ -2231,17 +2277,42 @@ export async function openDropCase(
         : [];
       if (claimRecord) claims.unshift(claimRecord);
 
+      const notifs = Array.isArray(prev.ecosystem_notifications)
+        ? [...(prev.ecosystem_notifications as NotificationItem[])]
+        : [];
+      notifs.unshift({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        type: "drop_item",
+        title: isSpecialReward
+          ? `СПЕЦИАЛЬНАЯ НАГРАДА: ${picked.item_name}!`
+          : `Получен предмет: ${picked.item_name}!`,
+        message: isSpecialReward
+          ? `Поздравляем! Вы выиграли спец-привилегию лейбла (${picked.item_name}). Промо-код активации: ${claimCode}`
+          : `Редкость: ${picked.rarity.toUpperCase()} (#${serialNumber}). Добавлен в личный инвентарь.`,
+        link: "/cabinet/drop/inventory",
+        is_read: false,
+        created_at: nowIso,
+      });
+
       return {
         ...prev,
         ecosystem_starter_granted: true,
+        ...(nextWallet ? { ecosystem_wallet: nextWallet } : {}),
+        ...(deductCost ? { ecosystem_transactions: nextTxs.slice(0, 200) } : {}),
         ecosystem_inventory: inv,
         ecosystem_drop_history: hist.slice(0, 200),
         ecosystem_special_claims: claims,
+        ecosystem_notifications: notifs.slice(0, 100),
       };
     });
 
-    // 2. Best-effort parallel sync into relational tables if present
-    await Promise.all([
+    if (insufficientError) {
+      throw new Error(insufficientError);
+    }
+
+    // Background non-blocking sync when called from real-time HTTP endpoint
+    const syncRelationalTask = Promise.allSettled([
       runOptionalTableQuery("cxrner_drop_inventory", () =>
         db.from("cxrner_drop_inventory").insert(toCoreInventoryRow(newItem))
       ),
@@ -2254,7 +2325,43 @@ export async function openDropCase(
           )
         : Promise.resolve(null),
     ]);
+
+    if (deductCost) {
+      void syncRelationalTask;
+      // Also fire-and-forget achievement checks so the user never waits on 10+ DB queries
+      void (async () => {
+        try {
+          await unlockAchievement({ userId, achievementKey: "FIRST_DROP" });
+          if (["epic", "legendary", "mythic", "special_reward"].includes(picked.rarity)) {
+            await unlockAchievement({ userId, achievementKey: "RARE_FIND" });
+          }
+          const uniqueCount = new Set(totalInventoryList.map((i) => i.item_id)).size;
+          if (uniqueCount >= 5) {
+            await unlockAchievement({ userId, achievementKey: "SPECIMEN_COLLECTOR" });
+          }
+        } catch {}
+      })();
+
+      return {
+        ok: true,
+        item: newItem,
+        duplicate,
+        achievementsUnlocked: [],
+        isSpecialReward,
+        claimCode,
+        historyEntry,
+        caseConfig,
+        balanceAfter,
+      };
+    }
+
+    await syncRelationalTask;
   } else {
+    const currentInventory = await getUserInventory(userId);
+    duplicate = currentInventory.some((i) => i.item_id === picked.item_id);
+    pinnedCount = currentInventory.filter((i) => i.is_pinned).length;
+    newItem.is_pinned = pinnedCount < 6;
+
     const store = loadLocalStore();
     if (claimRecord) {
       if (!store.specialClaims) store.specialClaims = {};
@@ -2275,7 +2382,7 @@ export async function openDropCase(
     saveLocalStore(store);
   }
 
-  // 3. Achievements
+  // 3. Achievements (synchronous for unit tests / non-fast mode)
   const achievementsUnlocked: string[] = [];
 
   const res1 = await unlockAchievement({ userId, achievementKey: "FIRST_DROP" });
@@ -2301,17 +2408,19 @@ export async function openDropCase(
     if (!res4.alreadyUnlocked) achievementsUnlocked.push("CHROME_MASTER");
   }
 
-  await createNotification({
-    userId,
-    type: "drop_item",
-    title: isSpecialReward
-      ? `СПЕЦИАЛЬНАЯ НАГРАДА: ${picked.item_name}!`
-      : `Получен предмет: ${picked.item_name}!`,
-    message: isSpecialReward
-      ? `Поздравляем! Вы выиграли спец-привилегию лейбла (${picked.item_name}). Промо-код активации: ${claimCode}`
-      : `Редкость: ${picked.rarity.toUpperCase()} (#${serialNumber}). Добавлен в личный инвентарь.`,
-    link: "/cabinet/drop/inventory",
-  });
+  if (!db) {
+    await createNotification({
+      userId,
+      type: "drop_item",
+      title: isSpecialReward
+        ? `СПЕЦИАЛЬНАЯ НАГРАДА: ${picked.item_name}!`
+        : `Получен предмет: ${picked.item_name}!`,
+      message: isSpecialReward
+        ? `Поздравляем! Вы выиграли спец-привилегию лейбла (${picked.item_name}). Промо-код активации: ${claimCode}`
+        : `Редкость: ${picked.rarity.toUpperCase()} (#${serialNumber}). Добавлен в личный инвентарь.`,
+      link: "/cabinet/drop/inventory",
+    });
+  }
 
   return {
     ok: true,
@@ -2322,6 +2431,7 @@ export async function openDropCase(
     claimCode,
     historyEntry,
     caseConfig,
+    balanceAfter,
   };
 }
 
@@ -4236,3 +4346,648 @@ export async function getGlobalLiveDrops(limit = 16): Promise<LiveDropFeedItem[]
   return feed.slice(0, limit);
 }
 
+
+
+// ---------------------------------------------------------------------------
+// VIRAL DROP EXPANSION: HALL OF FAME, 1v1 CASE BATTLES, GIFT LINKS & PROMO CODES
+// ---------------------------------------------------------------------------
+
+export interface CollectorLeaderboardEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isVerified: boolean;
+  totalArtifacts: number;
+  collectorScore: number;
+  topArtifact: {
+    item_id: string;
+    name: string;
+    rarity: ItemRarity;
+    specimen_code: string;
+    serial: number;
+    image_url?: string | null;
+  } | null;
+}
+
+const RARITY_SCORE_WEIGHT: Record<ItemRarity, number> = {
+  common: 15,
+  rare: 45,
+  epic: 120,
+  legendary: 350,
+  mythic: 600,
+  special_reward: 900,
+};
+
+function pickBattleSpecimen(caseId: string) {
+  const roll = Math.random() * 100;
+  let targetRarity: ItemRarity = "common";
+  if (roll < 3) targetRarity = "mythic";
+  else if (roll < 10) targetRarity = "legendary";
+  else if (roll < 26) targetRarity = "epic";
+  else if (roll < 52) targetRarity = "rare";
+
+  const pool = DROP_SPECIMENS.filter(
+    (s) => s.rarity === targetRarity && (!s.case_id || s.case_id === caseId)
+  );
+  const fallback = DROP_SPECIMENS.filter((s) => s.rarity === targetRarity);
+  const list = pool.length > 0 ? pool : fallback.length > 0 ? fallback : DROP_SPECIMENS;
+  return list[Math.floor(Math.random() * list.length)] || DROP_SPECIMENS[0];
+}
+
+export async function getCollectorsLeaderboard(
+  limit = 10
+): Promise<CollectorLeaderboardEntry[]> {
+  try {
+    const entries: CollectorLeaderboardEntry[] = [];
+    const rows = await listAllCabinetUsers(300);
+
+    for (const row of rows) {
+      const prof = (row?.profile as Record<string, any>) || {};
+      const inv: any[] = Array.isArray(prof.ecosystem_inventory)
+        ? prof.ecosystem_inventory
+        : [];
+      if (inv.length === 0) continue;
+
+      let score = 0;
+      let bestItem: any = null;
+      let bestWeight = -1;
+
+      for (const item of inv) {
+        const r = (item?.rarity as ItemRarity) || "common";
+        const w = RARITY_SCORE_WEIGHT[r] || 15;
+        score += w;
+        if (w > bestWeight) {
+          bestWeight = w;
+          bestItem = item;
+        }
+      }
+
+      const cid = prof.cxrner_id || prof.ecosystem_cxrner_id || {};
+      const ver = prof.ecosystem_verification || {};
+      const catalogDef = bestItem
+        ? DROP_SPECIMENS.find((d) => d.item_id === bestItem.item_id)
+        : null;
+
+      entries.push({
+        rank: 0,
+        userId: row.user_id,
+        username: cid.username || prof.username || `hunter_${String(row.user_id).slice(0, 5)}`,
+        displayName:
+          cid.display_name || prof.artist_name || cid.username || "RESIDENT HUNTER",
+        avatarUrl: cid.avatar_url || prof.avatar_url || null,
+        isVerified: Boolean(cid.is_artist_verified || ver.status === "verified"),
+        totalArtifacts: inv.length,
+        collectorScore: score,
+        topArtifact: bestItem
+          ? {
+              item_id: bestItem.item_id,
+              name: bestItem.item_name || catalogDef?.item_name || "SPECIMEN",
+              rarity: (bestItem.rarity as ItemRarity) || "common",
+              specimen_code:
+                bestItem.specimen_code || catalogDef?.specimen_code || "SP-001",
+              serial: Number(bestItem.serial_number || 1),
+              image_url: catalogDef?.image_url || null,
+            }
+          : null,
+      });
+    }
+
+    const showcaseSeeds: Omit<CollectorLeaderboardEntry, "rank">[] = [
+      {
+        userId: "seed-kazuma",
+        username: "kazuma",
+        displayName: "KAZUMA",
+        avatarUrl: "/logo.png",
+        isVerified: true,
+        totalArtifacts: 19,
+        collectorScore: 2480,
+        topArtifact: {
+          item_id: DROP_SPECIMENS[13]?.item_id || "spec_special_mastering",
+          name: DROP_SPECIMENS[13]?.item_name || "STUDIO MASTERING VOUCHER",
+          rarity: "special_reward",
+          specimen_code: DROP_SPECIMENS[13]?.specimen_code || "MV-2026",
+          serial: 7,
+          image_url: DROP_SPECIMENS[13]?.image_url || null,
+        },
+      },
+      {
+        userId: "seed-neimeks",
+        username: "neimeks",
+        displayName: "NEIMEKS",
+        avatarUrl: "/covers/the-sadness-of-reality.jpg",
+        isVerified: true,
+        totalArtifacts: 14,
+        collectorScore: 1790,
+        topArtifact: {
+          item_id: DROP_SPECIMENS[11]?.item_id || "spec_mythic_core",
+          name: DROP_SPECIMENS[11]?.item_name || "CHROME CORE",
+          rarity: "mythic",
+          specimen_code: DROP_SPECIMENS[11]?.specimen_code || "CC-001",
+          serial: 12,
+          image_url: DROP_SPECIMENS[11]?.image_url || null,
+        },
+      },
+      {
+        userId: "seed-arier",
+        username: "arier",
+        displayName: "ARIER",
+        avatarUrl: "/logo.png",
+        isVerified: true,
+        totalArtifacts: 11,
+        collectorScore: 1320,
+        topArtifact: {
+          item_id: DROP_SPECIMENS[8]?.item_id || "spec_leg_vinyl",
+          name: DROP_SPECIMENS[8]?.item_name || "OBSIDIAN VINYL",
+          rarity: "legendary",
+          specimen_code: DROP_SPECIMENS[8]?.specimen_code || "OV-001",
+          serial: 29,
+          image_url: DROP_SPECIMENS[8]?.image_url || null,
+        },
+      },
+    ];
+
+    const existingUsernames = new Set(entries.map((e) => e.username.toLowerCase()));
+    for (const seed of showcaseSeeds) {
+      if (!existingUsernames.has(seed.username.toLowerCase())) {
+        entries.push({ ...seed, rank: 0 });
+      }
+    }
+
+    entries.sort((a, b) => b.collectorScore - a.collectorScore);
+    return entries.slice(0, limit).map((e, idx) => ({ ...e, rank: idx + 1 }));
+  } catch {
+    return [];
+  }
+}
+
+export async function runCaseBattle(params: {
+  userId: string;
+  caseId: string;
+  opponentName?: string;
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  won?: boolean;
+  userRoll?: {
+    id: string;
+    name: string;
+    rarity: ItemRarity;
+    specimen_code: string;
+    serial: number;
+    image_url: string;
+    description: string;
+    collection_name: string;
+  };
+  botRoll?: {
+    id: string;
+    name: string;
+    rarity: ItemRarity;
+    specimen_code: string;
+    serial: number;
+    image_url: string;
+    description: string;
+    collection_name: string;
+  };
+  opponentName?: string;
+  cashbackCxp?: number;
+  newBalance?: number;
+}> {
+  const { userId, caseId } = params;
+  const opponentName = (params.opponentName || "CYBER-BOT // ARCHIVE-09").trim();
+  const targetCase =
+    DROP_CASES.find((c) => c.id === caseId || c.slug === caseId) || DROP_CASES[0];
+
+  const now = new Date().toISOString();
+  const userRollDef = pickBattleSpecimen(targetCase.id);
+  const botRollDef = pickBattleSpecimen(targetCase.id);
+
+  const userScore =
+    (RARITY_SCORE_WEIGHT[userRollDef.rarity] || 15) + Math.floor(Math.random() * 14);
+  const botScore =
+    (RARITY_SCORE_WEIGHT[botRollDef.rarity] || 15) + Math.floor(Math.random() * 12);
+  const won = userScore >= botScore;
+  const cashbackCxp = won ? 0 : 20;
+
+  let insufficientBalance = false;
+  let finalBalance = 100;
+  let userSerial = Math.floor(100 + Math.random() * 8800);
+  let botSerial = Math.floor(100 + Math.random() * 8800);
+
+  const vaultSaved = await writeCabinetVault(userId, (v) => {
+    const baseBalance =
+      typeof v.ecosystem_wallet?.balance === "number" ? v.ecosystem_wallet.balance : 100;
+    if (baseBalance < targetCase.price_cxp) {
+      insufficientBalance = true;
+      finalBalance = baseBalance;
+      return v;
+    }
+
+    const prevInv: DropInventoryItem[] = Array.isArray(v.ecosystem_inventory)
+      ? v.ecosystem_inventory
+      : [];
+    userSerial = prevInv.length + 1 + Math.floor(Math.random() * 900);
+    botSerial = prevInv.length + 2 + Math.floor(Math.random() * 900);
+
+    const nextBalance = baseBalance - targetCase.price_cxp + cashbackCxp;
+    finalBalance = nextBalance;
+
+    const prevTxs: CxpTransaction[] = Array.isArray(v.ecosystem_transactions)
+      ? v.ecosystem_transactions
+      : [];
+    const battleTx: CxpTransaction = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      amount: -targetCase.price_cxp + cashbackCxp,
+      operation_type: "debit",
+      reason: won
+        ? `Победа в 1v1 ДУЭЛИ (${targetCase.name}): забраны 2 артефакта!`
+        : `Дуэль 1v1 (${targetCase.name}): утешительный кэшбэк +${cashbackCxp} CXP`,
+      source_event_type: "case_battle_1v1",
+      source_event_id: `battle_${targetCase.id}_${Date.now()}`,
+      created_at: now,
+    };
+
+    const nextInv = [...prevInv];
+    if (won) {
+      const toInvItem = (spec: typeof userRollDef, ser: number): DropInventoryItem => ({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        item_id: spec.item_id,
+        item_name: spec.item_name,
+        specimen_code: spec.specimen_code,
+        specimen_class: spec.specimen_class,
+        collection_name: spec.collection_name,
+        rarity: spec.rarity,
+        drop_chance: spec.drop_chance,
+        serial_number: ser,
+        description: spec.description,
+        image_url: spec.image_url,
+        model_3d_type: "procedural",
+        model_color: spec.model_color,
+        obtained_via: "case_battle_1v1",
+        is_equipped: false,
+        is_pinned: false,
+        is_hidden: false,
+        created_at: now,
+      });
+      nextInv.unshift(toInvItem(botRollDef, botSerial), toInvItem(userRollDef, userSerial));
+    }
+
+    return {
+      ...v,
+      ecosystem_wallet: {
+        user_id: userId,
+        balance: nextBalance,
+        total_earned: (v.ecosystem_wallet?.total_earned ?? 100) + cashbackCxp,
+        total_spent: (v.ecosystem_wallet?.total_spent ?? 0) + targetCase.price_cxp,
+        updated_at: now,
+      },
+      ecosystem_transactions: [battleTx, ...prevTxs].slice(0, 100),
+      ecosystem_inventory: nextInv,
+    };
+  });
+
+  if (insufficientBalance) {
+    return {
+      ok: false,
+      error: `Недостаточно CXP для дуэли (нужно ${targetCase.price_cxp} CXP)`,
+    };
+  }
+  if (!vaultSaved) {
+    return { ok: false, error: "Не удалось провести дуэль" };
+  }
+
+  return {
+    ok: true,
+    won,
+    opponentName,
+    cashbackCxp,
+    newBalance: finalBalance,
+    userRoll: {
+      id: userRollDef.item_id,
+      name: userRollDef.item_name,
+      rarity: userRollDef.rarity,
+      specimen_code: userRollDef.specimen_code || "SP-001",
+      serial: userSerial,
+      image_url: userRollDef.image_url,
+      description: userRollDef.description,
+      collection_name: userRollDef.collection_name,
+    },
+    botRoll: {
+      id: botRollDef.item_id,
+      name: botRollDef.item_name,
+      rarity: botRollDef.rarity,
+      specimen_code: botRollDef.specimen_code || "SP-001",
+      serial: botSerial,
+      image_url: botRollDef.image_url,
+      description: botRollDef.description,
+      collection_name: botRollDef.collection_name,
+    },
+  };
+}
+
+export async function createDropGift(params: {
+  userId: string;
+  inventoryItemId?: string;
+}): Promise<{
+  ok: boolean;
+  giftCode?: string;
+  giftUrl?: string;
+  itemName?: string;
+  error?: string;
+}> {
+  const { userId, inventoryItemId } = params;
+  const vault = await readCabinetVault(userId);
+  const inv: DropInventoryItem[] = Array.isArray(vault?.ecosystem_inventory)
+    ? vault!.ecosystem_inventory!
+    : [];
+
+  const target = inventoryItemId
+    ? inv.find((i) => i.id === inventoryItemId || i.item_id === inventoryItemId)
+    : inv[0];
+
+  if (!target) {
+    return { ok: false, error: "Выберите артефакт в инвентаре для упаковки в подарок" };
+  }
+
+  const itemDef =
+    DROP_SPECIMENS.find((d) => d.item_id === target.item_id) || DROP_SPECIMENS[0];
+  const rawCode = Buffer.from(
+    JSON.stringify({
+      iid: itemDef.item_id,
+      from: userId.slice(0, 6),
+      ts: Date.now().toString(36),
+    })
+  )
+    .toString("base64url")
+    .replace(/=/g, "");
+  const giftCode = `GIFT-${rawCode}`;
+
+  const now = new Date().toISOString();
+  await writeCabinetVault(userId, (v) => {
+    const prevInv: DropInventoryItem[] = Array.isArray(v.ecosystem_inventory)
+      ? v.ecosystem_inventory
+      : [];
+    const idx = prevInv.findIndex((i) => i.id === target.id);
+    const nextInv = idx >= 0 ? prevInv.filter((_, i) => i !== idx) : prevInv;
+    return {
+      ...v,
+      ecosystem_inventory: nextInv,
+      updated_at: now,
+    };
+  });
+
+  return {
+    ok: true,
+    giftCode,
+    giftUrl: `/drop?gift=${encodeURIComponent(giftCode)}`,
+    itemName: itemDef.item_name,
+  };
+}
+
+const BUILTIN_PROMO_CODES: Record<
+  string,
+  { cxp: number; itemIdx?: number; title: string }
+> = {
+  CXRNER2026: {
+    cxp: 100,
+    itemIdx: 4,
+    title: "ПРОМОКОД CXRNER2026: +100 CXP и редкий артефакт архива!",
+  },
+  DROP50: {
+    cxp: 50,
+    title: "ПРОМОКОД DROP50: +50 CXP на открытие капсулы",
+  },
+  ARCHIVE75: {
+    cxp: 75,
+    title: "ПРОМОКОД ARCHIVE75: +75 CXP из секретного архива",
+  },
+};
+
+export async function claimDropGiftOrPromo(params: {
+  userId: string;
+  code: string;
+}): Promise<{
+  ok: boolean;
+  message?: string;
+  cxpAwarded?: number;
+  droppedItem?: {
+    id: string;
+    name: string;
+    rarity: ItemRarity;
+    specimen_code: string;
+    serial: number;
+    image_url: string;
+    description: string;
+    collection_name: string;
+  };
+  newBalance?: number;
+  error?: string;
+}> {
+  const { userId } = params;
+  const cleanCode = String(params.code || "").trim();
+  if (!cleanCode) {
+    return { ok: false, error: "Введите промокод или код подарка" };
+  }
+
+  const upper = cleanCode.toUpperCase();
+  const now = new Date().toISOString();
+
+  const promo = BUILTIN_PROMO_CODES[upper];
+  if (promo) {
+    let alreadyUsed = false;
+    let newBalance = 100;
+    let grantedItem:
+      | {
+          id: string;
+          name: string;
+          rarity: ItemRarity;
+          specimen_code: string;
+          serial: number;
+          image_url: string;
+          description: string;
+          collection_name: string;
+        }
+      | undefined;
+
+    await writeCabinetVault(userId, (v) => {
+      const claimed: string[] = Array.isArray((v as any).ecosystem_claimed_promos)
+        ? (v as any).ecosystem_claimed_promos
+        : [];
+      if (claimed.includes(upper)) {
+        alreadyUsed = true;
+        newBalance = v.ecosystem_wallet?.balance ?? 100;
+        return v;
+      }
+
+      const prevBal =
+        typeof v.ecosystem_wallet?.balance === "number" ? v.ecosystem_wallet.balance : 100;
+      newBalance = prevBal + promo.cxp;
+      const prevInv: DropInventoryItem[] = Array.isArray(v.ecosystem_inventory)
+        ? v.ecosystem_inventory
+        : [];
+      const nextInv = [...prevInv];
+
+      if (promo.itemIdx !== undefined) {
+        const def = DROP_SPECIMENS[promo.itemIdx] || DROP_SPECIMENS[0];
+        if (def) {
+          const serial = prevInv.length + 1 + Math.floor(Math.random() * 500);
+          grantedItem = {
+            id: def.item_id,
+            name: def.item_name,
+            rarity: def.rarity,
+            specimen_code: def.specimen_code || "SP-001",
+            serial,
+            image_url: def.image_url,
+            description: def.description,
+            collection_name: def.collection_name,
+          };
+          nextInv.unshift({
+            id: crypto.randomUUID(),
+            user_id: userId,
+            item_id: def.item_id,
+            item_name: def.item_name,
+            specimen_code: def.specimen_code,
+            specimen_class: def.specimen_class,
+            collection_name: def.collection_name,
+            rarity: def.rarity,
+            drop_chance: def.drop_chance,
+            serial_number: serial,
+            description: def.description,
+            image_url: def.image_url,
+            model_3d_type: "procedural",
+            model_color: def.model_color,
+            obtained_via: "promo_code",
+            is_equipped: false,
+            is_pinned: prevInv.length === 0,
+            is_hidden: false,
+            created_at: now,
+          });
+        }
+      }
+
+      return {
+        ...v,
+        ecosystem_claimed_promos: [...claimed, upper],
+        ecosystem_wallet: {
+          user_id: userId,
+          balance: newBalance,
+          total_earned: (v.ecosystem_wallet?.total_earned ?? 100) + promo.cxp,
+          total_spent: v.ecosystem_wallet?.total_spent ?? 0,
+          updated_at: now,
+        },
+        ecosystem_inventory: nextInv,
+      };
+    });
+
+    if (alreadyUsed) {
+      return { ok: false, error: `Промокод ${upper} уже активирован на вашем аккаунте` };
+    }
+
+    return {
+      ok: true,
+      message: promo.title,
+      cxpAwarded: promo.cxp,
+      droppedItem: grantedItem,
+      newBalance,
+    };
+  }
+
+  if (cleanCode.startsWith("GIFT-")) {
+    try {
+      const payloadStr = Buffer.from(cleanCode.slice(5), "base64url").toString("utf8");
+      const parsed = JSON.parse(payloadStr);
+      const itemDef =
+        DROP_SPECIMENS.find((d) => d.item_id === parsed?.iid) || DROP_SPECIMENS[3];
+
+      let alreadyClaimed = false;
+      let newBalance = 100;
+      let serial = 101;
+
+      await writeCabinetVault(userId, (v) => {
+        const claimed: string[] = Array.isArray((v as any).ecosystem_claimed_promos)
+          ? (v as any).ecosystem_claimed_promos
+          : [];
+        if (claimed.includes(cleanCode)) {
+          alreadyClaimed = true;
+          newBalance = v.ecosystem_wallet?.balance ?? 100;
+          return v;
+        }
+
+        const prevInv: DropInventoryItem[] = Array.isArray(v.ecosystem_inventory)
+          ? v.ecosystem_inventory
+          : [];
+        serial = prevInv.length + 1 + Math.floor(Math.random() * 700);
+        newBalance =
+          (typeof v.ecosystem_wallet?.balance === "number"
+            ? v.ecosystem_wallet.balance
+            : 100) + 15;
+
+        const giftEntry: DropInventoryItem = {
+          id: crypto.randomUUID(),
+          user_id: userId,
+          item_id: itemDef.item_id,
+          item_name: itemDef.item_name,
+          specimen_code: itemDef.specimen_code,
+          specimen_class: itemDef.specimen_class,
+          collection_name: itemDef.collection_name,
+          rarity: itemDef.rarity,
+          drop_chance: itemDef.drop_chance,
+          serial_number: serial,
+          description: itemDef.description,
+          image_url: itemDef.image_url,
+          model_3d_type: "procedural",
+          model_color: itemDef.model_color,
+          obtained_via: "gift_capsule",
+          is_equipped: false,
+          is_pinned: prevInv.length === 0,
+          is_hidden: false,
+          created_at: now,
+        };
+
+        return {
+          ...v,
+          ecosystem_claimed_promos: [...claimed, cleanCode],
+          ecosystem_wallet: {
+            user_id: userId,
+            balance: newBalance,
+            total_earned: (v.ecosystem_wallet?.total_earned ?? 100) + 15,
+            total_spent: v.ecosystem_wallet?.total_spent ?? 0,
+            updated_at: now,
+          },
+          ecosystem_inventory: [giftEntry, ...prevInv],
+        };
+      });
+
+      if (alreadyClaimed) {
+        return { ok: false, error: "Эта подарочная капсула уже была распакована вами" };
+      }
+
+      return {
+        ok: true,
+        message: `Подарочная капсула распакована: ${itemDef.item_name} + 15 CXP!`,
+        cxpAwarded: 15,
+        droppedItem: {
+          id: itemDef.item_id,
+          name: itemDef.item_name,
+          rarity: itemDef.rarity,
+          specimen_code: itemDef.specimen_code || "SP-001",
+          serial,
+          image_url: itemDef.image_url,
+          description: itemDef.description,
+          collection_name: itemDef.collection_name,
+        },
+        newBalance,
+      };
+    } catch {
+      return { ok: false, error: "Неверный формат подарочного кода" };
+    }
+  }
+
+  return {
+    ok: false,
+    error: "Код не найден. Доступные промокоды: CXRNER2026, DROP50, ARCHIVE75",
+  };
+}
