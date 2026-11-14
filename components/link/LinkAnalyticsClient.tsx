@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getSmartLinkDisplayPrefix } from "@/lib/slug";
+import { PlatformLogo, getPlatformVisualMeta } from "./PlatformLogo";
 import {
   ArrowLeft,
   Calendar,
@@ -302,15 +303,18 @@ export default function LinkAnalyticsClient({
                       color: "#8737FF",
                       gradient: "from-[#8737FF] to-[#00F0FF]",
                     };
+                    const visualMeta = getPlatformVisualMeta(key);
                     const pct = data.totalClicks > 0 ? Math.round((count / data.totalClicks) * 100) : 0;
                     return (
                       <div key={key} className="space-y-1.5 p-2 rounded-xl bg-white/[0.03] border border-white/5">
                         <div className="flex items-center justify-between font-mono text-xs text-white">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2.5">
                             <span
-                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: brand.color }}
-                            />
+                              className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-white/10"
+                              style={{ background: visualMeta.bgGradient, color: visualMeta.fgColor }}
+                            >
+                              <PlatformLogo platformKey={key} className="w-3.5 h-3.5" />
+                            </span>
                             <span className="font-bold">{brand.name}</span>
                           </div>
                           <span className="text-[#D9D9E2]/80 font-bold">

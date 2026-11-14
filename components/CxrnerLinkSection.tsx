@@ -6,6 +6,7 @@ import { ArrowRight, Radio, Barcode, Clock, BarChart3, Palette, ExternalLink } f
 import { CxrSurface } from "./ui/CxrSurface";
 import { CxrButton } from "./ui/CxrButton";
 import { CxrBadge } from "./ui/CxrBadge";
+import { PlatformLogo, getPlatformVisualMeta } from "./link/PlatformLogo";
 import { playClickSound, playHoverSound } from "@/lib/soundFX";
 
 const PREVIEW_THEMES = [
@@ -170,26 +171,37 @@ export default function CxrnerLinkSection() {
 
             <div className="space-y-2 pt-1">
               {[
-                { name: "Яндекс Музыка", tag: "PLAY" },
-                { name: "VK Музыка", tag: "PLAY" },
-                { name: "Spotify", tag: "STREAM" },
-                { name: "Apple Music", tag: "LISTEN" },
-              ].map((plat) => (
-                <div
-                  key={plat.name}
-                  className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/10"
-                >
-                  <span className="font-sans text-xs font-bold text-white">
-                    {plat.name}
-                  </span>
-                  <span
-                    className="font-mono text-[9px] font-bold uppercase px-2 py-0.5 rounded-full text-[#050407]"
-                    style={{ backgroundColor: currentTheme.accent }}
+                { key: "yandex", name: "Яндекс Музыка", tag: "PLAY" },
+                { key: "vk", name: "VK Музыка", tag: "PLAY" },
+                { key: "spotify", name: "Spotify", tag: "STREAM" },
+                { key: "apple", name: "Apple Music", tag: "LISTEN" },
+              ].map((plat) => {
+                const meta = getPlatformVisualMeta(plat.key);
+                return (
+                  <div
+                    key={plat.name}
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/10"
                   >
-                    {plat.tag}
-                  </span>
-                </div>
-              ))}
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-white/10"
+                        style={{ background: meta.bgGradient, color: meta.fgColor }}
+                      >
+                        <PlatformLogo platformKey={plat.key} className="w-3.5 h-3.5" />
+                      </span>
+                      <span className="font-sans text-xs font-bold text-white">
+                        {plat.name}
+                      </span>
+                    </div>
+                    <span
+                      className="font-mono text-[9px] font-bold uppercase px-2 py-0.5 rounded-full text-[#050407]"
+                      style={{ backgroundColor: currentTheme.accent }}
+                    >
+                      {plat.tag}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

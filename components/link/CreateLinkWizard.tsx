@@ -1247,7 +1247,7 @@ export default function CreateLinkWizard() {
             </div>
             <div className="space-y-2.5">
               {platforms.map((p) => {
-                const brandColor = PLATFORM_BRAND_COLORS[p.platform_key] || "#B46BFF";
+                const meta = getPlatformVisualMeta(p.platform_key);
                 return (
                   <div
                     key={p.platform_key}
@@ -1257,7 +1257,7 @@ export default function CreateLinkWizard() {
                         : "border-white/5 bg-white/[0.015] opacity-60"
                     }`}
                   >
-                    <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:w-44 flex-shrink-0">
+                    <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:w-48 flex-shrink-0">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <input
                           type="checkbox"
@@ -1266,9 +1266,11 @@ export default function CreateLinkWizard() {
                           className="accent-[#B46BFF] w-4 h-4 rounded flex-shrink-0"
                         />
                         <span
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: brandColor, boxShadow: `0 0 8px ${brandColor}` }}
-                        />
+                          className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-white/10"
+                          style={{ background: meta.bgGradient, color: meta.fgColor }}
+                        >
+                          <PlatformLogo platformKey={p.platform_key} className="w-3.5 h-3.5" />
+                        </span>
                         <span className="font-mono text-xs uppercase tracking-wider text-white truncate font-bold">
                           {p.platform_name}
                         </span>
@@ -1492,7 +1494,7 @@ export default function CreateLinkWizard() {
                               >
                                 <div className="flex items-center gap-2 min-w-0">
                                   <span
-                                    className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+                                    className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden border border-white/10"
                                     style={{ background: meta.bgGradient, color: meta.fgColor }}
                                   >
                                     <PlatformLogo platformKey={pKey} className="w-3.5 h-3.5" />

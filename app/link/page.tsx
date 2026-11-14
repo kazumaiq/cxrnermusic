@@ -13,6 +13,7 @@ import {
 import Container from "@/components/Container";
 import { SMART_LINK_THEMES } from "@/lib/smartLinkThemes";
 import RadarReleaseChart from "@/components/link/RadarReleaseChart";
+import { PlatformLogo, getPlatformVisualMeta } from "@/components/link/PlatformLogo";
 
 export const metadata = {
   title: "CXRNER LINK — Смарт-ссылки для музыкантов",
@@ -129,15 +130,31 @@ export default function CxrnerLinkLandingPage() {
               </div>
 
               <div className="space-y-2">
-                {["Яндекс Музыка", "VK Музыка", "Spotify", "Apple Music"].map((dsp) => (
-                  <div
-                    key={dsp}
-                    className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs"
-                  >
-                    <span className="font-bold text-white">{dsp}</span>
-                    <span className="font-mono text-[10px] text-[#00F0FF]">СЛУШАТЬ →</span>
-                  </div>
-                ))}
+                {[
+                  { key: "yandex", label: "Яндекс Музыка" },
+                  { key: "vk", label: "VK Музыка" },
+                  { key: "spotify", label: "Spotify" },
+                  { key: "apple", label: "Apple Music" },
+                ].map((dsp) => {
+                  const meta = getPlatformVisualMeta(dsp.key);
+                  return (
+                    <div
+                      key={dsp.key}
+                      className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-white/10"
+                          style={{ background: meta.bgGradient, color: meta.fgColor }}
+                        >
+                          <PlatformLogo platformKey={dsp.key} className="w-3.5 h-3.5" />
+                        </span>
+                        <span className="font-bold text-white">{dsp.label}</span>
+                      </div>
+                      <span className="font-mono text-[10px] text-[#00F0FF]">СЛУШАТЬ →</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

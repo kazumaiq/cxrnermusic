@@ -903,13 +903,13 @@ export default function PublicSmartLink({
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md overflow-hidden border border-white/10"
                       style={{
                         background: meta.bgGradient,
                         color: meta.fgColor,
                       }}
                     >
-                      <PlatformLogo platformKey={plat.platform_key} className="w-5 h-5" />
+                      <PlatformLogo platformKey={plat.platform_key} className="w-6 h-6" />
                     </div>
                     <div className="min-w-0">
                       <div className="font-display font-bold text-sm text-white truncate">
