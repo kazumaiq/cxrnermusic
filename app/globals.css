@@ -565,6 +565,24 @@ html {
   100% { top: 96%; opacity: 0; }
 }
 
+@keyframes dropZipSlice {
+  0% { transform: scaleX(0); opacity: 0.95; }
+  85% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+@keyframes dropFlashBurst {
+  0% { opacity: 0; transform: scale(0.75); }
+  22% { opacity: 0.92; transform: scale(1.06); }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+
+@keyframes dropSpecimenEntrance {
+  0% { opacity: 0; transform: scale(0.78) translateY(28px); filter: brightness(1.8) saturate(1.4); }
+  62% { opacity: 1; transform: scale(1.04) translateY(-4px); filter: brightness(1.1) saturate(1.1); }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: brightness(1) saturate(1); }
+}
+
 .animate-chrome-sheen {
   animation: dropChromeSheen 3.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
@@ -591,6 +609,7 @@ html {
   .animate-shockwave-ring,
   .animate-laser-sweep,
   .animate-glitch-slice,
+  .animate-drop-sunburst,
   .animate-pulse,
   .animate-bounce {
     animation: none !important;

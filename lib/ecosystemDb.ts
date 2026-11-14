@@ -110,6 +110,69 @@ function saveLocalStore(store: EcosystemStore) {
 // SUPABASE PERSISTENCE HELPERS (Dual Table + cxrner_cabinet_users Vault)
 // =========================================================================
 
+const MISSING_TABLE_TTL_MS = 5 * 60 * 1000;
+const missingTablesCache = new Map<string, number>();
+
+function isTableKnownMissing(tableName: string): boolean {
+  const expiresAt = missingTablesCache.get(tableName);
+  if (!expiresAt) return false;
+  if (Date.now() > expiresAt) {
+    missingTablesCache.delete(tableName);
+    return false;
+  }
+  return true;
+}
+
+function markIfTableMissing(
+  tableName: string,
+  error: { code?: string; message?: string } | null | undefined
+): boolean {
+  if (!error) return false;
+  const code = String(error.code || "");
+  const msg = String(error.message || "").toLowerCase();
+  if (
+    code === "PGRST205" ||
+    code === "42P01" ||
+    msg.includes("could not find the table") ||
+    (msg.includes("relation") && msg.includes("does not exist"))
+  ) {
+    missingTablesCache.set(tableName, Date.now() + MISSING_TABLE_TTL_MS);
+    return true;
+  }
+  return false;
+}
+
+async function runOptionalTableQuery<T>(
+  tableName: string,
+  queryFn: () => PromiseLike<{
+    data?: T | null;
+    error?: { code?: string; message?: string } | null;
+  }>
+): Promise<{
+  data: T | null;
+  error: { code?: string; message?: string } | null;
+  skippedMissing?: boolean;
+}> {
+  if (isTableKnownMissing(tableName)) {
+    return {
+      data: null,
+      error: { code: "PGRST205", message: "Cached missing table" },
+      skippedMissing: true,
+    };
+  }
+  try {
+    const res = await queryFn();
+    if (res?.error) {
+      markIfTableMissing(tableName, res.error);
+    }
+    return { data: (res?.data ?? null) as T | null, error: res?.error ?? null };
+  } catch (err: any) {
+    const msg = String(err?.message || "");
+    markIfTableMissing(tableName, { message: msg });
+    return { data: null, error: { message: msg } };
+  }
+}
+
 const userVaultLocks = new Map<string, Promise<unknown>>();
 
 async function withUserVaultLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
@@ -350,7 +413,9 @@ export async function getCxpWallet(userId: string): Promise<CxpWallet> {
   if (db) {
     // 1. Check cxrner_cxp_wallet table AND cxrner_cabinet_users vault
     const [{ data: tableWallet, error: tableErr }, vault] = await Promise.all([
-      db.from("cxrner_cxp_wallet").select("*").eq("user_id", userId).maybeSingle(),
+      runOptionalTableQuery<any>("cxrner_cxp_wallet", () =>
+        db.from("cxrner_cxp_wallet").select("*").eq("user_id", userId).maybeSingle()
+      ),
       readCabinetVault(userId, db),
     ]);
 
@@ -372,20 +437,23 @@ export async function getCxpWallet(userId: string): Promise<CxpWallet> {
 
     // 2. Initialize & persist starter 100 CXP wallet ONCE so subsequent debits stick
     const { wallet, welcomeTx } = buildStarterWallet(userId);
-    await db
-      .from("cxrner_cxp_transactions")
-      .insert(welcomeTx)
-      .then(() => undefined);
-    await db.from("cxrner_cxp_wallet").upsert(wallet).then(() => undefined);
-    await writeCabinetVault(userId, (prev) => {
-      if (prev.ecosystem_wallet) return prev;
-      const txs = Array.isArray(prev.ecosystem_transactions) ? prev.ecosystem_transactions : [];
-      return {
-        ...prev,
-        ecosystem_wallet: wallet,
-        ecosystem_transactions: [welcomeTx, ...txs].slice(0, 200),
-      };
-    });
+    await Promise.all([
+      runOptionalTableQuery("cxrner_cxp_transactions", () =>
+        db.from("cxrner_cxp_transactions").insert(welcomeTx)
+      ),
+      runOptionalTableQuery("cxrner_cxp_wallet", () =>
+        db.from("cxrner_cxp_wallet").upsert(wallet)
+      ),
+      writeCabinetVault(userId, (prev) => {
+        if (prev.ecosystem_wallet) return prev;
+        const txs = Array.isArray(prev.ecosystem_transactions) ? prev.ecosystem_transactions : [];
+        return {
+          ...prev,
+          ecosystem_wallet: wallet,
+          ecosystem_transactions: [welcomeTx, ...txs].slice(0, 200),
+        };
+      }),
+    ]);
     return wallet;
   }
 
@@ -526,35 +594,43 @@ export async function awardCxp(params: {
     }
 
     // Best-effort sync to relational wallet/transactions tables when present
-    try {
-      const { data: existingDbTx } = await db
-        .from("cxrner_cxp_transactions")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("source_event_type", sourceEventType)
-        .eq("source_event_id", eventId)
-        .maybeSingle();
+    if (!isTableKnownMissing("cxrner_cxp_transactions")) {
+      const { data: existingDbTx, error: txSelectErr } = await runOptionalTableQuery<{ id: string }>(
+        "cxrner_cxp_transactions",
+        () =>
+          db
+            .from("cxrner_cxp_transactions")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("source_event_type", sourceEventType)
+            .eq("source_event_id", eventId)
+            .maybeSingle()
+      );
 
-      if (!existingDbTx) {
-        const { error: txInsertErr } = await db.from("cxrner_cxp_transactions").insert({
-          user_id: userId,
-          amount,
-          operation_type: amount >= 0 ? "credit" : "debit",
-          reason,
-          source_event_type: sourceEventType,
-          source_event_id: eventId,
-          admin_notes: adminNotes || null,
-        });
+      if (!txSelectErr && !existingDbTx) {
+        const { error: txInsertErr } = await runOptionalTableQuery(
+          "cxrner_cxp_transactions",
+          () =>
+            db.from("cxrner_cxp_transactions").insert({
+              user_id: userId,
+              amount,
+              operation_type: amount >= 0 ? "credit" : "debit",
+              reason,
+              source_event_type: sourceEventType,
+              source_event_id: eventId,
+              admin_notes: adminNotes || null,
+            })
+        );
 
-        if (!txInsertErr) {
+        if (!txInsertErr && !isTableKnownMissing("cxrner_cxp_wallet")) {
           const updatedVault = await readCabinetVault(userId, db);
           if (updatedVault?.ecosystem_wallet) {
-            await db.from("cxrner_cxp_wallet").upsert(updatedVault.ecosystem_wallet);
+            await runOptionalTableQuery("cxrner_cxp_wallet", () =>
+              db.from("cxrner_cxp_wallet").upsert(updatedVault.ecosystem_wallet)
+            );
           }
         }
       }
-    } catch {
-      // Relational table optional; vault in cxrner_cabinet_users already persisted
     }
 
     return { ok: true, newBalance: finalBalance };
@@ -613,12 +689,16 @@ export async function unlockAchievement(params: {
     let already = false;
 
     // Check table & vault
-    const { data: dbExisting, error: dbErr } = await db
-      .from("cxrner_achievements")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("achievement_key", achievementKey)
-      .maybeSingle();
+    const { data: dbExisting, error: dbErr } = await runOptionalTableQuery<{ id: string }>(
+      "cxrner_achievements",
+      () =>
+        db
+          .from("cxrner_achievements")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("achievement_key", achievementKey)
+          .maybeSingle()
+    );
 
     if (!dbErr && dbExisting) {
       already = true;
@@ -651,15 +731,16 @@ export async function unlockAchievement(params: {
       return { ok: true, alreadyUnlocked: true };
     }
 
-    // Best-effort relational write
-    await db
-      .from("cxrner_achievements")
-      .insert({
-        user_id: userId,
-        achievement_key: achievementKey,
-        unlocked_at: nowIso,
-      })
-      .then(() => undefined);
+    // Best-effort relational write (skip if relation already known missing)
+    if (!dbErr) {
+      await runOptionalTableQuery("cxrner_achievements", () =>
+        db.from("cxrner_achievements").insert({
+          user_id: userId,
+          achievement_key: achievementKey,
+          unlocked_at: nowIso,
+        })
+      );
+    }
 
     if (achDef.cxp_reward) {
       await awardCxp({
@@ -739,29 +820,29 @@ export async function createNotification(params: {
 
   const db = await getDbForUser(userId);
   if (db) {
-    await db
-      .from("cxrner_notifications")
-      .insert({
-        id: item.id,
-        user_id: userId,
-        type,
-        title,
-        message,
-        link: link || null,
-        is_read: false,
-      })
-      .then(() => undefined);
-
-    await writeCabinetVault(userId, (prev) => {
-      const list = Array.isArray(prev.ecosystem_notifications)
-        ? [...(prev.ecosystem_notifications as NotificationItem[])]
-        : [];
-      list.unshift(item);
-      return {
-        ...prev,
-        ecosystem_notifications: list.slice(0, 50),
-      };
-    });
+    await Promise.all([
+      runOptionalTableQuery("cxrner_notifications", () =>
+        db.from("cxrner_notifications").insert({
+          id: item.id,
+          user_id: userId,
+          type,
+          title,
+          message,
+          link: link || null,
+          is_read: false,
+        })
+      ),
+      writeCabinetVault(userId, (prev) => {
+        const list = Array.isArray(prev.ecosystem_notifications)
+          ? [...(prev.ecosystem_notifications as NotificationItem[])]
+          : [];
+        list.unshift(item);
+        return {
+          ...prev,
+          ecosystem_notifications: list.slice(0, 50),
+        };
+      }),
+    ]);
     return;
   }
 
@@ -1516,11 +1597,13 @@ export async function getUserInventory(userId: string): Promise<DropInventoryIte
   const db = await getDbForUser(userId);
   if (db) {
     const [{ data: dbRows, error: dbErr }, vault] = await Promise.all([
-      db
-        .from("cxrner_drop_inventory")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false }),
+      runOptionalTableQuery<DropInventoryItem[]>("cxrner_drop_inventory", () =>
+        db
+          .from("cxrner_drop_inventory")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+      ),
       readCabinetVault(userId, db),
     ]);
 
@@ -1567,21 +1650,21 @@ export async function getUserInventory(userId: string): Promise<DropInventoryIte
       created_at: new Date().toISOString(),
     });
 
-    await db
-      .from("cxrner_drop_inventory")
-      .insert(toCoreInventoryRow(initialItem))
-      .then(() => undefined);
-
-    await writeCabinetVault(userId, (prev) => {
-      if (prev.ecosystem_starter_granted && Array.isArray(prev.ecosystem_inventory)) {
-        return prev;
-      }
-      return {
-        ...prev,
-        ecosystem_starter_granted: true,
-        ecosystem_inventory: [initialItem],
-      };
-    });
+    await Promise.all([
+      runOptionalTableQuery("cxrner_drop_inventory", () =>
+        db.from("cxrner_drop_inventory").insert(toCoreInventoryRow(initialItem))
+      ),
+      writeCabinetVault(userId, (prev) => {
+        if (prev.ecosystem_starter_granted && Array.isArray(prev.ecosystem_inventory)) {
+          return prev;
+        }
+        return {
+          ...prev,
+          ecosystem_starter_granted: true,
+          ecosystem_inventory: [initialItem],
+        };
+      }),
+    ]);
 
     return [initialItem];
   }
@@ -1770,17 +1853,20 @@ export async function openDropCase(
       };
     });
 
-    // 2. Also insert into relational tables if present
-    await db
-      .from("cxrner_drop_inventory")
-      .insert(toCoreInventoryRow(newItem))
-      .then(() => undefined);
-
-    await db.from("cxrner_drop_history").insert(historyEntry).then(() => undefined);
-
-    if (claimRecord) {
-      await db.from("special_reward_claims").insert(claimRecord).then(() => undefined);
-    }
+    // 2. Best-effort parallel sync into relational tables if present
+    await Promise.all([
+      runOptionalTableQuery("cxrner_drop_inventory", () =>
+        db.from("cxrner_drop_inventory").insert(toCoreInventoryRow(newItem))
+      ),
+      runOptionalTableQuery("cxrner_drop_history", () =>
+        db.from("cxrner_drop_history").insert(historyEntry)
+      ),
+      claimRecord
+        ? runOptionalTableQuery("special_reward_claims", () =>
+            db.from("special_reward_claims").insert(claimRecord)
+          )
+        : Promise.resolve(null),
+    ]);
   } else {
     const store = loadLocalStore();
     if (claimRecord) {

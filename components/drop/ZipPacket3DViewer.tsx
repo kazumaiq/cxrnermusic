@@ -382,7 +382,7 @@ export default function ZipPacket3DViewer({
     try {
       renderer = new THREE.WebGLRenderer({
         alpha: true,
-        antialias: !isMobile,
+        antialias: true,
         powerPreference: "high-performance",
       });
     } catch {
@@ -390,11 +390,11 @@ export default function ZipPacket3DViewer({
       return;
     }
 
-    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.75 : 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.85 : 2);
     renderer.setPixelRatio(dpr);
     renderer.setSize(width, height);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35;
+    renderer.toneMappingExposure = 1.38;
 
     host.innerHTML = "";
     host.appendChild(renderer.domElement);
@@ -408,44 +408,44 @@ export default function ZipPacket3DViewer({
     scene.environment = envTex;
 
     const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 40);
-    camera.position.set(0, 0.08, 6.15);
+    camera.position.set(0, -0.02, 6.85);
 
     const pouchRoot = new THREE.Group();
     scene.add(pouchRoot);
 
-    // 1. Metallic Titanium/Silver Vacuum Body (halfZ = 0.08 + bulge 0.08 => peak Z = +-0.16)
-    const bodyGeo = new THREE.BoxGeometry(2.38, 3.12, 0.16, 18, 22, 2);
+    // 1. Plump Metallic Vacuum Cushion Body (halfZ = 0.12 + bulge 0.125 => lush pillow volume even at 3/4 angles)
+    const bodyGeo = new THREE.BoxGeometry(2.38, 3.06, 0.24, 20, 26, 2);
     const bodyPos = bodyGeo.attributes.position;
     for (let i = 0; i < bodyPos.count; i++) {
       const x = bodyPos.getX(i);
       const y = bodyPos.getY(i);
       const z = bodyPos.getZ(i);
       const nx = x / 1.19;
-      const ny = y / 1.56;
-      const bulge = Math.max(0, 1 - (nx * nx * 0.72 + ny * ny * 0.62));
-      const crimp = Math.abs(nx) > 0.88 || Math.abs(ny) > 0.9 ? 0.35 : 1;
-      bodyPos.setZ(i, z * crimp + Math.sign(z || 1) * bulge * 0.08);
+      const ny = y / 1.53;
+      const bulge = Math.max(0, 1 - (nx * nx * 0.68 + ny * ny * 0.58));
+      const crimp = Math.abs(nx) > 0.88 || Math.abs(ny) > 0.9 ? 0.3 : 1;
+      bodyPos.setZ(i, z * crimp + Math.sign(z || 1) * bulge * 0.125);
     }
     bodyGeo.computeVertexNormals();
 
     const bodyMat = new THREE.MeshStandardMaterial({
       color: 0x3b384c,
-      metalness: 0.76,
-      roughness: 0.24,
-      envMapIntensity: 2.1,
+      metalness: 0.78,
+      roughness: 0.22,
+      envMapIntensity: 2.25,
     });
     const pouchBody = new THREE.Mesh(bodyGeo, bodyMat);
     pouchRoot.add(pouchBody);
 
     // 2. Chrome Perimeter Heat-Seal Trim Bars (Crisp metallic framing around silhouette)
     const chromeMat = new THREE.MeshStandardMaterial({
-      color: 0xe6ebf8,
+      color: 0xeaf0ff,
       metalness: 0.95,
       roughness: 0.14,
-      envMapIntensity: 2.4,
+      envMapIntensity: 2.5,
     });
 
-    const leftSeamGeo = new THREE.BoxGeometry(0.08, 3.12, 0.07);
+    const leftSeamGeo = new THREE.BoxGeometry(0.085, 3.06, 0.08);
     const leftSeam = new THREE.Mesh(leftSeamGeo, chromeMat);
     leftSeam.position.set(-1.17, 0, 0);
     pouchRoot.add(leftSeam);
@@ -454,12 +454,12 @@ export default function ZipPacket3DViewer({
     rightSeam.position.set(1.17, 0, 0);
     pouchRoot.add(rightSeam);
 
-    const bottomSeamGeo = new THREE.BoxGeometry(2.42, 0.09, 0.075);
+    const bottomSeamGeo = new THREE.BoxGeometry(2.42, 0.095, 0.085);
     const bottomSeam = new THREE.Mesh(bottomSeamGeo, chromeMat);
-    bottomSeam.position.set(0, -1.53, 0);
+    bottomSeam.position.set(0, -1.5, 0);
     pouchRoot.add(bottomSeam);
 
-    // 3. Curved Front & Back High-Res Artwork Planes (Always sit cleanly OUTSIDE body bulge!)
+    // 3. Curved Front & Back High-Res Artwork Planes (Always sit cleanly OUTSIDE plump body bulge!)
     const frontCanvas = document.createElement("canvas");
     frontCanvas.width = 600;
     frontCanvas.height = 840;
@@ -483,37 +483,37 @@ export default function ZipPacket3DViewer({
     backTex.anisotropy = 4;
 
     const createCurvedLabelGeo = (zOffset: number, bulgeSign: number) => {
-      const geo = new THREE.PlaneGeometry(2.08, 2.74, 16, 20);
+      const geo = new THREE.PlaneGeometry(2.08, 2.7, 18, 22);
       const pos = geo.attributes.position;
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const y = pos.getY(i);
         const nx = x / 1.04;
-        const ny = y / 1.37;
-        const bulge = Math.max(0, 1 - (nx * nx * 0.72 + ny * ny * 0.62));
-        pos.setZ(i, zOffset + bulgeSign * bulge * 0.082);
+        const ny = y / 1.35;
+        const bulge = Math.max(0, 1 - (nx * nx * 0.68 + ny * ny * 0.58));
+        pos.setZ(i, zOffset + bulgeSign * bulge * 0.128);
       }
       geo.computeVertexNormals();
       return geo;
     };
 
-    const frontGeo = createCurvedLabelGeo(0.116, 1);
+    const frontGeo = createCurvedLabelGeo(0.145, 1);
     const frontMat = new THREE.MeshStandardMaterial({
       map: frontTex,
       roughness: 0.22,
       metalness: 0.14,
-      envMapIntensity: 1.4,
+      envMapIntensity: 1.45,
     });
     const frontPlane = new THREE.Mesh(frontGeo, frontMat);
     frontPlane.position.set(0, -0.05, 0);
     pouchRoot.add(frontPlane);
 
-    const backGeo = createCurvedLabelGeo(0.116, 1);
+    const backGeo = createCurvedLabelGeo(0.145, 1);
     const backMat = new THREE.MeshStandardMaterial({
       map: backTex,
       roughness: 0.28,
       metalness: 0.28,
-      envMapIntensity: 1.5,
+      envMapIntensity: 1.55,
     });
     const backPlane = new THREE.Mesh(backGeo, backMat);
     backPlane.rotation.y = Math.PI;
@@ -539,40 +539,60 @@ export default function ZipPacket3DViewer({
 
     // 4. Detachable Brushed Chrome Heat-Seal Tear Strip & Hang-Hole
     const topStripGroup = new THREE.Group();
-    topStripGroup.position.set(0, 1.58, 0);
+    topStripGroup.position.set(0, 1.55, 0);
     pouchRoot.add(topStripGroup);
 
-    const sealStripGeo = new THREE.BoxGeometry(2.42, 0.26, 0.085);
+    const sealStripGeo = new THREE.BoxGeometry(2.42, 0.26, 0.09);
     const sealStripMesh = new THREE.Mesh(sealStripGeo, chromeMat);
     topStripGroup.add(sealStripMesh);
 
-    const holeGeo = new THREE.BoxGeometry(0.42, 0.09, 0.1);
+    const holeGeo = new THREE.BoxGeometry(0.42, 0.085, 0.11);
     const holeMat = new THREE.MeshBasicMaterial({ color: 0x050408 });
     const hangSlot = new THREE.Mesh(holeGeo, holeMat);
     hangSlot.position.set(0, 0.02, 0);
     topStripGroup.add(hangSlot);
 
-    // 5. Interlocking Neon-Chrome Zipper Rail + Protruding Metal Slider
+    // 5. Interlocking Neon-Chrome Zipper Rail + Protruding Hinged Pull-Tab + Internal Vacuum Slit Glow
     const accentColor = new THREE.Color(themeColor);
-    const zipperGeo = new THREE.BoxGeometry(2.26, 0.06, 0.18);
+    const zipperGeo = new THREE.BoxGeometry(2.28, 0.062, 0.21);
     const zipperMat = new THREE.MeshStandardMaterial({
       color: accentColor,
       emissive: accentColor,
-      emissiveIntensity: 0.65,
+      emissiveIntensity: 0.7,
       metalness: 0.85,
-      roughness: 0.18,
+      roughness: 0.16,
     });
     const zipperBar = new THREE.Mesh(zipperGeo, zipperMat);
-    zipperBar.position.set(0, 1.38, 0);
+    zipperBar.position.set(0, 1.36, 0);
     pouchRoot.add(zipperBar);
 
-    const sliderGeo = new THREE.BoxGeometry(0.16, 0.13, 0.22);
+    const seamGlowGeo = new THREE.BoxGeometry(2.14, 0.08, 0.235);
+    const seamGlowMat = new THREE.MeshBasicMaterial({
+      color: accentColor,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+    });
+    const seamGlowBar = new THREE.Mesh(seamGlowGeo, seamGlowMat);
+    seamGlowBar.position.set(0, 1.4, 0);
+    pouchRoot.add(seamGlowBar);
+
+    const sliderGroup = new THREE.Group();
+    sliderGroup.position.set(0.95, 1.36, 0.02);
+    pouchRoot.add(sliderGroup);
+
+    const sliderGeo = new THREE.BoxGeometry(0.18, 0.135, 0.24);
     const sliderTab = new THREE.Mesh(sliderGeo, chromeMat);
-    sliderTab.position.set(0.84, 1.38, 0.02);
-    pouchRoot.add(sliderTab);
+    sliderGroup.add(sliderTab);
+
+    const pullLoopGeo = new THREE.BoxGeometry(0.1, 0.18, 0.04);
+    const pullLoop = new THREE.Mesh(pullLoopGeo, chromeMat);
+    pullLoop.position.set(0, -0.1, 0.13);
+    pullLoop.rotation.x = -0.35;
+    sliderGroup.add(pullLoop);
 
     // 6. Laboratory Orbital Pedestal Ring
-    const haloGeo = new THREE.TorusGeometry(1.58, 0.022, 12, 96);
+    const haloGeo = new THREE.TorusGeometry(1.56, 0.022, 12, 96);
     const haloMat = new THREE.MeshBasicMaterial({
       color: accentColor,
       transparent: true,
@@ -580,24 +600,42 @@ export default function ZipPacket3DViewer({
     });
     const haloRing = new THREE.Mesh(haloGeo, haloMat);
     haloRing.rotation.x = Math.PI / 2;
-    haloRing.position.set(0, -1.86, 0);
+    haloRing.position.set(0, -1.82, 0);
     scene.add(haloRing);
 
-    // Subtle Star/Spark Dust
-    const moteCount = isMobile ? 36 : 80;
+    // Subtle Soft Radial Bokeh Dust & Cryo Sparks
+    const sparkCanvas = document.createElement("canvas");
+    sparkCanvas.width = 32;
+    sparkCanvas.height = 32;
+    const sCtx = sparkCanvas.getContext("2d");
+    if (sCtx) {
+      const sGrad = sCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
+      sGrad.addColorStop(0, "rgba(255,255,255,1)");
+      sGrad.addColorStop(0.45, "rgba(255,255,255,0.65)");
+      sGrad.addColorStop(1, "rgba(255,255,255,0)");
+      sCtx.fillStyle = sGrad;
+      sCtx.fillRect(0, 0, 32, 32);
+    }
+    const sparkTex = new THREE.CanvasTexture(sparkCanvas);
+
+    const moteCount = isMobile ? 42 : 84;
     const motePos = new Float32Array(moteCount * 3);
+    const moteBaseY = new Float32Array(moteCount);
     for (let i = 0; i < moteCount; i++) {
       motePos[i * 3] = (Math.random() - 0.5) * 4.6;
-      motePos[i * 3 + 1] = (Math.random() - 0.5) * 4.4;
+      const yVal = (Math.random() - 0.5) * 4.4;
+      motePos[i * 3 + 1] = yVal;
+      moteBaseY[i] = yVal;
       motePos[i * 3 + 2] = (Math.random() - 0.5) * 3.0;
     }
     const moteGeo = new THREE.BufferGeometry();
     moteGeo.setAttribute("position", new THREE.BufferAttribute(motePos, 3));
     const moteMat = new THREE.PointsMaterial({
       color: accentColor,
-      size: 0.038,
+      map: sparkTex,
+      size: 0.085,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.78,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -608,7 +646,7 @@ export default function ZipPacket3DViewer({
     const hemi = new THREE.HemisphereLight(0xf6f6ff, 0x1a122c, 1.85);
     scene.add(hemi);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.55);
     keyLight.position.set(3.5, 4.5, 7);
     scene.add(keyLight);
 
@@ -620,13 +658,13 @@ export default function ZipPacket3DViewer({
     rimB.position.set(3.6, -1.2, 3.2);
     scene.add(rimB);
 
-    // Interactive Drag Controls
+    // Interactive Drag Controls (preserves full 360 user drag, zero unintended edge-on spinning!)
     let isDragging = false;
     let lastX = 0;
     let lastY = 0;
-    let targetRotY = -0.26;
+    let dragRotY = 0;
     let targetRotX = 0.04;
-    let curRotY = -0.26;
+    let curRotY = -0.22;
     let curRotX = 0.04;
 
     const canvasEl = renderer.domElement;
@@ -639,7 +677,7 @@ export default function ZipPacket3DViewer({
       if (!isDragging) return;
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
-      targetRotY += dx * 0.013;
+      dragRotY += dx * 0.013;
       if (e.pointerType !== "touch" || Math.abs(dx) > Math.abs(dy)) {
         targetRotX = Math.max(-0.42, Math.min(0.42, targetRotX + dy * 0.008));
       }
@@ -668,6 +706,8 @@ export default function ZipPacket3DViewer({
 
     const clock = new THREE.Clock();
     let rafId = 0;
+    let prevPhase: ZipStagePhase = phaseRef.current;
+    let phaseStartElapsed = 0;
 
     const tick = () => {
       if (activeDisposed || !renderer) return;
@@ -676,66 +716,130 @@ export default function ZipPacket3DViewer({
 
       const t = clock.getElapsedTime();
       const phase = phaseRef.current;
+      if (phase !== prevPhase) {
+        prevPhase = phase;
+        phaseStartElapsed = t;
+      }
+      const pElapsed = t - phaseStartElapsed;
 
       const liveAccent = new THREE.Color(accentRef.current);
-      zipperMat.color.lerp(liveAccent, 0.12);
-      zipperMat.emissive.lerp(liveAccent, 0.12);
-      haloMat.color.lerp(liveAccent, 0.12);
-      rimA.color.lerp(liveAccent, 0.12);
-      moteMat.color.lerp(liveAccent, 0.12);
+      zipperMat.color.lerp(liveAccent, 0.14);
+      zipperMat.emissive.lerp(liveAccent, 0.14);
+      seamGlowMat.color.lerp(liveAccent, 0.16);
+      haloMat.color.lerp(liveAccent, 0.14);
+      rimA.color.lerp(liveAccent, 0.14);
+      moteMat.color.lerp(liveAccent, 0.14);
 
-      if (!isDragging && (phase === "idle" || phase === "revealed")) {
-        targetRotY += 0.0042;
-      }
+      // Keep hero 3/4 showcase sweep unless user manually drags around 360 deg
+      const heroOsc = -0.22 + Math.sin(t * 0.85) * 0.24;
+      let desiredRotY = dragRotY + heroOsc;
 
-      let targetCamZ = 6.15;
-      let targetStripY = 1.58;
+      let targetCamZ = 6.85;
+      let targetSliderX = 0.95;
+      let targetStripX = 0;
+      let targetStripY = 1.55;
+      let targetStripZ = 0;
       let targetStripRotZ = 0;
-      let targetStripOpacity = 1;
+      let targetStripRotX = 0;
+      let targetStripVisible = true;
+      let targetSeamGlow = 0;
       let shakeX = 0;
       let shakeY = 0;
 
       if (phase === "charging") {
-        targetCamZ = 5.4;
-        shakeX = Math.sin(t * 48) * 0.03;
-        shakeY = Math.cos(t * 54) * 0.025;
-        zipperMat.emissiveIntensity = 1.4 + Math.sin(t * 16) * 0.6;
-        targetRotY += 0.015;
+        // Snap smoothly to front 3/4 lock angle so user watches laser + zipper rail
+        dragRotY += (Math.round(dragRotY / (Math.PI * 2)) * Math.PI * 2 - dragRotY) * 0.09;
+        desiredRotY = dragRotY - 0.14 + Math.sin(t * 14) * 0.035;
+        targetRotX += (0.04 - targetRotX) * 0.08;
+        targetCamZ = 6.38;
+        const vib = Math.min(1, pElapsed / 1.8) * 0.022;
+        shakeX = Math.sin(t * 54) * vib;
+        shakeY = Math.cos(t * 62) * vib;
+        zipperMat.emissiveIntensity = 1.2 + Math.sin(t * 18) * 0.65;
+        targetSeamGlow = 0.18 + Math.sin(t * 20) * 0.12;
+        pullLoop.rotation.x = -0.35 - Math.sin(t * 24) * 0.14;
       } else if (phase === "ripping") {
-        targetCamZ = 4.95;
-        targetStripY = 2.45;
-        targetStripRotZ = 0.28;
-        zipperMat.emissiveIntensity = 2.2;
-        shakeX = Math.sin(t * 68) * 0.045;
-        targetRotY += 0.028;
+        // Physical zipper pull from right (+0.95) -> left (-0.98) + diagonal top seal peel!
+        dragRotY += (Math.round(dragRotY / (Math.PI * 2)) * Math.PI * 2 - dragRotY) * 0.14;
+        const ripP = Math.min(1, pElapsed / 0.68);
+        const eased = 1 - Math.pow(1 - ripP, 2.4);
+
+        desiredRotY = dragRotY + THREE.MathUtils.lerp(-0.14, 0.22, eased);
+        targetRotX += (0.08 - targetRotX) * 0.12;
+        targetCamZ = 6.22;
+
+        targetSliderX = THREE.MathUtils.lerp(0.95, -0.98, eased);
+        pullLoop.rotation.x = -0.85;
+
+        targetStripX = -0.58 * eased;
+        targetStripY = 1.55 + 0.68 * eased;
+        targetStripZ = 0.34 * eased;
+        targetStripRotZ = 0.44 * eased;
+        targetStripRotX = -0.58 * eased;
+
+        zipperMat.emissiveIntensity = 2.6;
+        targetSeamGlow = 0.45 + eased * 0.55;
+        shakeX = Math.sin(t * 72) * 0.032 * (1 - ripP * 0.4);
+        shakeY = Math.cos(t * 64) * 0.024 * (1 - ripP * 0.4);
       } else if (phase === "bloom" || phase === "revealed") {
-        targetCamZ = 5.45;
-        targetStripY = 3.5;
-        targetStripOpacity = 0;
-        zipperMat.emissiveIntensity = 1.4;
+        dragRotY += (Math.round(dragRotY / (Math.PI * 2)) * Math.PI * 2 - dragRotY) * 0.1;
+        desiredRotY = dragRotY + Math.sin(t * 0.85) * 0.22;
+        targetCamZ = 6.55;
+        targetSliderX = -0.98;
+        pullLoop.rotation.x = -0.5;
+        targetStripX = -1.1;
+        targetStripY = 2.85;
+        targetStripZ = 0.55;
+        targetStripRotZ = 0.62;
+        targetStripRotX = -0.75;
+        targetStripVisible = pElapsed < 0.25 && phase === "bloom";
+        zipperMat.emissiveIntensity = phase === "bloom" ? 2.4 : 1.1;
+        targetSeamGlow = phase === "bloom" ? 0.95 : 0.22 + Math.sin(t * 3) * 0.08;
       } else {
-        zipperMat.emissiveIntensity = 0.65 + Math.sin(t * 2.2) * 0.2;
+        pullLoop.rotation.x = -0.35;
+        zipperMat.emissiveIntensity = 0.72 + Math.sin(t * 2.2) * 0.22;
       }
 
-      curRotY += (targetRotY - curRotY) * 0.1;
+      curRotY += (desiredRotY - curRotY) * (isDragging ? 0.24 : 0.1);
       curRotX += (targetRotX - curRotX) * 0.1;
-      camera.position.z += (targetCamZ - camera.position.z) * 0.08;
+      camera.position.z += (targetCamZ - camera.position.z) * 0.09;
 
-      topStripGroup.position.y += (targetStripY - topStripGroup.position.y) * 0.14;
-      topStripGroup.rotation.z += (targetStripRotZ - topStripGroup.rotation.z) * 0.14;
-      topStripGroup.visible = targetStripOpacity > 0.05;
+      sliderGroup.position.x += (targetSliderX - sliderGroup.position.x) * 0.22;
+      topStripGroup.position.x += (targetStripX - topStripGroup.position.x) * 0.18;
+      topStripGroup.position.y += (targetStripY - topStripGroup.position.y) * 0.18;
+      topStripGroup.position.z += (targetStripZ - topStripGroup.position.z) * 0.18;
+      topStripGroup.rotation.z += (targetStripRotZ - topStripGroup.rotation.z) * 0.18;
+      topStripGroup.rotation.x += (targetStripRotX - topStripGroup.rotation.x) * 0.18;
+      topStripGroup.visible = targetStripVisible;
+
+      seamGlowMat.opacity += (targetSeamGlow - seamGlowMat.opacity) * 0.22;
 
       pouchRoot.rotation.y = curRotY;
       pouchRoot.rotation.x = curRotX;
       pouchRoot.position.x = shakeX;
-      pouchRoot.position.y = Math.sin(t * 1.6) * 0.075 + shakeY;
+      pouchRoot.position.y = Math.sin(t * 1.6) * 0.065 + shakeY;
 
-      haloRing.rotation.z = t * 0.45;
+      haloRing.rotation.z = t * (phase === "charging" || phase === "ripping" ? 1.6 : 0.45);
       haloRing.scale.setScalar(
-        phase === "charging" || phase === "ripping" ? 1.08 + Math.sin(t * 12) * 0.06 : 1.0
+        phase === "charging" || phase === "ripping" ? 1.07 + Math.sin(t * 14) * 0.055 : 1.0
       );
 
-      motes.rotation.y = t * 0.12;
+      // Rising cryo spark fountain during ripping/bloom
+      const mAttr = moteGeo.attributes.position as THREE.BufferAttribute;
+      const venting = phase === "ripping" || phase === "bloom";
+      for (let i = 0; i < moteCount; i++) {
+        if (venting) {
+          let py = mAttr.getY(i) + 0.045;
+          if (py > 2.3) py = -2.1;
+          mAttr.setY(i, py);
+        } else {
+          const curY = mAttr.getY(i);
+          const targetY = moteBaseY[i] + Math.sin(t * 1.1 + i) * 0.12;
+          mAttr.setY(i, curY + (targetY - curY) * 0.04);
+        }
+      }
+      mAttr.needsUpdate = true;
+      motes.rotation.y = t * (venting ? 0.35 : 0.12);
       renderer.render(scene, camera);
     };
 
@@ -766,9 +870,13 @@ export default function ZipPacket3DViewer({
       backTex.dispose();
       zipperGeo.dispose();
       zipperMat.dispose();
+      seamGlowGeo.dispose();
+      seamGlowMat.dispose();
       sliderGeo.dispose();
+      pullLoopGeo.dispose();
       haloGeo.dispose();
       haloMat.dispose();
+      sparkTex.dispose();
       moteGeo.dispose();
       moteMat.dispose();
       envTex.dispose();
