@@ -37,6 +37,15 @@ const ZipPacket3DViewer = dynamic(() => import("./ZipPacket3DViewer"), {
   ),
 });
 
+const Artifact3DInspector = dynamic(() => import("./Artifact3DInspector"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] sm:h-[360px] w-full flex items-center justify-center rounded-2xl bg-white/[0.02] border border-white/10">
+      <Loader2 className="w-6 h-6 animate-spin text-[#00F0FF]" />
+    </div>
+  ),
+});
+
 interface CaseOpeningModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -647,14 +656,17 @@ export default function CaseOpeningModal({
                   </div>
                 </div>
               ) : (
-                <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#05040A]">
-                  <ZipPacket3DViewer
+                <div className="w-full max-w-md">
+                  <Artifact3DInspector
+                    itemId={wonItem.item_id}
+                    itemName={wonItem.item_name}
+                    specimenCode={wonItem.specimen_code}
+                    rarity={isSpecial ? "special_reward" : wonItem.rarity}
                     imageUrl={wonItem.image_url}
+                    serialNumber={wonItem.serial_number}
+                    collectionName={wonItem.collection_name}
                     themeColor={activeDir.color}
-                    labelCode={`№${String(wonItem.serial_number).padStart(6, "0")}`}
-                    specimenName={wonItem.item_name}
-                    stagePhase="revealed"
-                    heightClass="h-[250px] sm:h-[310px]"
+                    heightClass="h-[300px] sm:h-[360px]"
                   />
                 </div>
               )}
@@ -708,19 +720,24 @@ export default function CaseOpeningModal({
                 <span>Ещё раз ({caseConfig.price_cxp})</span>
               </button>
 
-              {onInspectItem && (
-                <button
-                  type="button"
-                  onClick={() => {
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound();
+                  if (viewMode !== "3d") {
+                    setViewMode("3d");
+                  } else if (onInspectItem) {
                     onClose();
                     onInspectItem(wonItem);
-                  }}
-                  className="btn-void-ghost min-h-[44px] py-3 px-4 rounded-full font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Box className="w-3.5 h-3.5 text-[#00F0FF]" />
-                  <span>3D Осмотр</span>
-                </button>
-              )}
+                  } else {
+                    setViewMode("card");
+                  }
+                }}
+                className="btn-void-ghost min-h-[44px] py-3 px-4 rounded-full font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Box className="w-3.5 h-3.5 text-[#00F0FF]" />
+                <span>{viewMode === "3d" ? "Полный 3D стенд" : "3D Осмотр"}</span>
+              </button>
 
               <button
                 type="button"

@@ -8,11 +8,11 @@ import type { DropInventoryItem, DropRarity } from "@/lib/ecosystemTypes";
 import SpecimenVisual from "./SpecimenVisual";
 import { playClickSound } from "@/lib/soundFX";
 
-const ZipPacket3DViewer = dynamic(() => import("./ZipPacket3DViewer"), {
+const Artifact3DInspector = dynamic(() => import("./Artifact3DInspector"), {
   ssr: false,
   loading: () => (
-    <div className="h-[300px] sm:h-[340px] w-full flex items-center justify-center rounded-2xl bg-white/[0.02] border border-white/10">
-      <Loader2 className="w-6 h-6 animate-spin text-[#B46BFF]" />
+    <div className="h-[320px] sm:h-[380px] w-full flex items-center justify-center rounded-2xl bg-white/[0.02] border border-white/10">
+      <Loader2 className="w-6 h-6 animate-spin text-[#00F0FF]" />
     </div>
   ),
 });
@@ -145,7 +145,7 @@ export default function ItemInspectModal({
                   }`}
                 >
                   <Box className="w-3 h-3" />
-                  <span>3D Пакет</span>
+                  <span>3D Осмотр</span>
                 </button>
                 <button
                   type="button"
@@ -160,23 +160,24 @@ export default function ItemInspectModal({
                   }`}
                 >
                   <Eye className="w-3 h-3" />
-                  <span>Карта</span>
+                  <span>Экспонат</span>
                 </button>
               </div>
             </div>
 
             {/* Interactive Stage */}
             {mode === "3d" ? (
-              <div className="rounded-2xl border border-white/12 bg-[#040308] overflow-hidden">
-                <ZipPacket3DViewer
-                  imageUrl={item.image_url}
-                  themeColor={accentColor}
-                  labelCode={item.specimen_code || `#${String(item.serial_number).padStart(6, "0")}`}
-                  specimenName={item.item_name}
-                  stagePhase="idle"
-                  heightClass="h-[250px] sm:h-[325px]"
-                />
-              </div>
+              <Artifact3DInspector
+                itemId={item.item_id}
+                itemName={item.item_name}
+                specimenCode={item.specimen_code}
+                rarity={isSpecial ? "special_reward" : item.rarity}
+                imageUrl={item.image_url}
+                serialNumber={item.serial_number}
+                collectionName={item.collection_name}
+                themeColor={accentColor}
+                heightClass="h-[310px] sm:h-[385px]"
+              />
             ) : (
               <div className="flex justify-center py-1">
                 <div className="w-48 sm:w-60">

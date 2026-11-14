@@ -157,21 +157,30 @@ function drawFrontPouchTexture(
   ctx.fillRect(0, 0, w, h);
 
   if (loadedImg && loadedImg.naturalWidth > 0) {
-    // Draw uploaded specimen image cleanly centered with balanced margins inside pouch window
-    const padX = 24;
-    const padY = 24;
+    // Full-bleed cover inside rounded foil window so square or portrait art never leaves blank purple bands
+    const padX = 16;
+    const padY = 16;
     const targetW = w - padX * 2;
     const targetH = h - padY * 2;
-    const scale = Math.min(targetW / loadedImg.naturalWidth, targetH / loadedImg.naturalHeight);
+    const scale = Math.max(targetW / loadedImg.naturalWidth, targetH / loadedImg.naturalHeight);
     const drawW = loadedImg.naturalWidth * scale;
     const drawH = loadedImg.naturalHeight * scale;
     const dx = (w - drawW) / 2;
     const dy = (h - drawH) / 2;
 
     ctx.save();
-    roundedRectPath(ctx, 16, 16, w - 32, h - 32, 24);
+    roundedRectPath(ctx, padX, padY, targetW, targetH, 26);
     ctx.clip();
     ctx.drawImage(loadedImg, dx, dy, drawW, drawH);
+
+    // Subtle top & bottom dark glass vignette inside foil window
+    const vig = ctx.createLinearGradient(0, padY, 0, padY + targetH);
+    vig.addColorStop(0, "rgba(7,5,14,0.55)");
+    vig.addColorStop(0.18, "rgba(7,5,14,0)");
+    vig.addColorStop(0.82, "rgba(7,5,14,0)");
+    vig.addColorStop(1, "rgba(7,5,14,0.65)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(padX, padY, targetW, targetH);
     ctx.restore();
   } else {
     // Crisp fallback industrial foil graphic visible immediately at frame 0
@@ -428,36 +437,26 @@ export default function ZipPacket3DViewer({
     }
     bodyGeo.computeVertexNormals();
 
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0x3b384c,
-      metalness: 0.78,
-      roughness: 0.22,
-      envMapIntensity: 2.25,
+    const bodyMat = new THREE.MeshPhysicalMaterial({
+      color: 0x1e1b2e,
+      metalness: 0.88,
+      roughness: 0.16,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.08,
+      iridescence: 0.42,
+      envMapIntensity: 2.4,
     });
     const pouchBody = new THREE.Mesh(bodyGeo, bodyMat);
     pouchRoot.add(pouchBody);
 
-    // 2. Chrome Perimeter Heat-Seal Trim Bars (Crisp metallic framing around silhouette)
-    const chromeMat = new THREE.MeshStandardMaterial({
+    // 2. Chrome Material for Top Tear Strip & Zipper Slider
+    const chromeMat = new THREE.MeshPhysicalMaterial({
       color: 0xeaf0ff,
-      metalness: 0.95,
-      roughness: 0.14,
-      envMapIntensity: 2.5,
+      metalness: 0.96,
+      roughness: 0.1,
+      clearcoat: 1.0,
+      envMapIntensity: 2.6,
     });
-
-    const leftSeamGeo = new THREE.BoxGeometry(0.085, 3.06, 0.08);
-    const leftSeam = new THREE.Mesh(leftSeamGeo, chromeMat);
-    leftSeam.position.set(-1.17, 0, 0);
-    pouchRoot.add(leftSeam);
-
-    const rightSeam = new THREE.Mesh(leftSeamGeo, chromeMat);
-    rightSeam.position.set(1.17, 0, 0);
-    pouchRoot.add(rightSeam);
-
-    const bottomSeamGeo = new THREE.BoxGeometry(2.42, 0.095, 0.085);
-    const bottomSeam = new THREE.Mesh(bottomSeamGeo, chromeMat);
-    bottomSeam.position.set(0, -1.5, 0);
-    pouchRoot.add(bottomSeam);
 
     // 3. Curved Front & Back High-Res Artwork Planes (Always sit cleanly OUTSIDE plump body bulge!)
     const frontCanvas = document.createElement("canvas");
@@ -498,22 +497,26 @@ export default function ZipPacket3DViewer({
     };
 
     const frontGeo = createCurvedLabelGeo(0.145, 1);
-    const frontMat = new THREE.MeshStandardMaterial({
+    const frontMat = new THREE.MeshPhysicalMaterial({
       map: frontTex,
-      roughness: 0.22,
-      metalness: 0.14,
-      envMapIntensity: 1.45,
+      roughness: 0.16,
+      metalness: 0.24,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.06,
+      iridescence: 0.35,
+      envMapIntensity: 1.75,
     });
     const frontPlane = new THREE.Mesh(frontGeo, frontMat);
     frontPlane.position.set(0, -0.05, 0);
     pouchRoot.add(frontPlane);
 
     const backGeo = createCurvedLabelGeo(0.145, 1);
-    const backMat = new THREE.MeshStandardMaterial({
+    const backMat = new THREE.MeshPhysicalMaterial({
       map: backTex,
-      roughness: 0.28,
-      metalness: 0.28,
-      envMapIntensity: 1.55,
+      roughness: 0.2,
+      metalness: 0.32,
+      clearcoat: 0.9,
+      envMapIntensity: 1.65,
     });
     const backPlane = new THREE.Mesh(backGeo, backMat);
     backPlane.rotation.y = Math.PI;
@@ -591,16 +594,16 @@ export default function ZipPacket3DViewer({
     pullLoop.rotation.x = -0.35;
     sliderGroup.add(pullLoop);
 
-    // 6. Laboratory Orbital Pedestal Ring
-    const haloGeo = new THREE.TorusGeometry(1.56, 0.022, 12, 96);
+    // 6. Laboratory Orbital Pedestal Ring (Positioned cleanly below pouch silhouette)
+    const haloGeo = new THREE.TorusGeometry(1.48, 0.018, 12, 96);
     const haloMat = new THREE.MeshBasicMaterial({
       color: accentColor,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.55,
     });
     const haloRing = new THREE.Mesh(haloGeo, haloMat);
     haloRing.rotation.x = Math.PI / 2;
-    haloRing.position.set(0, -1.82, 0);
+    haloRing.position.set(0, -1.96, 0);
     scene.add(haloRing);
 
     // Subtle Soft Radial Bokeh Dust & Cryo Sparks
@@ -856,8 +859,6 @@ export default function ZipPacket3DViewer({
 
       bodyGeo.dispose();
       bodyMat.dispose();
-      leftSeamGeo.dispose();
-      bottomSeamGeo.dispose();
       sealStripGeo.dispose();
       holeGeo.dispose();
       holeMat.dispose();
