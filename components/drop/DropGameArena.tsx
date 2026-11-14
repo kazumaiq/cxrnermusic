@@ -187,12 +187,13 @@ export default function DropGameArena({
   ];
 
   return (
-    <div className="min-h-screen bg-[#05030A] text-white selection:bg-[#8737FF] selection:text-white">
+    <div className="min-h-screen bg-[#05030A] pt-14 sm:pt-20 text-white selection:bg-[#8737FF] selection:text-white">
       {/* =====================================================================
           TOP GAMING HUD BAR
           ===================================================================== */}
-      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#07050D]/90 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
+      <header className="sticky top-14 sm:top-20 z-40 w-full border-b border-white/10 bg-[#07050D]/95 backdrop-blur-xl">
+        {/* Desktop View: Single Spacious Row */}
+        <div className="hidden sm:flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 items-center justify-between gap-4">
           {/* Left: Brand & Return */}
           <div className="flex items-center gap-3 sm:gap-4">
             <Link
@@ -327,11 +328,118 @@ export default function DropGameArena({
             )}
           </div>
         </div>
+        {/* Mobile View: Compact 2-tier HUD (Zero Overflow, Easy Touch) */}
+        <div className="sm:hidden px-3 py-2 space-y-2">
+          {/* Top row: Brand & Balance & Quick Actions */}
+          <div className="flex items-center justify-between gap-2">
+            <Link href="/" className="flex items-center gap-1.5 shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#8737FF] to-[#00F0FF] p-0.5 shadow-[0_0_10px_rgba(135,55,255,0.5)]">
+                <div className="w-full h-full bg-[#090611] rounded-[6px] flex items-center justify-center">
+                  <Boxes className="w-3.5 h-3.5 text-[#00F0FF]" />
+                </div>
+              </div>
+              <span className="font-display font-black text-xs uppercase tracking-wider text-white">
+                DROP
+              </span>
+            </Link>
+
+            <div className="flex items-center gap-1.5">
+              {/* CXP Balance */}
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/70 border border-[#00F0FF]/40">
+                <Coins className="w-3.5 h-3.5 text-[#00F0FF]" />
+                <span className="font-display font-black text-xs text-white">
+                  {balance}
+                </span>
+                <span className="font-mono text-[8px] text-[#00F0FF] font-bold">
+                  CXP
+                </span>
+                <button
+                  onClick={() => setIsGetCxpModalOpen(true)}
+                  className="ml-0.5 px-1.5 py-0.2 rounded-full bg-[#00F0FF]/25 text-[#00F0FF] text-[8px] font-bold uppercase"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Quick Icons */}
+              <button
+                onClick={() => setIsRatesModalOpen(true)}
+                title="Шансы выпадения"
+                className="p-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-white/70 hover:text-white"
+              >
+                <Percent className="w-3.5 h-3.5 text-[#00F0FF]" />
+              </button>
+              <button
+                onClick={() => setIsHistoryModalOpen(true)}
+                title="История"
+                className="p-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-white/70 hover:text-white"
+              >
+                <History className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setIsHelpModalOpen(true)}
+                title="Как играть"
+                className="p-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-white/70 hover:text-white"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-[#B46BFF]" />
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom row: Mode Tabs (Full Width 3 equal segments) */}
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 font-mono text-[10px] uppercase tracking-wider">
+            <button
+              onClick={() => {
+                playClickSound();
+                setActiveTab("play");
+              }}
+              className={`py-1.5 rounded-lg text-center transition font-bold ${
+                activeTab === "play"
+                  ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
+                  : "text-[#D9D9E2]/70 hover:text-white"
+              }`}
+            >
+              КЕЙСЫ
+            </button>
+            <button
+              onClick={() => {
+                playClickSound();
+                setActiveTab("prizes");
+              }}
+              className={`py-1.5 rounded-lg text-center transition font-bold flex items-center justify-center gap-1 ${
+                activeTab === "prizes"
+                  ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
+                  : "text-[#D9D9E2]/70 hover:text-white"
+              }`}
+            >
+              <span>ПРИЗЫ</span>
+              <span className="px-1 py-0.2 rounded bg-[#00F0FF]/25 text-[#00F0FF] text-[7px] font-bold">
+                10+1
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                playClickSound();
+                setActiveTab("inventory");
+              }}
+              className={`py-1.5 rounded-lg text-center transition font-bold flex items-center justify-center gap-1 ${
+                activeTab === "inventory"
+                  ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
+                  : "text-[#D9D9E2]/70 hover:text-white"
+              }`}
+            >
+              <span>ИНВЕНТАРЬ</span>
+              <span className="px-1 py-0.2 rounded bg-black/60 text-white text-[7px] font-bold">
+                {items.length}
+              </span>
+            </button>
+          </div>
+        </div>
       </header>
 
       {/* Status Alert Notification */}
       {statusNotice && (
-        <div className="fixed top-20 right-4 z-50 p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 backdrop-blur-xl text-emerald-300 text-xs font-mono shadow-2xl animate-fade-in">
+        <div className="fixed top-24 sm:top-28 right-4 z-50 p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 backdrop-blur-xl text-emerald-300 text-xs font-mono shadow-2xl animate-fade-in">
           {statusNotice}
         </div>
       )}
