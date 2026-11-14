@@ -61,9 +61,27 @@ export interface SmartLinkData {
   is_verified_artist?: boolean;
   template: string;
   preview_audio_url?: string | null;
+  lyrics_snippet?: string | null;
+  hype_count?: number;
   presaves_count?: number;
   social_links?: Array<{ platform: string; url: string }>;
   design_config?: SmartLinkDesignConfig;
+  owner_profile?: {
+    username?: string | null;
+    display_name?: string | null;
+    avatar_url?: string | null;
+    is_artist_verified?: boolean;
+    featured_artifact?: {
+      item_id?: string;
+      item_name?: string;
+      specimen_key?: string;
+      name?: string;
+      rarity: string;
+      specimen_code?: string;
+      serial?: number;
+      image_url?: string;
+    } | null;
+  } | null;
 }
 
 interface PublicSmartLinkProps {
@@ -97,9 +115,24 @@ export default function PublicSmartLink({
     (p) => p && p.is_enabled !== false && p.url && p.url.trim().length > 0
   );
 
-  // Audio Preview Player State
+  // Audio Preview Player State (15-second snippet + auto-lookup + WebAudio synth fallback)
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const synthTimerRef = useRef<number | null>(null);
+  const synthCtxRef = useRef<AudioContext | null>(null);
+  const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(
+    link.preview_audio_url || null
+  );
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0); // 0..15 seconds
+  const [spectrumBars, setSpectrumBars] = useState<number[]>(
+    Array.from({ length: 20 }, (_, i) => 24 + ((i * 19) % 45))
+  );
+
+  // Hype Reaction & Lyrics State
+  const [hypeCount, setHypeCount] = useState<number>(Number(link.hype_count || 0));
+  const [hypeBurst, setHypeBurst] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [copiedLyrics, setCopiedLyrics] = useState(false);
 
   // Live Release Countdown
   const [countdown, setCountdown] = useState<{
@@ -177,15 +210,166 @@ export default function PublicSmartLink({
     }
   };
 
-  const toggleAudio = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    } else {
-      audio.play().catch(() => {});
+  const stopAudioPreview = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (synthTimerRef.current) {
+      window.clearInterval(synthTimerRef.current);
+      synthTimerRef.current = null;
+    }
+    if (synthCtxRef.current) {
+      try {
+        synthCtxRef.current.close();
+      } catch {}
+      synthCtxRef.current = null;
+    }
+    setIsPlaying(false);
+    setAudioProgress(0);
+  };
+
+  // Auto-resolve iTunes 30s preview URL if no explicit preview_audio_url was saved
+  useEffect(() => {
+    if (link.preview_audio_url) {
+      setResolvedAudioUrl(link.preview_audio_url);
+      return;
+    }
+    if (!link.artist || !link.title) return;
+    let cancelled = false;
+    const term = `${link.artist} ${link.title}`;
+    fetch(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=1`
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && d?.results?.[0]?.previewUrl) {
+          setResolvedAudioUrl(d.results[0].previewUrl);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [link.preview_audio_url, link.artist, link.title]);
+
+  // Animate 20-bar neon spectrum while playing
+  useEffect(() => {
+    if (!isPlaying) return;
+    const id = window.setInterval(() => {
+      setSpectrumBars((prev) =>
+        prev.map((_, idx) => {
+          const wave = Math.sin(Date.now() * 0.012 + idx * 0.65) * 28;
+          const jitter = ((idx * 37 + Math.floor(Date.now() / 90)) % 35);
+          return Math.max(18, Math.min(100, Math.round(45 + wave + jitter * 0.5)));
+        })
+      );
+    }, 85);
+    return () => window.clearInterval(id);
+  }, [isPlaying]);
+
+  const startWebAudioSynthPreview = () => {
+    try {
+      const AudioCtx =
+        window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtx();
+      synthCtxRef.current = ctx;
+
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.14, ctx.currentTime);
+      master.connect(ctx.destination);
+
+      // Deep sub-bass + atmospheric minor chord arpeggio for 15 seconds
+      const notes = [110, 130.81, 164.81, 196.0, 220.0, 261.63];
+      const start = ctx.currentTime;
+      for (let step = 0; step < 30; step++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = step % 2 === 0 ? "sawtooth" : "triangle";
+        const freq = notes[step % notes.length] * (step % 4 === 0 ? 0.5 : 1);
+        osc.frequency.setValueAtTime(freq, start + step * 0.5);
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(920 + (step % 5) * 240, start + step * 0.5);
+
+        gain.gain.setValueAtTime(0.001, start + step * 0.5);
+        gain.gain.exponentialRampToValueAtTime(0.22, start + step * 0.5 + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + step * 0.5 + 0.48);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        osc.start(start + step * 0.5);
+        osc.stop(start + step * 0.5 + 0.49);
+      }
+
       setIsPlaying(true);
+      const startedAt = Date.now();
+      synthTimerRef.current = window.setInterval(() => {
+        const elapsed = (Date.now() - startedAt) / 1000;
+        if (elapsed >= 15) {
+          stopAudioPreview();
+        } else {
+          setAudioProgress(elapsed);
+        }
+      }, 100);
+    } catch {
+      setIsPlaying(false);
+    }
+  };
+
+  const toggleAudio = () => {
+    if (isPlaying) {
+      stopAudioPreview();
+      return;
+    }
+    const audio = audioRef.current;
+    if (audio && resolvedAudioUrl) {
+      audio.currentTime = 0;
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+          if (synthTimerRef.current) window.clearInterval(synthTimerRef.current);
+          synthTimerRef.current = window.setInterval(() => {
+            if (!audioRef.current) return;
+            const cur = audioRef.current.currentTime;
+            if (cur >= 15) {
+              stopAudioPreview();
+            } else {
+              setAudioProgress(cur);
+            }
+          }, 100);
+        })
+        .catch(() => {
+          startWebAudioSynthPreview();
+        });
+    } else {
+      startWebAudioSynthPreview();
+    }
+  };
+
+  const handleHypeReaction = () => {
+    setHypeCount((c) => c + 1);
+    setHypeBurst(true);
+    window.setTimeout(() => setHypeBurst(false), 650);
+
+    if (!isPreview && link.id && !link.id.startsWith("preview")) {
+      fetch("/api/link/analytics-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          smart_link_id: link.id,
+          event_type: "hype",
+        }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (typeof d?.hypeCount === "number") {
+            setHypeCount(d.hypeCount);
+          }
+        })
+        .catch(() => {});
     }
   };
 
@@ -324,18 +508,61 @@ export default function PublicSmartLink({
                 alt={`${link.artist} — ${link.title}`}
                 className="w-full h-full object-contain bg-black"
               />
+
+              {/* Live 15s Audio Play Button & Spectrum Overlay on Cover */}
+              {showAudio && (
+                <>
+                  <button
+                    type="button"
+                    onClick={toggleAudio}
+                    title={isPlaying ? "Остановить 15-сек сниппет" : "Слушать 15-сек сниппет"}
+                    className="absolute bottom-3 right-3 z-20 w-11 h-11 rounded-full flex items-center justify-center text-[#050407] shadow-[0_0_25px_rgba(0,0,0,0.85)] transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+                    style={{ backgroundColor: accentColor }}
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-4 h-4 ml-0.5" />
+                    )}
+                  </button>
+
+                  {isPlaying && (
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-center gap-1 px-4 pb-3">
+                      {spectrumBars.slice(0, 14).map((val, i) => (
+                        <span
+                          key={i}
+                          className="w-1.5 rounded-full transition-all duration-100"
+                          style={{
+                            height: `${Math.max(18, Math.round(val * 0.45))}px`,
+                            backgroundColor: i % 2 === 0 ? accentColor : "#B46BFF",
+                            boxShadow: `0 0 8px ${accentColor}`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
           {/* Release Metadata */}
-          <div className="space-y-1.5 px-2">
-            <div className="inline-flex items-center justify-center gap-1.5 text-xs sm:text-sm font-mono uppercase tracking-[0.16em] text-white/80">
+          <div className="space-y-2 px-2">
+            <div className="inline-flex flex-wrap items-center justify-center gap-1.5 text-xs sm:text-sm font-mono uppercase tracking-[0.16em] text-white/85">
               <span>{link.artist}</span>
-              {link.is_verified_artist && (
-                <CheckCircle2
-                  className="w-4 h-4 shrink-0"
-                  style={{ color: accentColor }}
-                />
+              {(link.is_verified_artist || link.owner_profile?.is_artist_verified) && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider border"
+                  style={{
+                    borderColor: `${accentColor}66`,
+                    backgroundColor: `${accentColor}1A`,
+                    color: accentColor,
+                  }}
+                  title="Верифицированный артист экосистемы CXRNER MUSIC"
+                >
+                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                  <span>VERIFIED</span>
+                </span>
               )}
             </div>
 
@@ -359,50 +586,167 @@ export default function PublicSmartLink({
               )}
             </div>
 
+            {/* CXRNER ID Public Profile & Pinned CXRNER DROP Artifact Showcase */}
+            {(link.owner_profile?.username || link.owner_profile?.featured_artifact) && (
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                {link.owner_profile?.username && (
+                  <Link
+                    href={`/profile/${link.owner_profile.username}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 font-mono text-[10px] text-white/85 transition"
+                  >
+                    <Sparkles className="w-3 h-3" style={{ color: accentColor }} />
+                    <span>CXRNER ID: @{link.owner_profile.username}</span>
+                    <ArrowUpRight className="w-3 h-3 opacity-60" />
+                  </Link>
+                )}
+
+                {link.owner_profile?.featured_artifact && (
+                  <Link
+                    href="/drop"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#8737FF]/15 hover:bg-[#8737FF]/25 border border-[#B46BFF]/40 font-mono text-[10px] text-[#E3C8FF] transition"
+                    title="Выбитый артефакт артиста в CXRNER DROP"
+                  >
+                    <span>
+                      🏆{" "}
+                      {link.owner_profile.featured_artifact.item_name ||
+                        link.owner_profile.featured_artifact.name ||
+                        "SPECIMEN"}
+                    </span>
+                    <span className="text-[#00F0FF] font-bold">
+                      {link.owner_profile.featured_artifact.specimen_code ||
+                        `#${String(link.owner_profile.featured_artifact.serial || 1).padStart(4, "0")}`}
+                    </span>
+                  </Link>
+                )}
+              </div>
+            )}
+
             {link.description && (
               <p className="text-xs text-[#D9D9E2]/75 max-w-sm mx-auto pt-1 leading-relaxed">
                 {link.description}
               </p>
             )}
+
+            {/* Interactive Fan Hype Reaction + Lyrics Toggle Row */}
+            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={handleHypeReaction}
+                className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-full border font-mono text-[11px] uppercase tracking-wider font-bold transition-all cursor-pointer select-none ${
+                  hypeBurst
+                    ? "scale-110 border-[#FF2E93] bg-[#FF2E93]/25 text-white shadow-[0_0_25px_rgba(255,46,147,0.55)]"
+                    : "border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-white/90"
+                }`}
+              >
+                <span className={hypeBurst ? "animate-bounce" : ""}>🔥</span>
+                <span>ОГОНЬ РЕЛИЗУ</span>
+                <span
+                  className="px-2 py-0.5 rounded-full text-[10px] bg-black/50 border border-white/10 tabular-nums"
+                  style={{ color: accentColor }}
+                >
+                  {hypeCount}
+                </span>
+              </button>
+
+              {link.lyrics_snippet && (
+                <button
+                  type="button"
+                  onClick={() => setShowLyrics((v) => !v)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.12] font-mono text-[11px] uppercase tracking-wider text-white/85 transition cursor-pointer"
+                >
+                  <span>{showLyrics ? "Скрыть текст" : "Текст // Lyrics"}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Expandable Lyrics / Punchline Card */}
+            {link.lyrics_snippet && showLyrics && (
+              <div className="mt-3 p-4 rounded-2xl border border-white/15 bg-black/65 backdrop-blur-xl text-left space-y-2.5 shadow-xl">
+                <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
+                  <span
+                    className="font-mono text-[10px] uppercase tracking-[0.2em] font-bold"
+                    style={{ color: accentColor }}
+                  >
+                    LYRICS // ФРАГМЕНТ ТЕКСТА
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(
+                        `«${link.lyrics_snippet}» — ${link.artist} (${link.title})`
+                      );
+                      setCopiedLyrics(true);
+                      window.setTimeout(() => setCopiedLyrics(false), 2000);
+                    }}
+                    className="inline-flex items-center gap-1 font-mono text-[10px] text-white/65 hover:text-white transition cursor-pointer"
+                  >
+                    {copiedLyrics ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span>Скопировано</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Цитировать</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="font-sans text-xs sm:text-sm text-white/90 whitespace-pre-line leading-relaxed italic">
+                  {link.lyrics_snippet}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Optional Audio Snippet Player */}
-        {showAudio && link.preview_audio_url && (
+        {/* 15-Second Audio Snippet Player with Live Neon Spectrum Visualizer */}
+        {showAudio && (
           <div
             className={`p-3.5 bg-white/[0.06] border border-white/15 backdrop-blur-xl flex items-center justify-between gap-3 ${radiusCls}`}
           >
-            <audio
-              ref={audioRef}
-              src={link.preview_audio_url}
-              onEnded={() => setIsPlaying(false)}
-              preload="metadata"
-            />
+            {resolvedAudioUrl && (
+              <audio
+                ref={audioRef}
+                src={resolvedAudioUrl}
+                onEnded={() => stopAudioPreview()}
+                preload="metadata"
+              />
+            )}
             <button
               type="button"
               onClick={toggleAudio}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-[#050407] shrink-0 transition hover:scale-105 cursor-pointer"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-[#050407] shrink-0 transition hover:scale-105 cursor-pointer shadow-lg"
               style={{ backgroundColor: accentColor }}
             >
               {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
             </button>
             <div className="flex-1 min-w-0">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-white/85 truncate">
-                {isPlaying ? "ВОСПРОИЗВЕДЕНИЕ ПРЕВЬЮ" : "АУДИО-ФРАГМЕНТ РЕЛИЗА"}
+              <div className="flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-wider text-white/85">
+                <span className="truncate">
+                  {isPlaying ? "⚡ СНИППЕТ ИГРАЕТ (15 СЕК)" : "СЛУШАТЬ 15-СЕК ПРЕВЬЮ ТРЕКА"}
+                </span>
+                <span className="tabular-nums text-white/60 shrink-0">
+                  0:{String(Math.min(15, Math.floor(audioProgress))).padStart(2, "0")} / 0:15
+                </span>
               </div>
-              <div className="flex items-end gap-1 h-3.5 mt-1">
-                {Array.from({ length: 18 }).map((_, i) => (
-                  <span
-                    key={i}
-                    className={`flex-1 rounded-full transition-all duration-300 ${
-                      isPlaying ? "animate-pulse" : ""
-                    }`}
-                    style={{
-                      height: `${isPlaying ? 35 + ((i * 29) % 65) : 25 + ((i * 17) % 45)}%`,
-                      backgroundColor: i % 3 === 0 ? accentColor : "rgba(255,255,255,0.35)",
-                    }}
-                  />
-                ))}
+              <div className="flex items-end gap-1 h-4 mt-1.5">
+                {spectrumBars.map((barHeight, i) => {
+                  const pct = (audioProgress / 15) * spectrumBars.length;
+                  const isPassed = isPlaying && i <= pct;
+                  return (
+                    <span
+                      key={i}
+                      className="flex-1 rounded-full transition-all duration-100"
+                      style={{
+                        height: `${isPlaying ? barHeight : 25 + ((i * 17) % 45)}%`,
+                        backgroundColor:
+                          isPassed || i % 3 === 0 ? accentColor : "rgba(255,255,255,0.3)",
+                      }}
+                    />
+                  );
+                })}
               </div>
             </div>
           </div>

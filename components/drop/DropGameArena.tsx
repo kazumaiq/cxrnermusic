@@ -27,7 +27,12 @@ import type {
   DropHistoryEntry,
   ItemRarity,
 } from "@/lib/ecosystemTypes";
-import { DROP_CASES, DROP_SPECIMENS } from "@/lib/ecosystemTypes";
+import {
+  DROP_CASES,
+  DROP_SPECIMENS,
+  SALVAGE_CXP_BY_RARITY,
+  FUSION_NEXT_RARITY,
+} from "@/lib/ecosystemTypes";
 import SpecimenVisual, { RARITY_THEMES } from "./SpecimenVisual";
 import ZipPacket3DViewer from "./ZipPacket3DViewer";
 import CaseOpeningModal from "./CaseOpeningModal";
@@ -45,7 +50,32 @@ interface DropGameArenaProps {
   initialHistory: DropHistoryEntry[];
   username: string;
   isLoggedIn: boolean;
-  defaultTab?: "play" | "inventory" | "prizes";
+  defaultTab?: "play" | "inventory" | "prizes" | "fusion";
+}
+
+interface LiveFeedEntry {
+  id: string;
+  username: string;
+  display_name: string;
+  is_verified: boolean;
+  item_id: string;
+  item_name: string;
+  specimen_code: string;
+  collection_name: string;
+  rarity: ItemRarity;
+  serial_number: number;
+  image_url: string;
+  description: string;
+  case_name: string;
+}
+
+interface DailyScanState {
+  canClaimToday: boolean;
+  currentStreak: number;
+  nextStreakDay: number;
+  lastClaimedDate: string | null;
+  totalScans: number;
+  rewardsSchedule: Array<{ day: number; cxp: number; bonusItem?: boolean }>;
 }
 
 export default function DropGameArena({
@@ -56,12 +86,20 @@ export default function DropGameArena({
   isLoggedIn,
   defaultTab = "play",
 }: DropGameArenaProps) {
-  const [activeTab, setActiveTab] = useState<"play" | "inventory" | "prizes">(defaultTab);
+  const [activeTab, setActiveTab] = useState<"play" | "inventory" | "prizes" | "fusion">(defaultTab);
   const [items, setItems] = useState<DropInventoryItem[]>(initialItems);
   const [balance, setBalance] = useState<number>(initialBalance);
   const [animatedBalance, setAnimatedBalance] = useState<number>(initialBalance);
   const [sfxOn, setSfxOn] = useState<boolean>(true);
   const [history, setHistory] = useState<DropHistoryEntry[]>(initialHistory);
+
+  // Live Feed, Daily Scan & Fusion Lab state
+  const [liveFeed, setLiveFeed] = useState<LiveFeedEntry[]>([]);
+  const [dailyScan, setDailyScan] = useState<DailyScanState | null>(null);
+  const [isClaimingDaily, setIsClaimingDaily] = useState(false);
+  const [fusionRarity, setFusionRarity] = useState<"common" | "rare" | "epic" | "legendary">("common");
+  const [selectedFusionIds, setSelectedFusionIds] = useState<string[]>([]);
+  const [isFusing, setIsFusing] = useState(false);
 
   // Case selection
   const [selectedCaseId, setSelectedCaseId] = useState<string>("case_001_archive");
@@ -103,12 +141,142 @@ export default function DropGameArena({
     return () => clearTimeout(timer);
   }, [balance, animatedBalance]);
 
-  // Sync SFX state on mount
+  // Sync SFX state and load Live Feed + Daily Scan status on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       setSfxOn(isSfxEnabled());
     }
+    fetch("/api/cabinet/drop/actions")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d?.liveFeed)) setLiveFeed(d.liveFeed);
+        if (d?.dailyScan) setDailyScan(d.dailyScan);
+      })
+      .catch(() => {});
   }, []);
+
+  const handleSalvageItem = async (item: DropInventoryItem) => {
+    if (!item?.id || item.id === "preview" || item.id.startsWith("seed_")) return;
+    try {
+      const res = await fetch("/api/cabinet/drop/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "salvage",
+          inventoryItemId: item.id,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusNotice(data.error || "Не удалось распылить предмет");
+        setTimeout(() => setStatusNotice(null), 3500);
+        return;
+      }
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      setSelectedFusionIds((prev) => prev.filter((id) => id !== item.id));
+      if (typeof data.newBalance === "number") setBalance(data.newBalance);
+      if (inspectingItem?.id === item.id) setInspectingItem(null);
+      setStatusNotice(
+        `⚡ Образец «${item.item_name}» распылён! Начислено +${data.refundedCxp} CXP.`
+      );
+      setTimeout(() => setStatusNotice(null), 3500);
+    } catch {
+      setStatusNotice("Ошибка сети при распылении предмета");
+      setTimeout(() => setStatusNotice(null), 3500);
+    }
+  };
+
+  const handleClaimDailyScan = async () => {
+    if (!isLoggedIn) {
+      setStatusNotice("Войдите в аккаунт CXRNER ID, чтобы получать ежедневный бонус CXP");
+      setTimeout(() => setStatusNotice(null), 3500);
+      return;
+    }
+    setIsClaimingDaily(true);
+    try {
+      const res = await fetch("/api/cabinet/drop/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "daily_scan" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusNotice(data.error || "Скан уже выполнен сегодня");
+        setTimeout(() => setStatusNotice(null), 3500);
+        return;
+      }
+      if (typeof data.newBalance === "number") setBalance(data.newBalance);
+      if (data.dailyScan) setDailyScan(data.dailyScan);
+      if (data.bonusItem) {
+        setItems((prev) => [data.bonusItem, ...prev]);
+        setInspectingItem(data.bonusItem);
+        setStatusNotice(
+          `🔥 7 ДНЕЙ СЕРИИ! Начислено +${data.awardedCxp} CXP и бонусный артефакт «${data.bonusItem.item_name}»!`
+        );
+      } else {
+        setStatusNotice(
+          `⚡ Ежедневный скан архива (День ${data.streakDay}/7): +${data.awardedCxp} CXP!`
+        );
+      }
+      setTimeout(() => setStatusNotice(null), 4000);
+    } catch {
+      setStatusNotice("Ошибка при выполнении ежедневного скана");
+      setTimeout(() => setStatusNotice(null), 3500);
+    } finally {
+      setIsClaimingDaily(false);
+    }
+  };
+
+  const eligibleFusionItems = items.filter(
+    (i) => i.rarity === fusionRarity && !i.is_special_reward
+  );
+
+  const handleAutoSelectFusion = (targetRarity = fusionRarity) => {
+    playClickSound();
+    const candidates = items.filter(
+      (i) => i.rarity === targetRarity && !i.is_special_reward
+    );
+    // Prefer unpinned items and duplicates first
+    const sorted = [...candidates].sort((a, b) => Number(a.is_pinned) - Number(b.is_pinned));
+    setSelectedFusionIds(sorted.slice(0, 5).map((i) => i.id));
+  };
+
+  const handleExecuteFusion = async () => {
+    if (selectedFusionIds.length !== 5 || isFusing) return;
+    playClickSound();
+    setIsFusing(true);
+    try {
+      const res = await fetch("/api/cabinet/drop/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "fuse",
+          itemIds: selectedFusionIds,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusNotice(data.error || "Ошибка синтеза образцов");
+        setTimeout(() => setStatusNotice(null), 3500);
+        return;
+      }
+      const removeSet = new Set(selectedFusionIds);
+      setItems((prev) => [data.fusedItem, ...prev.filter((i) => !removeSet.has(i.id))]);
+      setSelectedFusionIds([]);
+      if (typeof data.newBalance === "number") setBalance(data.newBalance);
+      if (Array.isArray(data.liveFeed)) setLiveFeed(data.liveFeed);
+      setInspectingItem(data.fusedItem);
+      setStatusNotice(
+        `✨ СИНТЕЗ ЗАВЕРШЁН! Получен «${data.fusedItem.item_name}» [${data.fusedItem.rarity.toUpperCase()}] и +${data.bonusCxp} CXP!`
+      );
+      setTimeout(() => setStatusNotice(null), 4500);
+    } catch {
+      setStatusNotice("Сбой сети при синтезе");
+      setTimeout(() => setStatusNotice(null), 3500);
+    } finally {
+      setIsFusing(false);
+    }
+  };
 
   const pinnedCount = items.filter((i) => i.is_pinned).length;
 
@@ -277,7 +445,23 @@ export default function DropGameArena({
               >
                 <span>ПРИЗЫ И ШАНСЫ</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-[#00F0FF]/20 text-[#00F0FF] text-[9px] font-bold">
-                  10+1
+                  14+4
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  playClickSound();
+                  setActiveTab("fusion");
+                }}
+                className={`px-3 py-1.5 rounded-full font-mono text-xs uppercase tracking-wider transition flex items-center gap-1.5 ${
+                  activeTab === "fusion"
+                    ? "bg-[#8737FF] text-white font-bold shadow-[0_0_15px_#8737FF]"
+                    : "text-[#D9D9E2]/70 hover:text-white"
+                }`}
+              >
+                <span>СИНТЕЗ</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-[#B46BFF]/25 text-[#E9D5FF] text-[9px] font-bold">
+                  5→1
                 </span>
               </button>
               <button
@@ -452,8 +636,8 @@ export default function DropGameArena({
             </div>
           </div>
 
-          {/* Bottom row: Mode Tabs (Full Width 3 equal segments) */}
-          <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 font-mono text-[10px] uppercase tracking-wider">
+          {/* Bottom row: Mode Tabs (Full Width 4 equal segments) */}
+          <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 font-mono text-[9px] uppercase tracking-wider">
             <button
               onClick={() => {
                 playClickSound();
@@ -480,7 +664,23 @@ export default function DropGameArena({
             >
               <span>ПРИЗЫ</span>
               <span className="px-1 py-0.2 rounded bg-[#00F0FF]/25 text-[#00F0FF] text-[7px] font-bold">
-                10+1
+                18
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                playClickSound();
+                setActiveTab("fusion");
+              }}
+              className={`py-1.5 rounded-lg text-center transition font-bold flex items-center justify-center gap-1 ${
+                activeTab === "fusion"
+                  ? "bg-[#8737FF] text-white shadow-[0_0_12px_#8737FF]"
+                  : "text-[#D9D9E2]/70 hover:text-white"
+              }`}
+            >
+              <span>СИНТЕЗ</span>
+              <span className="px-1 py-0.2 rounded bg-[#B46BFF]/25 text-[#E9D5FF] text-[7px] font-bold">
+                5→1
               </span>
             </button>
             <button
@@ -511,30 +711,90 @@ export default function DropGameArena({
       )}
 
       {/* =====================================================================
-          LIVE RECENT DROPS TICKER
+          LIVE RECENT DROPS TICKER (REAL-TIME ARCHIVE FEED + 3D INSPECT)
           ===================================================================== */}
-      <div className="py-2 px-4 border-b border-white/10 bg-black/40 overflow-hidden flex items-center gap-4 text-xs font-mono select-none">
+      <div className="py-2 px-4 border-b border-white/10 bg-black/50 overflow-hidden flex items-center gap-4 text-xs font-mono select-none">
         <span className="text-[#00F0FF] uppercase tracking-widest text-[9px] font-bold shrink-0 flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-ping" />
           LIVE DROPS:
         </span>
-        <div className="flex items-center gap-6 overflow-x-auto no-scrollbar whitespace-nowrap text-[#D9D9E2]/70 text-[10px]">
-          {liveRecentDrops.map((drop, idx) => {
+        <div className="flex items-center gap-5 overflow-x-auto no-scrollbar whitespace-nowrap text-[#D9D9E2]/75 text-[10px]">
+          {(liveFeed.length > 0
+            ? liveFeed
+            : liveRecentDrops.map((d, i) => ({
+                id: `seed_fallback_${i}`,
+                username: d.user,
+                display_name: d.user,
+                is_verified: i % 2 === 0,
+                item_id:
+                  DROP_SPECIMENS.find((s) =>
+                    s.item_name.toLowerCase().includes(d.name.toLowerCase())
+                  )?.item_id || DROP_SPECIMENS[0].item_id,
+                item_name: d.name,
+                specimen_code: "ARCHIVE",
+                collection_name: "ARCHIVE",
+                rarity: d.rarity as ItemRarity,
+                serial_number: Number(d.serial) || 101,
+                image_url:
+                  DROP_SPECIMENS.find((s) =>
+                    s.item_name.toLowerCase().includes(d.name.toLowerCase())
+                  )?.image_url || DROP_SPECIMENS[0].image_url,
+                description: "",
+                case_name: "CASE 001 — ARCHIVE",
+              }))
+          ).map((drop, idx) => {
             const theme = RARITY_THEMES[drop.rarity as ItemRarity] || RARITY_THEMES.common;
             return (
-              <div key={idx} onClick={() => {
-                const match = DROP_SPECIMENS.find((s) => s.item_name.toLowerCase().includes(drop.name.toLowerCase()));
-                if (match) handleInspectSpecimen(match);
-              }} className="inline-flex items-center gap-2 hover:opacity-100 transition group cursor-pointer text-left" title="Осмотреть артефакт в 3D">
-                <span className="text-white/40">@{drop.user}:</span>
-                <span className="text-white font-bold group-hover:text-[#00F0FF] transition-colors">{drop.name}</span>
+              <button
+                type="button"
+                key={drop.id || idx}
+                onClick={() => {
+                  const match =
+                    DROP_SPECIMENS.find((s) => s.item_id === drop.item_id) ||
+                    DROP_SPECIMENS.find((s) =>
+                      s.item_name.toLowerCase().includes(drop.item_name.toLowerCase())
+                    );
+                  if (match) {
+                    setInspectingItem({
+                      id: `seed_inspect_${idx}`,
+                      user_id: drop.username,
+                      item_id: match.item_id,
+                      item_name: match.item_name,
+                      specimen_code: match.specimen_code,
+                      specimen_class: match.specimen_class,
+                      collection_name: match.collection_name,
+                      rarity: match.rarity,
+                      drop_chance: match.drop_chance,
+                      serial_number: drop.serial_number || 101,
+                      description: match.description,
+                      image_url: match.image_url,
+                      model_3d_type: "procedural",
+                      model_color: match.model_color,
+                      obtained_via: drop.case_name || "LIVE ARCHIVE",
+                      is_equipped: false,
+                      is_pinned: false,
+                      is_hidden: false,
+                      created_at: new Date().toISOString(),
+                    });
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] hover:bg-white/[0.09] border border-white/10 transition group cursor-pointer text-left"
+                title="Нажмите для 3D-осмотра выпавшего артефакта"
+              >
+                <span className="text-white/60">@{drop.username}</span>
+                {drop.is_verified && <span className="text-[#00F0FF] text-[9px]">✓</span>}
+                <span className="text-white font-bold group-hover:text-[#00F0FF] transition-colors">
+                  {drop.item_name}
+                </span>
+                <span className="text-white/40 text-[9px]">
+                  #{String(drop.serial_number || 1).padStart(4, "0")}
+                </span>
                 <span
                   className={`px-1.5 py-0.2 rounded text-[8px] font-bold uppercase border ${theme.pillBg}`}
                 >
-                  {drop.rarity}
+                  {drop.rarity === "special_reward" ? "SPECIAL" : drop.rarity}
                 </span>
-                <span className="text-white/20">•</span>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -558,6 +818,87 @@ export default function DropGameArena({
               <p className="text-xs sm:text-sm text-[#D9D9E2]/80 leading-relaxed font-sans">
                 Открывай запечатанные образцы, находи уникальные коллекционные предметы и пополняй собственный цифровой музей.
               </p>
+            </div>
+
+            {/* DAILY ARCHIVE SCAN // 7-DAY STREAK CALIBRATION */}
+            <div className="rounded-3xl border border-[#00F0FF]/30 bg-gradient-to-r from-[#00F0FF]/[0.07] via-[#090612] to-[#8737FF]/[0.1] p-4 sm:p-6 shadow-[0_0_40px_rgba(0,240,255,0.08)] space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#00F0FF] font-bold">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>ЕЖЕДНЕВНОЕ СКАНИРОВАНИЕ АРХИВА // СЕРИЯ 7 ДНЕЙ</span>
+                  </div>
+                  <h3 className="font-display font-black text-lg sm:text-xl uppercase tracking-tight text-white">
+                    БЕСПЛАТНАЯ КАЛИБРОВКА CXP + БОНУСНЫЙ ОБРАЗЕЦ НА 7-Й ДЕНЬ
+                  </h3>
+                  <p className="text-xs text-[#D9D9E2]/75 font-sans">
+                    Заходи каждый день, запускай сканер хранилища и забирай от +15 до +75 CXP. На 7-й день серии — гарантированный редкий артефакт бесплатно!
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isClaimingDaily || (dailyScan !== null && !dailyScan.canClaimToday)}
+                  onClick={handleClaimDailyScan}
+                  className={`shrink-0 px-6 py-3.5 rounded-full font-mono text-xs font-extrabold uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer ${
+                    dailyScan && !dailyScan.canClaimToday
+                      ? "bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 cursor-default"
+                      : "btn-energy text-white shadow-[0_0_25px_rgba(135,55,255,0.5)]"
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>
+                    {isClaimingDaily
+                      ? "Сканирование..."
+                      : dailyScan && !dailyScan.canClaimToday
+                      ? `✓ Скан выполнен (Серия: ${dailyScan.currentStreak}/7)`
+                      : `⚡ Запустить ежедневный скан (+${
+                          dailyScan?.rewardsSchedule?.find(
+                            (r) => r.day === (dailyScan?.nextStreakDay || 1)
+                          )?.cxp || 15
+                        } CXP)`}
+                  </span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5 pt-1">
+                {[
+                  { day: 1, cxp: 15 },
+                  { day: 2, cxp: 20 },
+                  { day: 3, cxp: 25 },
+                  { day: 4, cxp: 30 },
+                  { day: 5, cxp: 40 },
+                  { day: 6, cxp: 50 },
+                  { day: 7, cxp: 75, bonus: true },
+                ].map((d) => {
+                  const streak = dailyScan?.currentStreak || 0;
+                  const nextDay = dailyScan?.nextStreakDay || 1;
+                  const isDone = d.day <= streak && !(dailyScan?.canClaimToday && d.day === nextDay);
+                  const isCurrent = Boolean(dailyScan?.canClaimToday ?? true) && d.day === nextDay;
+                  return (
+                    <div
+                      key={d.day}
+                      className={`p-2 sm:p-2.5 rounded-2xl border text-center transition ${
+                        isDone
+                          ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-300"
+                          : isCurrent
+                          ? "border-[#00F0FF] bg-[#00F0FF]/15 text-white shadow-[0_0_18px_rgba(0,240,255,0.25)]"
+                          : "border-white/10 bg-black/40 text-white/45"
+                      }`}
+                    >
+                      <div className="font-mono text-[8px] sm:text-[9px] uppercase tracking-wider font-bold">
+                        ДЕНЬ {d.day}
+                      </div>
+                      <div className="font-display font-black text-xs sm:text-sm mt-0.5">
+                        +{d.cxp}
+                      </div>
+                      <div className="font-mono text-[7px] sm:text-[8px] uppercase opacity-80">
+                        {d.bonus ? "🎁 +ДРОП" : isDone ? "✓ ВЗЯТО" : "CXP"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Case Selector Carousel */}
@@ -1038,6 +1379,231 @@ export default function DropGameArena({
           </div>
         )}
 
+        {/* ===================================================================
+            TAB: ARCHIVE FUSION LAB (5 -> 1 CRAFTING)
+            =================================================================== */}
+        {activeTab === "fusion" && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 font-mono text-[10px] uppercase tracking-widest text-[#E3C8FF] mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-[#00F0FF]" />
+                  <span>ARCHIVE FUSION LAB // СИНТЕЗ 5 → 1</span>
+                </div>
+                <h2 className="font-display font-black text-2xl sm:text-3xl uppercase tracking-tight text-white">
+                  ЛАБОРАТОРИЯ СИНТЕЗА АРТЕФАКТОВ
+                </h2>
+                <p className="text-xs text-[#D9D9E2]/75 font-sans mt-1 max-w-2xl">
+                  Объедините 5 любых образцов одной редкости из вашего инвентаря, чтобы гарантированно синтезировать 1 предмет следующего уровня редкости и получить бонус +15 CXP.
+                </p>
+              </div>
+
+              {/* Tier Selector */}
+              <div className="flex flex-wrap gap-1.5 p-1.5 rounded-2xl bg-white/[0.03] border border-white/10">
+                {(
+                  [
+                    { from: "common", to: "RARE", label: "5× COMMON → RARE" },
+                    { from: "rare", to: "EPIC", label: "5× RARE → EPIC" },
+                    { from: "epic", to: "LEGENDARY", label: "5× EPIC → LEGENDARY" },
+                    { from: "legendary", to: "MYTHIC", label: "5× LEGENDARY → MYTHIC" },
+                  ] as const
+                ).map((tier) => {
+                  const count = items.filter(
+                    (i) => i.rarity === tier.from && !i.is_special_reward
+                  ).length;
+                  return (
+                    <button
+                      key={tier.from}
+                      type="button"
+                      onClick={() => {
+                        playClickSound();
+                        setFusionRarity(tier.from);
+                        setSelectedFusionIds([]);
+                      }}
+                      className={`px-3 py-2 rounded-xl font-mono text-[10px] uppercase tracking-wider transition flex items-center gap-1.5 cursor-pointer ${
+                        fusionRarity === tier.from
+                          ? "bg-[#8737FF] text-white font-bold shadow-[0_0_15px_#8737FF]"
+                          : "text-[#D9D9E2]/65 hover:text-white"
+                      }`}
+                    >
+                      <span>{tier.label}</span>
+                      <span className="px-1.5 py-0.2 rounded-full bg-black/50 text-[#00F0FF] text-[9px] font-bold">
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 5-Slot Fusion Chamber */}
+            <div className="p-6 sm:p-8 rounded-3xl border border-[#B46BFF]/35 bg-gradient-to-b from-[#130C24] via-[#090612] to-[#050309] shadow-[0_24px_80px_rgba(0,0,0,0.85)] space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#00F0FF] font-bold block">
+                    КАМЕРА МОЛЕКУЛЯРНОЙ СБОРКИ // ВЫБРАНО {selectedFusionIds.length} ИЗ 5
+                  </span>
+                  <h3 className="font-display font-black text-lg sm:text-xl uppercase text-white mt-0.5">
+                    ЦЕЛЬ СИНТЕЗА: 1× {(FUSION_NEXT_RARITY[fusionRarity] || "rare").toUpperCase()} + 15 CXP
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={eligibleFusionItems.length < 5}
+                    onClick={() => handleAutoSelectFusion(fusionRarity)}
+                    className="px-4 py-2 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 font-mono text-[11px] uppercase tracking-wider font-bold text-[#00F0FF] transition disabled:opacity-40 cursor-pointer"
+                  >
+                    Авто-выбор 5 шт.
+                  </button>
+                  {selectedFusionIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFusionIds([])}
+                      className="px-3.5 py-2 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/10 font-mono text-[11px] uppercase tracking-wider text-white/70 transition cursor-pointer"
+                    >
+                      Сбросить
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 5 Input Slots */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {Array.from({ length: 5 }).map((_, slotIdx) => {
+                  const selId = selectedFusionIds[slotIdx];
+                  const selItem = items.find((i) => i.id === selId);
+                  return (
+                    <div
+                      key={slotIdx}
+                      onClick={() => {
+                        if (selItem) {
+                          setSelectedFusionIds((prev) => prev.filter((id) => id !== selItem.id));
+                        }
+                      }}
+                      className={`min-h-[150px] rounded-2xl border p-3 flex flex-col items-center justify-center text-center transition ${
+                        selItem
+                          ? "border-[#00F0FF]/60 bg-[#00F0FF]/[0.08] cursor-pointer hover:border-rose-400/60"
+                          : "border-dashed border-white/15 bg-black/40 text-white/35"
+                      }`}
+                    >
+                      {selItem ? (
+                        <>
+                          <img
+                            src={selItem.image_url}
+                            alt={selItem.item_name}
+                            className="w-16 h-16 object-contain mb-2"
+                          />
+                          <div className="font-display font-black text-[10px] uppercase text-white line-clamp-1">
+                            {selItem.item_name}
+                          </div>
+                          <div className="font-mono text-[9px] text-[#00F0FF] mt-0.5">
+                            #{String(selItem.serial_number).padStart(4, "0")}
+                          </div>
+                          <span className="font-mono text-[8px] text-white/50 uppercase mt-1">
+                            Нажмите, чтобы убрать
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-9 h-9 rounded-full border border-white/15 bg-white/[0.03] flex items-center justify-center font-mono text-xs text-white/40 mb-1.5">
+                            0{slotIdx + 1}
+                          </div>
+                          <span className="font-mono text-[10px] uppercase tracking-wider">
+                            СЛОТ {fusionRarity.toUpperCase()}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                disabled={selectedFusionIds.length !== 5 || isFusing}
+                onClick={handleExecuteFusion}
+                className="w-full py-4 rounded-2xl btn-energy font-mono text-xs sm:text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_0_30px_rgba(135,55,255,0.5)] disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>
+                  {isFusing
+                    ? "МОЛЕКУЛЯРНЫЙ СИНТЕЗ ОБРАЗЦА..."
+                    : `⚡ СИНТЕЗИРОВАТЬ 1× ${(
+                        FUSION_NEXT_RARITY[fusionRarity] || "rare"
+                      ).toUpperCase()} (+15 CXP)`}
+                </span>
+              </button>
+            </div>
+
+            {/* Eligible Inventory Items to Pick From */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-display font-black text-base uppercase text-white">
+                  ДОСТУПНЫЕ ПРЕДМЕТЫ {fusionRarity.toUpperCase()} В ИНВЕНТАРЕ ({eligibleFusionItems.length})
+                </h4>
+                <span className="font-mono text-[11px] text-white/55">
+                  Нажмите на карточки ниже, чтобы добавить в камеру синтеза
+                </span>
+              </div>
+
+              {eligibleFusionItems.length === 0 ? (
+                <div className="p-10 rounded-3xl border border-white/10 bg-white/[0.02] text-center space-y-2">
+                  <p className="font-mono text-xs text-white/60">
+                    В вашем инвентаре пока нет предметов редкости {fusionRarity.toUpperCase()}.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
+                  {eligibleFusionItems.map((item) => {
+                    const isSelected = selectedFusionIds.includes(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          playClickSound();
+                          if (isSelected) {
+                            setSelectedFusionIds((prev) => prev.filter((id) => id !== item.id));
+                          } else if (selectedFusionIds.length < 5) {
+                            setSelectedFusionIds((prev) => [...prev, item.id]);
+                          }
+                        }}
+                        className={`p-3 rounded-2xl border transition cursor-pointer space-y-2 ${
+                          isSelected
+                            ? "border-[#00F0FF] bg-[#00F0FF]/15 shadow-[0_0_20px_rgba(0,240,255,0.25)]"
+                            : "border-white/10 bg-white/[0.02] hover:border-white/30"
+                        }`}
+                      >
+                        <div className="aspect-square rounded-xl bg-black/50 p-2 flex items-center justify-center relative">
+                          <img
+                            src={item.image_url}
+                            alt={item.item_name}
+                            className="w-full h-full object-contain"
+                          />
+                          {isSelected && (
+                            <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[#00F0FF] text-[#050407] font-mono text-[9px] font-black">
+                              В СЛОТЕ
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-center">
+                          <div className="font-display font-black text-xs uppercase text-white truncate">
+                            {item.item_name}
+                          </div>
+                          <div className="font-mono text-[9px] text-white/55">
+                            #{String(item.serial_number).padStart(6, "0")}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === "inventory" && (
           <div className="space-y-8">
             {/* Inventory Header */}
@@ -1127,14 +1693,14 @@ export default function DropGameArena({
                     <div className="grid grid-cols-2 gap-1.5 pt-1">
                       <button
                         onClick={() => setInspectingItem(item)}
-                        className="py-1.5 px-2 rounded-lg bg-white/10 hover:bg-white/20 font-mono text-[9px] uppercase tracking-wider text-white flex items-center justify-center gap-1 transition"
+                        className="py-1.5 px-2 rounded-lg bg-white/10 hover:bg-white/20 font-mono text-[9px] uppercase tracking-wider text-white flex items-center justify-center gap-1 transition cursor-pointer"
                       >
                         <Eye className="w-3 h-3 text-[#00F0FF]" />
                         <span>3D</span>
                       </button>
                       <button
                         onClick={() => handleTogglePin(item)}
-                        className={`py-1.5 px-2 rounded-lg font-mono text-[9px] uppercase tracking-wider flex items-center justify-center gap-1 transition ${
+                        className={`py-1.5 px-2 rounded-lg font-mono text-[9px] uppercase tracking-wider flex items-center justify-center gap-1 transition cursor-pointer ${
                           item.is_pinned
                             ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                             : "bg-white/[0.04] text-[#D9D9E2]/70 hover:text-white border border-white/10"
@@ -1143,6 +1709,17 @@ export default function DropGameArena({
                         <Pin className="w-3 h-3" />
                         <span>{item.is_pinned ? "Витрина" : "+ Витрина"}</span>
                       </button>
+                      {!item.is_special_reward && item.rarity !== "special_reward" && (
+                        <button
+                          type="button"
+                          onClick={() => handleSalvageItem(item)}
+                          className="col-span-2 py-1.5 px-2 rounded-lg border border-[#00F0FF]/35 bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 font-mono text-[9px] uppercase tracking-wider font-bold text-[#00F0FF] flex items-center justify-center gap-1 transition cursor-pointer"
+                          title="Распылить предмет и вернуть CXP"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>⚡ Распылить (+{SALVAGE_CXP_BY_RARITY[item.rarity] || 15} CXP)</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1162,6 +1739,7 @@ export default function DropGameArena({
         userBalance={balance}
         onSuccess={handleCaseSuccess}
         onInspectItem={(item) => setInspectingItem(item)}
+        onSalvageItem={handleSalvageItem}
       />
 
       <DropRatesModal
@@ -1192,6 +1770,7 @@ export default function DropGameArena({
         item={inspectingItem}
         onClose={() => setInspectingItem(null)}
         onTogglePin={handleTogglePin}
+        onSalvage={handleSalvageItem}
       />
 
       <OnboardingTourModal

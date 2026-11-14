@@ -46,6 +46,12 @@ interface SmartLinkFull {
   is_out_now: boolean;
   auto_out_now: boolean;
   template: string;
+  preview_audio_url?: string | null;
+  lyrics_snippet?: string | null;
+  hype_count?: number;
+  views_count?: number;
+  clicks_count?: number;
+  traffic_cxp_milestones?: number[];
   social_links?: Array<{ platform: string; url: string }>;
   platforms?: PlatformItem[];
 }
@@ -64,6 +70,8 @@ export default function EditLinkClient({ initialLink, initialPlatforms }: { init
   const [genre, setGenre] = useState(initialLink.genre || "Electronic");
   const [labelName, setLabelName] = useState(initialLink.label_name || "CXRNER MUSIC");
   const [description, setDescription] = useState(initialLink.description || "");
+  const [previewAudioUrl, setPreviewAudioUrl] = useState(initialLink.preview_audio_url || "");
+  const [lyricsSnippet, setLyricsSnippet] = useState(initialLink.lyrics_snippet || "");
   const [status, setStatus] = useState(initialLink.status || "published");
   const [isOutNow, setIsOutNow] = useState(initialLink.is_out_now);
   const [autoOutNow, setAutoOutNow] = useState(initialLink.auto_out_now);
@@ -118,6 +126,8 @@ export default function EditLinkClient({ initialLink, initialPlatforms }: { init
         genre,
         label_name: labelName,
         description,
+        preview_audio_url: previewAudioUrl.trim() || null,
+        lyrics_snippet: lyricsSnippet.trim() || null,
         status,
         is_out_now: isOutNow,
         auto_out_now: autoOutNow,
@@ -425,6 +435,99 @@ export default function EditLinkClient({ initialLink, initialPlatforms }: { init
                 placeholder="Расскажите об истории трека..."
                 className="w-full bg-white/5 border border-white/15 rounded-xl p-3 text-xs text-white focus:border-[#B46BFF] focus:outline-none leading-relaxed"
               />
+            </div>
+
+            {/* Audio Snippet & Lyrics Card */}
+            <div className="p-4 sm:p-5 rounded-2xl border border-[#00F0FF]/25 bg-gradient-to-br from-[#00F0FF]/[0.05] via-[#8737FF]/[0.04] to-transparent space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#00F0FF] font-bold">
+                  ⚡ АУДИО-СНИППЕТ 15 СЕК И ТЕКСТ ТРЕКА (LYRICS)
+                </span>
+                <span className="font-mono text-[9px] uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#8737FF]/20 text-[#B46BFF] border border-[#B46BFF]/30">
+                  🔥 РЕАКЦИИ: {Number(initialLink.hype_count || 0)}
+                </span>
+              </div>
+
+              <div>
+                <label className="font-mono text-[11px] uppercase tracking-wider text-[#D9D9E2]/75 block mb-1">
+                  Ссылка на 15-сек аудио-превью (MP3/WAV или авто-поиск из стримингов):
+                </label>
+                <input
+                  type="url"
+                  value={previewAudioUrl}
+                  onChange={(e) => setPreviewAudioUrl(e.target.value)}
+                  placeholder="https://.../snippet-15s.mp3"
+                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:border-[#00F0FF] focus:outline-none font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="font-mono text-[11px] uppercase tracking-wider text-[#D9D9E2]/75 block mb-1">
+                  Главные строчки / Припев (Lyrics Card на странице релиза):
+                </label>
+                <textarea
+                  rows={3}
+                  value={lyricsSnippet}
+                  onChange={(e) => setLyricsSnippet(e.target.value)}
+                  placeholder="Вставьте припев или ключевые строчки трека для карточки на странице релиза..."
+                  className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-xs text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none leading-relaxed"
+                />
+              </div>
+            </div>
+
+            {/* Traffic CXP Rewards Progress Card */}
+            <div className="p-4 sm:p-5 rounded-2xl border border-[#8737FF]/35 bg-gradient-to-r from-[#8737FF]/12 via-[#090611] to-[#00F0FF]/10 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#B46BFF] font-bold block">
+                    💎 БОНУСЫ CXP ЗА ТРАФИК СМАРТ-ССЫЛКИ
+                  </span>
+                  <p className="text-xs text-[#D9D9E2]/75 mt-0.5">
+                    Переходы, клики по площадкам и 🔥-реакции автоматически начисляют CXP для открытия кейсов в CXRNER DROP.
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 font-mono text-xs text-[#00F0FF] font-bold">
+                  АКТИВНОСТЬ: {Number(initialLink.views_count || 0) + Number(initialLink.clicks_count || 0) + Number(initialLink.hype_count || 0)}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                {[
+                  { threshold: 10, reward: 25, label: "10 касаний" },
+                  { threshold: 50, reward: 50, label: "50 касаний" },
+                  { threshold: 100, reward: 100, label: "100 касаний" },
+                  { threshold: 500, reward: 250, label: "500 касаний" },
+                ].map((m) => {
+                  const totalEngagement =
+                    Number(initialLink.views_count || 0) +
+                    Number(initialLink.clicks_count || 0) +
+                    Number(initialLink.hype_count || 0);
+                  const unlocked =
+                    totalEngagement >= m.threshold ||
+                    (Array.isArray(initialLink.traffic_cxp_milestones) &&
+                      initialLink.traffic_cxp_milestones.includes(m.threshold));
+                  return (
+                    <div
+                      key={m.threshold}
+                      className={`p-2.5 rounded-xl border text-center transition ${
+                        unlocked
+                          ? "border-[#10B981]/50 bg-[#10B981]/10 text-[#10B981]"
+                          : "border-white/10 bg-black/30 text-white/55"
+                      }`}
+                    >
+                      <div className="font-mono text-[10px] uppercase tracking-wider font-bold">
+                        {m.label}
+                      </div>
+                      <div className="font-heavy text-sm mt-0.5">
+                        +{m.reward} CXP
+                      </div>
+                      <div className="font-mono text-[9px] uppercase mt-0.5 opacity-80">
+                        {unlocked ? "✓ ПОЛУЧЕНО" : "В ПРОЦЕССЕ"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

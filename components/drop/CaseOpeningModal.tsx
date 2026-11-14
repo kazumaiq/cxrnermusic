@@ -58,7 +58,17 @@ interface CaseOpeningModalProps {
     isSpecial?: boolean
   ) => void;
   onInspectItem?: (item: DropInventoryItem) => void;
+  onSalvageItem?: (item: DropInventoryItem) => Promise<void> | void;
 }
+
+const SALVAGE_REWARD_MAP: Record<DropRarity, number> = {
+  common: 15,
+  rare: 30,
+  epic: 55,
+  legendary: 120,
+  mythic: 250,
+  special_reward: 500,
+};
 
 interface RarityDirection {
   label: string;
@@ -137,6 +147,7 @@ export default function CaseOpeningModal({
   userBalance,
   onSuccess,
   onInspectItem,
+  onSalvageItem,
 }: CaseOpeningModalProps) {
   const [mounted, setMounted] = useState(false);
   const [stage, setStage] = useState<"confirm" | "opening" | "revealed">("confirm");
@@ -149,6 +160,7 @@ export default function CaseOpeningModal({
   const [isSpecial, setIsSpecial] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "3d">("card");
   const [copiedCode, setCopiedCode] = useState(false);
+  const [isSalvaging, setIsSalvaging] = useState(false);
 
   const timersRef = useRef<number[]>([]);
   const backdropRef = useRef<HTMLDivElement | null>(null);
@@ -747,6 +759,33 @@ export default function CaseOpeningModal({
                 Готово
               </button>
             </div>
+
+            {onSalvageItem && !isSpecial && wonItem.id && (
+              <div className="relative z-10 pt-1">
+                <button
+                  type="button"
+                  disabled={isSalvaging}
+                  onClick={async () => {
+                    playClickSound();
+                    setIsSalvaging(true);
+                    try {
+                      await onSalvageItem(wonItem);
+                      onClose();
+                    } finally {
+                      setIsSalvaging(false);
+                    }
+                  }}
+                  className="w-full min-h-[42px] py-2.5 px-4 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 font-mono text-[11px] font-bold uppercase tracking-wider text-[#00F0FF] flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>
+                    {isSalvaging
+                      ? "Распыление образца..."
+                      : `⚡ Распылить в энергию (+${SALVAGE_REWARD_MAP[wonItem.rarity] || 15} CXP)`}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         )}
         </div>

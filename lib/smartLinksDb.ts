@@ -6,6 +6,7 @@ import {
   getSupabaseServerClient,
 } from "@/lib/supabaseServer";
 import { generateSlug, validateCustomSlug } from "@/lib/slug";
+import { awardCxp, createNotification } from "@/lib/ecosystemDb";
 
 export interface SmartLinkPlatformRecord {
   id?: string;
@@ -40,6 +41,22 @@ export interface SmartLinkRecord {
   design_config: Record<string, any>;
   social_links: Array<{ platform: string; url: string }>;
   extra_content?: Record<string, any> | null;
+  preview_audio_url?: string | null;
+  lyrics_snippet?: string | null;
+  hype_count?: number;
+  traffic_cxp_milestones?: number[];
+  owner_profile?: {
+    username: string;
+    display_name: string;
+    avatar_url?: string | null;
+    is_artist_verified: boolean;
+    featured_artifact?: {
+      item_id: string;
+      item_name: string;
+      rarity: string;
+      specimen_code?: string;
+    } | null;
+  } | null;
   deleted_at?: string | null;
   views_count: number;
   clicks_count: number;
@@ -105,9 +122,57 @@ async function getSmartLinksDb(): Promise<SupabaseClient> {
   return await getSupabaseServerClient();
 }
 
-function normalizeVaultLink(l: any): SmartLinkRecord {
+function normalizeVaultLink(
+  l: any,
+  ownerCabinetProfile?: Record<string, any> | number
+): SmartLinkRecord {
+  const extra = l?.extra_content && typeof l.extra_content === "object" ? l.extra_content : {};
+  const prof =
+    ownerCabinetProfile && typeof ownerCabinetProfile === "object"
+      ? ownerCabinetProfile
+      : undefined;
+  const cid = prof?.cxrner_id;
+  const ver = prof?.ecosystem_verification;
+  const art = prof?.ecosystem_artist_profile;
+  const inv = Array.isArray(prof?.ecosystem_inventory) ? prof.ecosystem_inventory : [];
+
+  const isVerified = Boolean(
+    l?.is_verified_artist ||
+      cid?.is_artist_verified ||
+      ver?.status === "verified" ||
+      art?.verification_status === "verified"
+  );
+
+  const pinnedItem = inv.find((i: any) => i?.is_pinned && !i?.is_hidden) || inv[0] || null;
+  const ownerProfile =
+    cid || prof
+      ? {
+          username: cid?.username || prof?.username || "",
+          display_name:
+            cid?.display_name || prof?.artist_name || l?.artist || "Artist",
+          avatar_url: cid?.avatar_url || prof?.avatar_url || null,
+          is_artist_verified: isVerified,
+          featured_artifact: pinnedItem
+            ? {
+                item_id: pinnedItem.item_id,
+                item_name: pinnedItem.item_name,
+                rarity: pinnedItem.rarity,
+                specimen_code: pinnedItem.specimen_code,
+              }
+            : null,
+        }
+      : l?.owner_profile || null;
+
   return {
     ...(l as SmartLinkRecord),
+    is_verified_artist: isVerified,
+    preview_audio_url: l?.preview_audio_url ?? extra.preview_audio_url ?? null,
+    lyrics_snippet: l?.lyrics_snippet ?? extra.lyrics_snippet ?? null,
+    hype_count: Number(l?.hype_count ?? extra.hype_count ?? 0),
+    traffic_cxp_milestones: Array.isArray(l?.traffic_cxp_milestones)
+      ? l.traffic_cxp_milestones
+      : [],
+    owner_profile: ownerProfile,
     platforms: Array.isArray(l?.platforms) ? l.platforms : [],
     social_links: Array.isArray(l?.social_links) ? l.social_links : [],
     design_config: l?.design_config && typeof l.design_config === "object" ? l.design_config : {},
@@ -280,6 +345,8 @@ export async function createSmartLink(params: {
   }>;
   is_out_now?: boolean;
   auto_out_now?: boolean;
+  preview_audio_url?: string | null;
+  lyrics_snippet?: string | null;
 }): Promise<{ ok: boolean; link?: SmartLinkRecord; error?: string }> {
   try {
     const supabase = await getSmartLinksDb();
@@ -349,6 +416,10 @@ export async function createSmartLink(params: {
         show_audio_preview: true,
       },
       social_links: params.social_links || [],
+      preview_audio_url: params.preview_audio_url?.trim() || null,
+      lyrics_snippet: params.lyrics_snippet?.trim() || null,
+      hype_count: 0,
+      traffic_cxp_milestones: [],
       views_count: 0,
       clicks_count: 0,
       presaves_count: 0,
@@ -492,7 +563,7 @@ export async function getSmartLinkBySlug(
           l?.status !== "archived"
       );
       if (found) {
-        const normalized = normalizeVaultLink(found);
+        const normalized = normalizeVaultLink(found, u.profile);
         return {
           link: normalized,
           platforms: normalized.platforms || [],
@@ -699,6 +770,14 @@ export async function updateSmartLinkById(params: {
       if (body.design_config !== undefined) updates.design_config = body.design_config;
       if (body.social_links !== undefined) updates.social_links = body.social_links;
       if (body.extra_content !== undefined) updates.extra_content = body.extra_content;
+      if (body.preview_audio_url !== undefined) {
+        updates.preview_audio_url = body.preview_audio_url
+          ? String(body.preview_audio_url).trim()
+          : null;
+      }
+      if (body.lyrics_snippet !== undefined) {
+        updates.lyrics_snippet = body.lyrics_snippet ? String(body.lyrics_snippet).trim() : null;
+      }
       if (body.is_out_now !== undefined) updates.is_out_now = body.is_out_now;
       if (body.auto_out_now !== undefined) updates.auto_out_now = body.auto_out_now;
       if (body.is_verified_artist !== undefined && isAdmin) {
@@ -1214,17 +1293,21 @@ export async function runAutoOutNowTransition(): Promise<{
   }
 }
 
-/** 10. Record click or view event with per-platform tracking */
+/** 10. Record click, view, presave, or hype event + award CXP traffic milestones */
 export async function recordLinkClickEvent(params: {
   linkId: string;
-  eventType: "view" | "click" | "presave";
+  eventType: "view" | "click" | "presave" | "hype";
   platformKey?: string;
-}) {
+}): Promise<{ hypeCount?: number; cxpAwarded?: number }> {
   try {
     const supabase = await getSmartLinksDb();
     let tableUpdated = false;
+    let updatedHypeCount: number | undefined;
+    let totalTrafficAfter = 0;
+    let ownerIdForReward: string | null = null;
+    let linkTitleForReward = "релиз";
 
-    if (!isSmartLinksTableKnownMissing()) {
+    if (!isSmartLinksTableKnownMissing() && params.eventType !== "hype") {
       try {
         if (params.eventType === "view") {
           const { data: cur, error } = await supabase
@@ -1287,6 +1370,9 @@ export async function recordLinkClickEvent(params: {
     if (!tableUpdated) {
       const found = await findVaultLinkOwner(supabase, params.linkId);
       if (found) {
+        ownerIdForReward = found.ownerId;
+        linkTitleForReward = found.link.title || "релиз";
+
         await updateVaultUserLinks(supabase, found.ownerId, (links) => {
           const idx = links.findIndex((l) => l.id === found.link.id);
           if (idx < 0) return { links };
@@ -1311,14 +1397,57 @@ export async function recordLinkClickEvent(params: {
             }
           } else if (params.eventType === "presave") {
             target.presaves_count = (target.presaves_count || 0) + 1;
+          } else if (params.eventType === "hype") {
+            target.hype_count = (target.hype_count || 0) + 1;
+            updatedHypeCount = target.hype_count;
           }
 
+          totalTrafficAfter = (target.views_count || 0) + (target.clicks_count || 0);
           links[idx] = target;
           return { links };
         });
       }
     }
+
+    // Check CXP Traffic Milestones for the Smart Link owner
+    let cxpAwarded = 0;
+    if (
+      ownerIdForReward &&
+      (params.eventType === "view" || params.eventType === "click") &&
+      totalTrafficAfter >= 10
+    ) {
+      const milestones = [
+        { threshold: 10, reward: 25 },
+        { threshold: 50, reward: 50 },
+        { threshold: 100, reward: 100 },
+        { threshold: 500, reward: 250 },
+      ];
+      for (const m of milestones) {
+        if (totalTrafficAfter === m.threshold) {
+          const res = await awardCxp({
+            userId: ownerIdForReward,
+            amount: m.reward,
+            reason: `Бонус за трафик CXRNER LINK (${m.threshold} переходов на «${linkTitleForReward}»)`,
+            sourceEventType: "smart_link_traffic_milestone",
+            sourceEventId: `link_traffic_${params.linkId}_${m.threshold}`,
+          });
+          if (res.ok && !res.duplicate) {
+            cxpAwarded += m.reward;
+            await createNotification({
+              userId: ownerIdForReward,
+              type: "cxp_earned",
+              title: `+${m.reward} CXP за трафик на смарт-ссылке!`,
+              message: `Ваша ссылка на релиз «${linkTitleForReward}» набрала ${m.threshold} активностей слушателей.`,
+              link: "/dashboard/links",
+            }).catch(() => {});
+          }
+        }
+      }
+    }
+
+    return { hypeCount: updatedHypeCount, cxpAwarded };
   } catch (e) {
     console.warn("[analytics] record event error:", e);
+    return {};
   }
 }

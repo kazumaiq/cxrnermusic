@@ -21,7 +21,17 @@ interface ItemInspectModalProps {
   item: DropInventoryItem | null;
   onClose: () => void;
   onTogglePin?: (item: DropInventoryItem) => void;
+  onSalvage?: (item: DropInventoryItem) => Promise<void> | void;
 }
+
+const SALVAGE_CXP: Record<DropRarity, number> = {
+  common: 15,
+  rare: 30,
+  epic: 55,
+  legendary: 120,
+  mythic: 250,
+  special_reward: 500,
+};
 
 const RARITY_COLOR: Record<DropRarity, string> = {
   common: "#A1A1AA",
@@ -36,9 +46,11 @@ export default function ItemInspectModal({
   item,
   onClose,
   onTogglePin,
+  onSalvage,
 }: ItemInspectModalProps) {
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<"3d" | "card">("3d");
+  const [isSalvaging, setIsSalvaging] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -229,7 +241,7 @@ export default function ItemInspectModal({
 
             {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              {onTogglePin && item.id !== "preview" && (
+              {onTogglePin && item.id !== "preview" && !item.id.startsWith("seed_") && (
                 <button
                   type="button"
                   onClick={() => {
@@ -246,15 +258,41 @@ export default function ItemInspectModal({
                   <span>{item.is_pinned ? "Убрать с витрины" : "Поместить на витрину"}</span>
                 </button>
               )}
+
+              {onSalvage &&
+                item.id !== "preview" &&
+                !item.id.startsWith("seed_") &&
+                !isSpecial && (
+                  <button
+                    type="button"
+                    disabled={isSalvaging}
+                    onClick={async () => {
+                      playClickSound();
+                      setIsSalvaging(true);
+                      try {
+                        await onSalvage(item);
+                      } finally {
+                        setIsSalvaging(false);
+                      }
+                    }}
+                    className="min-h-[44px] py-3 rounded-full border border-[#00F0FF]/45 bg-[#00F0FF]/12 hover:bg-[#00F0FF]/25 font-mono text-xs uppercase tracking-wider font-bold text-[#00F0FF] flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>
+                      {isSalvaging
+                        ? "Распыление..."
+                        : `⚡ Распылить (+${SALVAGE_CXP[item.rarity] || 15} CXP)`}
+                    </span>
+                  </button>
+                )}
+
               <button
                 type="button"
                 onClick={() => {
                   playClickSound();
                   onClose();
                 }}
-                className={`w-full min-h-[44px] py-3 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/12 font-mono text-xs uppercase tracking-wider text-white transition cursor-pointer ${
-                  !onTogglePin || item.id === "preview" ? "sm:col-span-2" : ""
-                }`}
+                className="w-full min-h-[44px] py-3 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/12 font-mono text-xs uppercase tracking-wider text-white transition cursor-pointer sm:col-span-2"
               >
                 Закрыть
               </button>

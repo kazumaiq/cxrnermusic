@@ -2160,7 +2160,8 @@ export async function openDropCase(
   let claimCode: string | undefined;
   let claimRecord: SpecialRewardClaim | undefined;
   if (isSpecialReward) {
-    claimCode = `CV-2026-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const codePrefix = picked.specimen_code || "CV-2026";
+    claimCode = `${codePrefix}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     claimRecord = {
       id: crypto.randomUUID(),
       user_id: userId,
@@ -2304,10 +2305,10 @@ export async function openDropCase(
     userId,
     type: "drop_item",
     title: isSpecialReward
-      ? "СПЕЦИАЛЬНАЯ НАГРАДА: CXRNER COVER VOUCHER!"
+      ? `СПЕЦИАЛЬНАЯ НАГРАДА: ${picked.item_name}!`
       : `Получен предмет: ${picked.item_name}!`,
     message: isSpecialReward
-      ? `Поздравляем! Ты выиграл бесплатную обложку для релиза от @kazumaiq. Код: ${claimCode}`
+      ? `Поздравляем! Вы выиграли спец-привилегию лейбла (${picked.item_name}). Промо-код активации: ${claimCode}`
       : `Редкость: ${picked.rarity.toUpperCase()} (#${serialNumber}). Добавлен в личный инвентарь.`,
     link: "/cabinet/drop/inventory",
   });
@@ -3744,3 +3745,494 @@ export async function adminSetUserVerification(
         : "Статус обновлён администратором",
   });
 }
+
+// =========================================================================
+// 9. CXRNER DROP EXPANSION: SALVAGE RECYCLER, 5->1 FUSION LAB, DAILY SCAN & LIVE FEED
+// =========================================================================
+
+const SALVAGE_VALUES: Record<string, number> = {
+  common: 15,
+  rare: 30,
+  epic: 55,
+  legendary: 120,
+  mythic: 250,
+  special_reward: 500,
+};
+
+const FUSION_TIER_MAP: Record<string, ItemRarity | null> = {
+  common: "rare",
+  rare: "epic",
+  epic: "legendary",
+  legendary: "mythic",
+  mythic: null,
+  special_reward: null,
+};
+
+export async function salvageInventoryItem(params: {
+  userId: string;
+  inventoryItemId: string;
+}): Promise<{
+  ok: boolean;
+  refundedCxp: number;
+  newBalance: number;
+  removedItem?: DropInventoryItem;
+}> {
+  const { userId, inventoryItemId } = params;
+  const currentInventory = await getUserInventory(userId);
+  const targetItem = currentInventory.find((i) => i.id === inventoryItemId);
+
+  if (!targetItem) {
+    throw new Error("Предмет не найден в инвентаре");
+  }
+  if (targetItem.is_special_reward || targetItem.rarity === "special_reward") {
+    throw new Error("Специальный сертификат лейбла нельзя распылить");
+  }
+
+  const refundedCxp = SALVAGE_VALUES[targetItem.rarity] || 15;
+  const db = await getDbForUser(userId);
+
+  if (db) {
+    await writeCabinetVault(userId, (prev) => {
+      const inv = Array.isArray(prev.ecosystem_inventory)
+        ? (prev.ecosystem_inventory as DropInventoryItem[])
+        : currentInventory;
+      return {
+        ...prev,
+        ecosystem_inventory: inv.filter((i) => i.id !== inventoryItemId),
+      };
+    });
+
+    await runOptionalTableQuery("cxrner_drop_inventory", () =>
+      db
+        .from("cxrner_drop_inventory")
+        .delete()
+        .eq("id", inventoryItemId)
+        .eq("user_id", userId)
+    );
+  } else {
+    const store = loadLocalStore();
+    const list = store.inventory[userId] || [];
+    store.inventory[userId] = list.filter((i) => i.id !== inventoryItemId);
+    saveLocalStore(store);
+  }
+
+  const wallet = await awardCxp({
+    userId,
+    amount: refundedCxp,
+    reason: `Распыление образца: ${targetItem.item_name} (#${targetItem.serial_number})`,
+    sourceEventType: "drop_salvage_refund",
+  });
+
+  return {
+    ok: true,
+    refundedCxp,
+    newBalance: wallet.newBalance,
+    removedItem: targetItem,
+  };
+}
+
+export async function fuseInventoryItems(params: {
+  userId: string;
+  itemIds: string[];
+}): Promise<{
+  ok: boolean;
+  fusedItem: DropInventoryItem;
+  bonusCxp: number;
+  newBalance: number;
+}> {
+  const { userId, itemIds } = params;
+  const uniqueIds = Array.from(new Set(itemIds));
+  if (uniqueIds.length !== 5) {
+    throw new Error("Для синтеза необходимо выбрать ровно 5 предметов одной редкости");
+  }
+
+  const currentInventory = await getUserInventory(userId);
+  const selectedItems = uniqueIds
+    .map((id) => currentInventory.find((i) => i.id === id))
+    .filter((i): i is DropInventoryItem => Boolean(i));
+
+  if (selectedItems.length !== 5) {
+    throw new Error("Один или несколько выбранных предметов не найдены в инвентаре");
+  }
+
+  const baseRarity = selectedItems[0].rarity;
+  if (!selectedItems.every((i) => i.rarity === baseRarity)) {
+    throw new Error("Все 5 предметов для синтеза должны быть одной редкости");
+  }
+
+  const nextRarity = FUSION_TIER_MAP[baseRarity];
+  if (!nextRarity) {
+    throw new Error("Предметы максимальной редкости не подлежат синтезу");
+  }
+
+  const pool = DROP_SPECIMENS.filter((s) => s.rarity === nextRarity && !s.is_special_reward);
+  const picked = pool[Math.floor(Math.random() * pool.length)] || DROP_SPECIMENS[0];
+  const serialNumber = Math.floor(100 + Math.random() * 8900);
+  const nowIso = new Date().toISOString();
+  const removeSet = new Set(uniqueIds);
+
+  const remainingInventory = currentInventory.filter((i) => !removeSet.has(i.id));
+  const pinnedCount = remainingInventory.filter((i) => i.is_pinned).length;
+
+  const fusedItem: DropInventoryItem = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    item_id: picked.item_id,
+    item_name: picked.item_name,
+    specimen_code: picked.specimen_code,
+    specimen_class: picked.specimen_class,
+    collection_name: picked.collection_name,
+    rarity: picked.rarity,
+    drop_chance: picked.drop_chance,
+    serial_number: serialNumber,
+    description: picked.description,
+    image_url: picked.image_url || `/drop/items/${picked.item_id}.svg`,
+    model_3d_type: "procedural",
+    model_color: picked.model_color,
+    obtained_via: "archive-fusion-lab",
+    is_equipped: false,
+    is_pinned: pinnedCount < 6,
+    is_hidden: false,
+    created_at: nowIso,
+  };
+
+  const historyEntry: DropHistoryEntry = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    case_id: "fusion_lab_5to1",
+    case_name: `СИНТЕЗ АРХИВА (5× ${baseRarity.toUpperCase()} → ${nextRarity.toUpperCase()})`,
+    item_id: picked.item_id,
+    item_name: picked.item_name,
+    rarity: picked.rarity,
+    serial_number: serialNumber,
+    cxp_spent: 0,
+    created_at: nowIso,
+  };
+
+  const db = await getDbForUser(userId);
+  if (db) {
+    await writeCabinetVault(userId, (prev) => {
+      const inv = Array.isArray(prev.ecosystem_inventory)
+        ? (prev.ecosystem_inventory as DropInventoryItem[]).filter((i) => !removeSet.has(i.id))
+        : [...remainingInventory];
+      inv.unshift(fusedItem);
+
+      const hist = Array.isArray(prev.ecosystem_drop_history)
+        ? [...(prev.ecosystem_drop_history as DropHistoryEntry[])]
+        : [];
+      hist.unshift(historyEntry);
+
+      return {
+        ...prev,
+        ecosystem_inventory: inv,
+        ecosystem_drop_history: hist.slice(0, 200),
+      };
+    });
+
+    await Promise.all([
+      runOptionalTableQuery("cxrner_drop_inventory", () =>
+        db
+          .from("cxrner_drop_inventory")
+          .delete()
+          .in("id", uniqueIds)
+          .eq("user_id", userId)
+      ),
+      runOptionalTableQuery("cxrner_drop_inventory", () =>
+        db.from("cxrner_drop_inventory").insert(toCoreInventoryRow(fusedItem))
+      ),
+      runOptionalTableQuery("cxrner_drop_history", () =>
+        db.from("cxrner_drop_history").insert(historyEntry)
+      ),
+    ]);
+  } else {
+    const store = loadLocalStore();
+    const list = (store.inventory[userId] || []).filter((i) => !removeSet.has(i.id));
+    list.unshift(fusedItem);
+    store.inventory[userId] = list;
+
+    if (!store.dropHistory) store.dropHistory = {};
+    const hist = store.dropHistory[userId] || [];
+    hist.unshift(historyEntry);
+    store.dropHistory[userId] = hist;
+    saveLocalStore(store);
+  }
+
+  const bonusCxp = 15;
+  const wallet = await awardCxp({
+    userId,
+    amount: bonusCxp,
+    reason: `Бонус лаборатории синтеза: ${fusedItem.item_name} [${nextRarity.toUpperCase()}]`,
+    sourceEventType: "drop_fusion_bonus",
+  });
+
+  if (["epic", "legendary", "mythic"].includes(nextRarity)) {
+    await unlockAchievement({ userId, achievementKey: "RARE_FIND" }).catch(() => {});
+  }
+
+  return {
+    ok: true,
+    fusedItem,
+    bonusCxp,
+    newBalance: wallet.newBalance,
+  };
+}
+
+export interface DailyScanStatus {
+  canClaimToday: boolean;
+  currentStreak: number;
+  nextStreakDay: number;
+  lastClaimedDate: string | null;
+  totalScans: number;
+  rewardsSchedule: Array<{ day: number; cxp: number; bonusItem?: boolean }>;
+}
+
+const DAILY_SCAN_SCHEDULE: Array<{ day: number; cxp: number; bonusItem?: boolean }> = [
+  { day: 1, cxp: 15 },
+  { day: 2, cxp: 20 },
+  { day: 3, cxp: 25 },
+  { day: 4, cxp: 30 },
+  { day: 5, cxp: 40 },
+  { day: 6, cxp: 50 },
+  { day: 7, cxp: 75, bonusItem: true },
+];
+
+function getUtcDateKey(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+export async function getDailyDropScanStatus(userId: string): Promise<DailyScanStatus> {
+  const todayKey = getUtcDateKey();
+  const yesterdayKey = getUtcDateKey(new Date(Date.now() - 86400000));
+
+  let saved: { streak?: number; last_claimed_date?: string | null; total_scans?: number } = {};
+  const db = await getDbForUser(userId);
+  if (db) {
+    const vault = await readCabinetVault(userId, db);
+    if (vault?.ecosystem_daily_scan && typeof vault.ecosystem_daily_scan === "object") {
+      saved = vault.ecosystem_daily_scan;
+    }
+  } else {
+    const store = loadLocalStore() as any;
+    if (store.dailyScans && store.dailyScans[userId]) {
+      saved = store.dailyScans[userId];
+    }
+  }
+
+  const lastDate = saved.last_claimed_date || null;
+  const rawStreak = Number(saved.streak || 0);
+  const totalScans = Number(saved.total_scans || 0);
+  const canClaimToday = lastDate !== todayKey;
+
+  let nextStreakDay = 1;
+  if (!canClaimToday) {
+    nextStreakDay = rawStreak || 1;
+  } else if (lastDate === yesterdayKey) {
+    nextStreakDay = (rawStreak % 7) + 1;
+  } else {
+    nextStreakDay = 1;
+  }
+
+  return {
+    canClaimToday,
+    currentStreak: lastDate === todayKey || lastDate === yesterdayKey ? rawStreak : 0,
+    nextStreakDay,
+    lastClaimedDate: lastDate,
+    totalScans,
+    rewardsSchedule: DAILY_SCAN_SCHEDULE,
+  };
+}
+
+export async function claimDailyDropScan(userId: string): Promise<{
+  ok: boolean;
+  streakDay: number;
+  awardedCxp: number;
+  newBalance: number;
+  bonusItem?: DropInventoryItem | null;
+  status: DailyScanStatus;
+}> {
+  const statusBefore = await getDailyDropScanStatus(userId);
+  if (!statusBefore.canClaimToday) {
+    throw new Error("Ежедневное сканирование архива уже выполнено сегодня. Возвращайтесь завтра!");
+  }
+
+  const todayKey = getUtcDateKey();
+  const streakDay = statusBefore.nextStreakDay;
+  const rewardRule =
+    DAILY_SCAN_SCHEDULE.find((r) => r.day === streakDay) || DAILY_SCAN_SCHEDULE[0];
+
+  const nextScanState = {
+    streak: streakDay,
+    last_claimed_date: todayKey,
+    total_scans: statusBefore.totalScans + 1,
+  };
+
+  const db = await getDbForUser(userId);
+  if (db) {
+    await writeCabinetVault(userId, (prev) => ({
+      ...prev,
+      ecosystem_daily_scan: nextScanState,
+    }));
+  } else {
+    const store = loadLocalStore() as any;
+    if (!store.dailyScans) store.dailyScans = {};
+    store.dailyScans[userId] = nextScanState;
+    saveLocalStore(store);
+  }
+
+  const wallet = await awardCxp({
+    userId,
+    amount: rewardRule.cxp,
+    reason: `Ежедневный скан архива (День ${streakDay}/7)`,
+    sourceEventType: "daily_archive_scan",
+  });
+
+  let bonusItem: DropInventoryItem | null = null;
+  if (rewardRule.bonusItem) {
+    const pool = DROP_SPECIMENS.filter(
+      (s) => ["rare", "epic", "legendary"].includes(s.rarity) && !s.is_special_reward
+    );
+    const picked = pool[Math.floor(Math.random() * pool.length)] || DROP_SPECIMENS[0];
+    const serialNumber = Math.floor(100 + Math.random() * 8900);
+    const nowIso = new Date().toISOString();
+
+    bonusItem = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      item_id: picked.item_id,
+      item_name: picked.item_name,
+      specimen_code: picked.specimen_code,
+      specimen_class: picked.specimen_class,
+      collection_name: picked.collection_name,
+      rarity: picked.rarity,
+      drop_chance: picked.drop_chance,
+      serial_number: serialNumber,
+      description: picked.description,
+      image_url: picked.image_url || `/drop/items/${picked.item_id}.svg`,
+      model_3d_type: "procedural",
+      model_color: picked.model_color,
+      obtained_via: "daily-streak-day-7",
+      is_equipped: false,
+      is_pinned: false,
+      is_hidden: false,
+      created_at: nowIso,
+    };
+
+    if (db) {
+      await writeCabinetVault(userId, (prev) => {
+        const inv = Array.isArray(prev.ecosystem_inventory)
+          ? [...(prev.ecosystem_inventory as DropInventoryItem[])]
+          : [];
+        inv.unshift(bonusItem!);
+        return { ...prev, ecosystem_inventory: inv };
+      });
+      await runOptionalTableQuery("cxrner_drop_inventory", () =>
+        db.from("cxrner_drop_inventory").insert(toCoreInventoryRow(bonusItem!))
+      );
+    }
+  }
+
+  const statusAfter = await getDailyDropScanStatus(userId);
+  return {
+    ok: true,
+    streakDay,
+    awardedCxp: rewardRule.cxp,
+    newBalance: wallet.newBalance,
+    bonusItem,
+    status: statusAfter,
+  };
+}
+
+export interface LiveDropFeedItem {
+  id: string;
+  username: string;
+  display_name: string;
+  is_verified: boolean;
+  item_id: string;
+  item_name: string;
+  specimen_code: string;
+  collection_name: string;
+  rarity: ItemRarity;
+  serial_number: number;
+  image_url: string;
+  description: string;
+  case_name: string;
+  created_at: string;
+}
+
+export async function getGlobalLiveDrops(limit = 16): Promise<LiveDropFeedItem[]> {
+  const feed: LiveDropFeedItem[] = [];
+  const specimenById = new Map(DROP_SPECIMENS.map((s) => [s.item_id, s]));
+
+  try {
+    const users = await listAllCabinetUsers(300);
+    for (const u of users) {
+      const p = u.profile || {};
+      const cid = (p.cxrner_id || {}) as Partial<CxrnerProfile>;
+      const ver = (p.ecosystem_verification || {}) as Partial<CxrnerArtistVerification>;
+      const username = cid.username || p.username || "artist";
+      const displayName = cid.display_name || p.display_name || username;
+      const isVerified = Boolean(cid.is_artist_verified || ver.status === "verified");
+
+      const hist = Array.isArray(p.ecosystem_drop_history)
+        ? (p.ecosystem_drop_history as DropHistoryEntry[])
+        : [];
+      for (const h of hist.slice(0, 8)) {
+        const spec = specimenById.get(h.item_id) || DROP_SPECIMENS[0];
+        feed.push({
+          id: h.id || `${u.user_id}_${h.serial_number}`,
+          username,
+          display_name: displayName,
+          is_verified: isVerified,
+          item_id: spec.item_id,
+          item_name: h.item_name || spec.item_name,
+          specimen_code: spec.specimen_code || "ARCHIVE",
+          collection_name: spec.collection_name,
+          rarity: (h.rarity as ItemRarity) || spec.rarity,
+          serial_number: h.serial_number || 404,
+          image_url: spec.image_url,
+          description: spec.description,
+          case_name: h.case_name || "CASE 001 — ARCHIVE",
+          created_at: h.created_at || new Date().toISOString(),
+        });
+      }
+    }
+  } catch {}
+
+  feed.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // Supplement with curated archive drops if fewer than 10 live records exist
+  const fallbackArtists = [
+    { u: "kazumaiq", d: "KAZUMA", v: true, itemIdx: 13, serial: 108, caseName: "CASE 003 — CHROME AGE" },
+    { u: "arier", d: "ARIER", v: true, itemIdx: 11, serial: 419, caseName: "CASE 003 — CHROME AGE" },
+    { u: "nightblade", d: "NIGHTBLADE", v: true, itemIdx: 9, serial: 772, caseName: "CASE 002 — BLACK SPECIMEN" },
+    { u: "vxid_synth", d: "VXID", v: false, itemIdx: 7, serial: 1204, caseName: "CASE 002 — BLACK SPECIMEN" },
+    { u: "kuro_808", d: "KURO 808", v: true, itemIdx: 10, serial: 309, caseName: "CASE 003 — CHROME AGE" },
+    { u: "echopulse", d: "ECHOPULSE", v: false, itemIdx: 5, serial: 2890, caseName: "CASE 001 — ARCHIVE" },
+    { u: "ash_chrome", d: "ASH CHROME", v: true, itemIdx: 8, serial: 615, caseName: "CASE 002 — BLACK SPECIMEN" },
+    { u: "nyx_audio", d: "NYX", v: false, itemIdx: 4, serial: 3411, caseName: "CASE 001 — ARCHIVE" },
+  ];
+
+  for (let i = 0; i < fallbackArtists.length && feed.length < limit; i++) {
+    const fb = fallbackArtists[i];
+    const spec = DROP_SPECIMENS[fb.itemIdx % DROP_SPECIMENS.length] || DROP_SPECIMENS[0];
+    feed.push({
+      id: `seed_live_${i}_${spec.item_id}`,
+      username: fb.u,
+      display_name: fb.d,
+      is_verified: fb.v,
+      item_id: spec.item_id,
+      item_name: spec.item_name,
+      specimen_code: spec.specimen_code || "ARCHIVE",
+      collection_name: spec.collection_name,
+      rarity: spec.rarity,
+      serial_number: fb.serial,
+      image_url: spec.image_url,
+      description: spec.description,
+      case_name: fb.caseName,
+      created_at: new Date(Date.now() - (i + 1) * 180000).toISOString(),
+    });
+  }
+
+  return feed.slice(0, limit);
+}
+

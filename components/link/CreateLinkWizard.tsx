@@ -203,6 +203,9 @@ export default function CreateLinkWizard() {
     reader.readAsDataURL(file);
   };
 
+  const [previewAudioUrl, setPreviewAudioUrl] = useState("");
+  const [lyricsSnippet, setLyricsSnippet] = useState("");
+
   // Step 1: Perform UPC Lookup (supports unreleased Pre-saves smoothly)
   const handleUpcLookup = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -399,6 +402,8 @@ export default function CreateLinkWizard() {
         genre,
         label_name: labelName,
         description,
+        preview_audio_url: previewAudioUrl.trim() || null,
+        lyrics_snippet: lyricsSnippet.trim() || null,
         status,
         template,
         is_out_now: isOutNow,
@@ -1106,6 +1111,44 @@ export default function CreateLinkWizard() {
                       {isOutNow ? "Релиз уже вышел (Out Now)" : "Pre-save кампания (таймер)"}
                     </span>
                   </label>
+                </div>
+              </div>
+
+              {/* Audio Snippet & Lyrics Card (Interactive Landing Features) */}
+              <div className="p-4 rounded-2xl border border-[#00F0FF]/25 bg-gradient-to-br from-[#00F0FF]/[0.05] via-[#8737FF]/[0.04] to-transparent space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#00F0FF] font-bold">
+                    ⚡ ИНТЕРАКТИВНЫЕ ФИШКИ СТРАНИЦЫ (ОПЦИОНАЛЬНО)
+                  </span>
+                  <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#8737FF]/20 text-[#B46BFF] border border-[#B46BFF]/30">
+                    PRO FEATURE
+                  </span>
+                </div>
+
+                <div>
+                  <label className="font-mono text-[11px] uppercase tracking-wider text-[#D9D9E2]/75 block mb-1">
+                    Аудио-сниппет 15 сек (прямая ссылка на MP3/WAV или оставьте для авто-поиска):
+                  </label>
+                  <input
+                    type="url"
+                    value={previewAudioUrl}
+                    onChange={(e) => setPreviewAudioUrl(e.target.value)}
+                    placeholder="https://.../snippet-15s.mp3"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:border-[#00F0FF] focus:outline-none font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-mono text-[11px] uppercase tracking-wider text-[#D9D9E2]/75 block mb-1">
+                    Главные строчки / Припев (Lyrics Card на странице релиза):
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={lyricsSnippet}
+                    onChange={(e) => setLyricsSnippet(e.target.value)}
+                    placeholder={"Вставьте припев или главные панчлайны трека...\nСлушатели смогут раскрыть карточку текста прямо на странице."}
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none resize-none"
+                  />
                 </div>
               </div>
             </div>

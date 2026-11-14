@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     const country = request.headers.get("x-vercel-ip-country") || "RU";
 
     // 1. Dual-engine update (table + profile fallback)
-    await recordLinkClickEvent({
+    const clickResult = await recordLinkClickEvent({
       linkId: smart_link_id,
       eventType: event_type,
       platformKey: platform_key,
@@ -67,7 +67,11 @@ export async function POST(request: Request) {
       });
     } catch {}
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      hypeCount: clickResult.hypeCount,
+      cxpAwarded: clickResult.cxpAwarded,
+    });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

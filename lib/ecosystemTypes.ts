@@ -624,7 +624,7 @@ export const DROP_SPECIMENS: DropSpecimenDef[] = [
   },
 
   // -------------------------------------------------------------------------
-  // SPECIAL REWARD (0.1% Base in All Cases) - CXRNER COVER VOUCHER
+  // SPECIAL REWARDS (0.1% Base in All Cases) - REAL-WORLD LABEL PERKS
   // -------------------------------------------------------------------------
   {
     item_id: "specimen_cover_voucher_25",
@@ -633,15 +633,78 @@ export const DROP_SPECIMENS: DropSpecimenDef[] = [
     specimen_class: "REWARD",
     collection_name: "SPECIAL REWARDS",
     rarity: "special_reward",
-    drop_chance: "0.10%",
-    drop_rate_number: 0.1,
-    description: "Эксклюзивный сертификат на бесплатную разработку официальной обложки релиза лично от креативного директора @kazumaiq. Шанс 0.1%!",
+    drop_chance: "0.025%",
+    drop_rate_number: 0.025,
+    description: "Эксклюзивный сертификат на бесплатную разработку официальной обложки релиза лично от креативного директора @kazumaiq.",
     image_url: "/drop/items/specimen_cover_voucher_25.svg",
     model_color: "#F59E0B",
     shape: "box",
     is_special_reward: true,
   },
+  {
+    item_id: "specimen_fasttrack_pitch_26",
+    item_name: "FAST-TRACK PITCHING VOUCHER (FP-2026)",
+    specimen_code: "FP-2026",
+    specimen_class: "REWARD",
+    collection_name: "SPECIAL REWARDS",
+    rarity: "special_reward",
+    drop_chance: "0.025%",
+    drop_rate_number: 0.025,
+    description: "Сертификат на приоритетную модерацию без очереди (24ч) и прямой редакционный питчинг релиза кураторам плейлистов от команды CXRNER MUSIC.",
+    image_url: "/drop/items/specimen_cover_voucher_25.svg",
+    model_color: "#00F0FF",
+    shape: "box",
+    is_special_reward: true,
+  },
+  {
+    item_id: "specimen_royalty_boost_27",
+    item_name: "ROYALTY BOOST 85/15 (RB-2026)",
+    specimen_code: "RB-2026",
+    specimen_class: "REWARD",
+    collection_name: "SPECIAL REWARDS",
+    rarity: "special_reward",
+    drop_chance: "0.025%",
+    drop_rate_number: 0.025,
+    description: "Премиальный контрактный апгрейд роялти: повышенная ставка 85% в пользу артиста (вместо базовых 70/30) на весь следующий релиз.",
+    image_url: "/drop/items/specimen_cover_voucher_25.svg",
+    model_color: "#A855F7",
+    shape: "box",
+    is_special_reward: true,
+  },
+  {
+    item_id: "specimen_label_promo_28",
+    item_name: "LABEL PROMO SPOT (LP-2026)",
+    specimen_code: "LP-2026",
+    specimen_class: "REWARD",
+    collection_name: "SPECIAL REWARDS",
+    rarity: "special_reward",
+    drop_chance: "0.025%",
+    drop_rate_number: 0.025,
+    description: "Официальный промо-слот лейбла: закреп релиза и публикация персонального анонса в медиа-ресурсах и витрине CXRNER MUSIC.",
+    image_url: "/drop/items/specimen_cover_voucher_25.svg",
+    model_color: "#F43F5E",
+    shape: "box",
+    is_special_reward: true,
+  },
 ];
+
+export const SALVAGE_CXP_BY_RARITY: Record<string, number> = {
+  common: 15,
+  rare: 30,
+  epic: 55,
+  legendary: 120,
+  mythic: 250,
+  special_reward: 500,
+};
+
+export const FUSION_NEXT_RARITY: Record<string, ItemRarity | null> = {
+  common: "rare",
+  rare: "epic",
+  epic: "legendary",
+  legendary: "mythic",
+  mythic: null,
+  special_reward: null,
+};
 
 export const CXP_QUESTS_CATALOG: CxpQuestItem[] = [
   {
