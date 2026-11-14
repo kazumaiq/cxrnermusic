@@ -21,6 +21,8 @@ function LoginForm() {
   const [notice, setNotice] = useState<string | null>(null);
   const [showGoogleHelpModal, setShowGoogleHelpModal] = useState(false);
   const [googleConfigStatus, setGoogleConfigStatus] = useState<any>(null);
+  const [needsConfirmationEmail, setNeedsConfirmationEmail] = useState<string | null>(null);
+  const [resendingEmail, setResendingEmail] = useState(false);
 
   // Read URL query parameters for OAuth callbacks and registration notices
   useEffect(() => {
@@ -53,7 +55,7 @@ function LoginForm() {
     setNotice(null);
 
     try {
-      // 1. Proactively probe Google Provider status to avoid raw 400 Bad Request page
+      // 1. Probe Google Provider status on active Supabase project to avoid raw error screen
       const checkRes = await fetch("/api/auth/check-google").catch(() => null);
       const checkData = checkRes ? await checkRes.json().catch(() => null) : null;
 
@@ -64,17 +66,8 @@ function LoginForm() {
         return;
       }
 
-      // 2. Direct Supabase OAuth redirect to configured Google provider
-      const targetAuthUrl = checkData?.supabaseUrl || "https://feeudmwytkeuwemnmbwd.supabase.co";
+      // 2. Canonical PKCE OAuth flow through getSupabaseBrowserClient (same project as /auth/callback)
       const redirectUri = `${window.location.origin}/auth/callback`;
-
-      if (targetAuthUrl.includes("feeudmwytkeuwemnmbwd")) {
-        window.location.href = `${targetAuthUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(
-          redirectUri
-        )}`;
-        return;
-      }
-
       const supabaseClient = getSupabaseBrowserClient();
       const { data, error: oauthError } = await supabaseClient.auth.signInWithOAuth({
         provider: "google",
@@ -96,8 +89,32 @@ function LoginForm() {
       }
     } catch (err: any) {
       console.error("[Google SignIn] Error:", err);
-      setError(err.message ?? "Ошибка авторизации через Google");
+      const msg = String(err?.message || "");
+      if (msg.toLowerCase().includes("provider is not enabled")) {
+        setShowGoogleHelpModal(true);
+      } else {
+        setError(msg || "Ошибка авторизации через Google");
+      }
       setGoogleLoading(false);
+    }
+  }
+
+  async function handleResendConfirmation() {
+    if (!needsConfirmationEmail) return;
+    setResendingEmail(true);
+    setError(null);
+    try {
+      const supabaseClient = getSupabaseBrowserClient();
+      const { error: resendErr } = await supabaseClient.auth.resend({
+        type: "signup",
+        email: needsConfirmationEmail,
+      });
+      if (resendErr) throw resendErr;
+      setNotice(`Письмо подтверждения повторно отправлено на ${needsConfirmationEmail}. Проверьте «Входящие» и «Спам».`);
+    } catch (err: any) {
+      setError(err?.message || "Не удалось отправить письмо повторно. Попробуйте чуть позже.");
+    } finally {
+      setResendingEmail(false);
     }
   }
 
@@ -179,8 +196,9 @@ function LoginForm() {
           msg.includes("Email not confirmed") ||
           (signInError as any).code === "email_not_confirmed"
         ) {
+          setNeedsConfirmationEmail(cleanEmail);
           throw new Error(
-            `Письмо с подтверждением отправлено на ${cleanEmail}. Проверьте почту или подтвердите аккаунт в панели Supabase.`
+            `Email ${cleanEmail} ещё не подтверждён в Supabase. Проверьте «Спам» или нажмите «Отправить письмо повторно» ниже.`
           );
         }
         throw signInError;
@@ -245,9 +263,21 @@ function LoginForm() {
             )}
 
             {error && (
-              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 font-mono text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
-                <span>{error}</span>
+              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 font-mono text-xs space-y-2.5">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+                {needsConfirmationEmail && (
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={resendingEmail}
+                    className="w-full py-2 px-3 rounded-lg bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 font-bold uppercase tracking-wider text-[10px] transition cursor-pointer disabled:opacity-50"
+                  >
+                    {resendingEmail ? "Отправка..." : "Отправить письмо подтверждения повторно"}
+                  </button>
+                )}
               </div>
             )}
 

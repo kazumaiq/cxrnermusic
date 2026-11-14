@@ -22,6 +22,9 @@ function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [showGoogleHelpModal, setShowGoogleHelpModal] = useState(false);
   const [googleConfigStatus, setGoogleConfigStatus] = useState<any>(null);
+  const [pendingConfirmEmail, setPendingConfirmEmail] = useState<string | null>(null);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [resendNotice, setResendNotice] = useState<string | null>(null);
 
   useEffect(() => {
     // Capture referral code from query, localStorage, or cookie
@@ -78,17 +81,8 @@ function RegisterForm() {
         return;
       }
 
-      // 2. Direct Supabase OAuth redirect to configured Google provider
-      const targetAuthUrl = checkData?.supabaseUrl || "https://feeudmwytkeuwemnmbwd.supabase.co";
+      // 2. Canonical PKCE OAuth flow through getSupabaseBrowserClient (same project as /auth/callback)
       const redirectUri = `${window.location.origin}/auth/callback`;
-
-      if (targetAuthUrl.includes("feeudmwytkeuwemnmbwd")) {
-        window.location.href = `${targetAuthUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(
-          redirectUri
-        )}`;
-        return;
-      }
-
       const supabaseClient = getSupabaseBrowserClient();
       const { data, error: oauthError } = await supabaseClient.auth.signInWithOAuth({
         provider: "google",
@@ -110,8 +104,33 @@ function RegisterForm() {
       }
     } catch (err: any) {
       console.error("[Google SignUp] Error:", err);
-      setError(err.message ?? "Ошибка авторизации через Google");
+      const msg = String(err?.message || "");
+      if (msg.toLowerCase().includes("provider is not enabled")) {
+        setShowGoogleHelpModal(true);
+      } else {
+        setError(msg || "Ошибка авторизации через Google");
+      }
       setGoogleLoading(false);
+    }
+  }
+
+  async function handleResendEmail() {
+    if (!pendingConfirmEmail) return;
+    setResendingEmail(true);
+    setError(null);
+    setResendNotice(null);
+    try {
+      const supabaseClient = getSupabaseBrowserClient();
+      const { error: resendErr } = await supabaseClient.auth.resend({
+        type: "signup",
+        email: pendingConfirmEmail,
+      });
+      if (resendErr) throw resendErr;
+      setResendNotice(`Письмо отправлено повторно на ${pendingConfirmEmail}. Проверьте «Входящие» и «Спам».`);
+    } catch (err: any) {
+      setError(err?.message || "Не удалось отправить письмо повторно");
+    } finally {
+      setResendingEmail(false);
     }
   }
 
@@ -119,6 +138,8 @@ function RegisterForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setPendingConfirmEmail(null);
+    setResendNotice(null);
 
     try {
       let supabaseClient;
@@ -134,15 +155,55 @@ function RegisterForm() {
         refCode.trim() ||
         (typeof window !== "undefined" ? localStorage.getItem("cxrner_ref_code") || "" : "").trim();
 
+      const cleanEmail = email.trim().toLowerCase();
+
+      // Step 1: Try instant auto-confirmed registration via server admin route (bypasses slow/throttled SMTP)
+      const serverRegRes = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password,
+          artistName: artistName.trim(),
+          refCode: activeRefCode,
+        }),
+      }).catch(() => null);
+
+      const serverRegData = serverRegRes ? await serverRegRes.json().catch(() => null) : null;
+
+      if (serverRegRes && serverRegRes.ok && serverRegData?.ok) {
+        const { error: loginErr } = await supabaseClient.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+        if (!loginErr) {
+          if (activeRefCode) {
+            try {
+              localStorage.removeItem("cxrner_ref_code");
+            } catch {
+              // ignore
+            }
+          }
+          router.push("/dashboard");
+          return;
+        }
+      } else if (serverRegData && !serverRegData.useClientSignUp && serverRegData.error) {
+        throw new Error(serverRegData.error);
+      }
+
+      // Step 2: Client signUp fallback (when service role key is unavailable)
       const profile = {
         artist_name: artistName.trim() || undefined,
         ...(activeRefCode ? { referred_by_code: activeRefCode } : {}),
       };
 
       const { data, error: signUpError } = await supabaseClient.auth.signUp({
-        email: email.trim(),
+        email: cleanEmail,
         password,
-        options: { data: profile },
+        options: {
+          data: profile,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
       if (signUpError) throw signUpError;
@@ -181,7 +242,7 @@ function RegisterForm() {
         }
         router.push("/dashboard");
       } else {
-        router.push(activeRefCode ? `/auth/login?registered=1&ref=${encodeURIComponent(activeRefCode)}` : "/auth/login?registered=1");
+        setPendingConfirmEmail(cleanEmail);
       }
     } catch (err: any) {
       setError(err.message ?? "Ошибка регистрации");
@@ -237,6 +298,35 @@ function RegisterForm() {
               <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-200 font-mono text-xs flex items-center justify-between gap-2">
                 <span>Пригласительный код активирован:</span>
                 <strong className="text-white tracking-wider">{refCode}</strong>
+              </div>
+            )}
+
+            {pendingConfirmEmail && (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-400/35 text-amber-100 font-mono text-xs space-y-3">
+                <div>
+                  Аккаунт создан для <strong>{pendingConfirmEmail}</strong>. Подтвердите email по ссылке в письме (проверьте «Входящие» и «Спам»).
+                </div>
+                {resendNotice && (
+                  <div className="p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                    {resendNotice}
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={handleResendEmail}
+                    disabled={resendingEmail}
+                    className="flex-1 py-2.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 font-bold uppercase text-[10px] tracking-wider transition cursor-pointer disabled:opacity-50"
+                  >
+                    {resendingEmail ? "Отправка..." : "Отправить письмо повторно"}
+                  </button>
+                  <Link
+                    href="/auth/login"
+                    className="flex-1 py-2.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-center font-bold uppercase text-[10px] tracking-wider transition"
+                  >
+                    Перейти ко входу
+                  </Link>
+                </div>
               </div>
             )}
 

@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProfileByUsername, getUserInventory, getArtistProfileByUserId } from "@/lib/ecosystemDb";
+import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import {
+  getProfileByUsername,
+  getUserInventory,
+  getArtistProfileByUserId,
+  isCeoAccount,
+  CEO_USERNAME,
+} from "@/lib/ecosystemDb";
 import ProfileClientView from "./ProfileClientView";
 
 export async function generateMetadata(
@@ -26,7 +33,7 @@ export async function generateMetadata(
       description: desc,
       images: [
         {
-          url: profile.avatar_url || "/logo.png",
+          url: profile.avatar_url && !profile.avatar_url.startsWith("data:") ? profile.avatar_url : "/logo.png",
           width: 600,
           height: 600,
           alt: profile.display_name,
@@ -46,6 +53,21 @@ export default async function PublicProfilePage(
     notFound();
   }
 
+  let isOwner = false;
+  try {
+    const supabase = await getSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      isOwner =
+        user.id === profile.id ||
+        (profile.username === CEO_USERNAME && isCeoAccount({ email: user.email }));
+    }
+  } catch {
+    // ignore unauthenticated visit
+  }
+
   // Get showcase pinned items
   const inventory = await getUserInventory(profile.id);
   const pinnedItems = inventory.filter((item) => item.is_pinned && !item.is_hidden);
@@ -57,6 +79,7 @@ export default async function PublicProfilePage(
       pinnedItems={pinnedItems}
       totalInventoryCount={inventory.length}
       artistProject={artistProject}
+      isOwner={isOwner}
     />
   );
 }

@@ -8,46 +8,101 @@ import {
   Percent,
   Layers,
   BarChart3,
-  CheckCircle2,
-  AlertCircle,
   Clock,
   ArrowLeft,
   Search,
   ExternalLink,
-  ShieldCheck,
   Edit,
-  Check,
+  Users,
+  Plus,
+  Trash2,
+  Coins,
+  Gift,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import type {
   SpecialRewardClaim,
-  DropCaseConfig,
-  DropSpecimenDef,
+  DropInventoryItem,
 } from "@/lib/ecosystemTypes";
+import type { AdminDropPlayerSummary, AdminRecentDropEntry } from "@/lib/ecosystemDb";
 import { DROP_CASES, DROP_SPECIMENS } from "@/lib/ecosystemTypes";
 import SpecimenVisual from "@/components/drop/SpecimenVisual";
 
+interface DropAnalyticsData {
+  totalOpened: number;
+  totalCxpSpent: number;
+  totalCxpInCirculation?: number;
+  totalArtifactsInInventories?: number;
+  rarityBreakdown: Record<string, number>;
+  specialRewardsWon: number;
+  recentDrops?: AdminRecentDropEntry[];
+  playersSummary?: AdminDropPlayerSummary[];
+}
+
 interface DropAdminClientProps {
   initialClaims: SpecialRewardClaim[];
-  initialAnalytics: {
-    totalOpened: number;
-    totalCxpSpent: number;
-    rarityBreakdown: Record<string, number>;
-    specialRewardsWon: number;
-  };
+  initialAnalytics: DropAnalyticsData;
 }
 
 export default function DropAdminClient({
   initialClaims,
   initialAnalytics,
 }: DropAdminClientProps) {
-  const [tab, setTab] = useState<"claims" | "cases" | "items" | "analytics">("claims");
+  const [tab, setTab] = useState<
+    "players" | "history" | "claims" | "cases" | "items" | "analytics"
+  >("players");
   const [claims, setClaims] = useState<SpecialRewardClaim[]>(initialClaims);
-  const [analytics, setAnalytics] = useState(initialAnalytics);
+  const [analytics, setAnalytics] = useState<DropAnalyticsData>(initialAnalytics);
   const [search, setSearch] = useState("");
+  const [playerSearch, setPlayerSearch] = useState("");
   const [editingClaimId, setEditingClaimId] = useState<string | null>(null);
-  const [statusInput, setStatusInput] = useState<any>("CLAIMED");
   const [notesInput, setNotesInput] = useState("");
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [selectedSpecimenByUser, setSelectedSpecimenByUser] = useState<Record<string, string>>({});
+  const [customBalanceByUser, setCustomBalanceByUser] = useState<Record<string, string>>({});
+
+  const notify = (msg: string) => {
+    setActionNotice(msg);
+    setTimeout(() => setActionNotice(null), 4000);
+  };
+
+  const refreshData = async () => {
+    try {
+      const res = await fetch("/api/admin/drop/claims");
+      const data = await res.json();
+      if (data.ok) {
+        if (data.claims) setClaims(data.claims);
+        if (data.analytics) setAnalytics(data.analytics);
+        notify("Данные арены CXRNER DROP синхронизированы");
+      }
+    } catch {
+      notify("Ошибка обновления данных");
+    }
+  };
+
+  const handlePlayerAction = async (payload: Record<string, any>, successMsg: string) => {
+    setBusyUserId(payload.userId);
+    try {
+      const res = await fetch("/api/admin/drop/claims", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        if (data.analytics) setAnalytics(data.analytics);
+        notify(successMsg);
+      } else {
+        notify(data.error || "Ошибка выполнения действия");
+      }
+    } catch {
+      notify("Сетевая ошибка при выполнении операции");
+    } finally {
+      setBusyUserId(null);
+    }
+  };
 
   const filteredClaims = claims.filter(
     (c) =>
@@ -55,6 +110,20 @@ export default function DropAdminClient({
       c.user_id.toLowerCase().includes(search.toLowerCase()) ||
       c.status.toLowerCase().includes(search.toLowerCase())
   );
+
+  const players = analytics.playersSummary || [];
+  const filteredPlayers = players.filter((p) => {
+    const q = playerSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      p.username.toLowerCase().includes(q) ||
+      p.display_name.toLowerCase().includes(q) ||
+      (p.email || "").toLowerCase().includes(q) ||
+      p.user_id.toLowerCase().includes(q)
+    );
+  });
+
+  const recentDrops = analytics.recentDrops || [];
 
   const handleUpdateStatus = async (claimId: string, newStatus: any) => {
     try {
@@ -82,13 +151,11 @@ export default function DropAdminClient({
               : c
           )
         );
-        setActionNotice(`Статус ваучера обновлен на: ${newStatus}`);
+        notify(`Статус ваучера обновлен на: ${newStatus}`);
         setEditingClaimId(null);
-        setTimeout(() => setActionNotice(null), 3000);
       }
     } catch {
-      setActionNotice("Ошибка обновления статуса ваучера");
-      setTimeout(() => setActionNotice(null), 3000);
+      notify("Ошибка обновления статуса ваучера");
     }
   };
 
@@ -113,18 +180,27 @@ export default function DropAdminClient({
             Управление игрой CXRNER DROP
           </h1>
           <p className="text-xs text-[#D9D9E2]/65">
-            Контроль ваучеров на обложки от @kazumaiq, настройка кейсов, каталога артефактов и игровая аналитика.
+            Контроль балансов CXP, инвентаря игроков, истории открытий, ваучеров @kazumaiq и шансов выпадения.
           </p>
         </div>
 
-        <Link
-          href="/drop"
-          target="_blank"
-          className="btn-void-primary px-5 py-2.5 rounded-full font-mono text-[11px] uppercase font-bold tracking-wider flex items-center gap-1.5 self-start shrink-0"
-        >
-          <span>Открыть арену</span>
-          <ExternalLink className="w-3.5 h-3.5" />
-        </Link>
+        <div className="flex items-center gap-2 self-start shrink-0">
+          <button
+            onClick={refreshData}
+            className="px-4 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 font-mono text-[11px] uppercase font-bold tracking-wider flex items-center gap-1.5 text-white transition"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-[#00F0FF]" />
+            <span>Обновить</span>
+          </button>
+          <Link
+            href="/drop"
+            target="_blank"
+            className="btn-void-primary px-5 py-2.5 rounded-full font-mono text-[11px] uppercase font-bold tracking-wider flex items-center gap-1.5"
+          >
+            <span>Открыть арену</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </div>
 
       {actionNotice && (
@@ -133,13 +209,49 @@ export default function DropAdminClient({
         </div>
       )}
 
+      {/* Summary KPI Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="cxr-panel p-4 rounded-2xl">
+          <span className="font-mono text-[9px] text-white/45 uppercase block">ИГРОКОВ В DROP</span>
+          <span className="font-display font-black text-xl text-white tabular-nums">
+            {players.length}
+          </span>
+        </div>
+        <div className="cxr-panel p-4 rounded-2xl">
+          <span className="font-mono text-[9px] text-[#00F0FF]/80 uppercase block">АРТЕФАКТОВ НА РУКАХ</span>
+          <span className="font-display font-black text-xl text-[#00F0FF] tabular-nums">
+            {analytics.totalArtifactsInInventories ?? 0}
+          </span>
+        </div>
+        <div className="cxr-panel p-4 rounded-2xl">
+          <span className="font-mono text-[9px] text-emerald-300/80 uppercase block">CXP В ОБОРОТЕ</span>
+          <span className="font-display font-black text-xl text-emerald-300 tabular-nums">
+            {analytics.totalCxpInCirculation ?? 0}
+          </span>
+        </div>
+        <div className="cxr-panel p-4 rounded-2xl">
+          <span className="font-mono text-[9px] text-[#B46BFF]/80 uppercase block">ОТКРЫТО КАПСУЛ</span>
+          <span className="font-display font-black text-xl text-[#B46BFF] tabular-nums">
+            {analytics.totalOpened}
+          </span>
+        </div>
+        <div className="cxr-panel p-4 rounded-2xl">
+          <span className="font-mono text-[9px] text-amber-300/80 uppercase block">ВАУЧЕРОВ ВЫПАЛО</span>
+          <span className="font-display font-black text-xl text-amber-300 tabular-nums">
+            {analytics.specialRewardsWon}
+          </span>
+        </div>
+      </div>
+
       {/* Tabs Row */}
       <div className="inline-flex flex-wrap gap-1.5 p-1.5 rounded-2xl bg-[#0A0810] border border-white/10">
         {[
+          { key: "players", label: "Игроки и инвентарь", icon: Users, count: players.length },
+          { key: "history", label: "История открытий", icon: Clock, count: recentDrops.length },
           { key: "claims", label: "Ваучеры на обложки", icon: Award, count: claims.length },
           { key: "cases", label: "Кейсы и шансы", icon: Percent, count: DROP_CASES.length },
           { key: "items", label: "Каталог предметов", icon: Layers, count: DROP_SPECIMENS.length },
-          { key: "analytics", label: "Аналитика игры", icon: BarChart3 },
+          { key: "analytics", label: "Аналитика", icon: BarChart3 },
         ].map((t) => {
           const Icon = t.icon;
           return (
@@ -167,6 +279,288 @@ export default function DropAdminClient({
           );
         })}
       </div>
+
+      {/* ===================================================================
+          TAB 0: PLAYERS, BALANCES & INVENTORIES
+          =================================================================== */}
+      {tab === "players" && (
+        <div className="space-y-5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+              <input
+                type="text"
+                placeholder="Поиск игрока по нику, почте или ID..."
+                value={playerSearch}
+                onChange={(e) => setPlayerSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-black/40 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#8737FF]"
+              />
+            </div>
+            <span className="font-mono text-xs text-[#D9D9E2]/60">
+              Показано игроков: {filteredPlayers.length}
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {filteredPlayers.map((player) => {
+              const isBusy = busyUserId === player.user_id;
+              const selectedSpec =
+                selectedSpecimenByUser[player.user_id] || DROP_SPECIMENS[0]?.item_id || "item_cxrner_crest";
+              const customBal = customBalanceByUser[player.user_id] ?? String(player.balance);
+
+              return (
+                <div
+                  key={player.user_id}
+                  className="cxr-panel p-5 rounded-2xl space-y-4 border border-white/10"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-display font-black text-base text-white">
+                          {player.display_name}
+                        </span>
+                        <span className="font-mono text-xs text-[#00F0FF]">
+                          @{player.username}
+                        </span>
+                        {player.email && (
+                          <span className="font-mono text-[11px] text-white/45">
+                            ({player.email})
+                          </span>
+                        )}
+                        <Link
+                          href={`/admin/users/${player.user_id}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.06] hover:bg-white/[0.14] text-[10px] font-mono text-white/80 transition"
+                        >
+                          <span>Досье</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </Link>
+                      </div>
+                      <div className="font-mono text-[10px] text-white/40">
+                        ID: {player.user_id} · Открыто капсул: {player.drops_count} · Предметов: {player.items_count}
+                      </div>
+                    </div>
+
+                    {/* Balance & Quick CXP Controls */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="px-3.5 py-1.5 rounded-xl bg-[#8737FF]/15 border border-[#8737FF]/40 font-mono text-xs">
+                        <span className="text-white/50 mr-1.5">БАЛАНС:</span>
+                        <span className="font-bold text-white tabular-nums">{player.balance} CXP</span>
+                      </div>
+                      <button
+                        disabled={isBusy}
+                        onClick={() =>
+                          handlePlayerAction(
+                            {
+                              action: "admin_adjust_cxp",
+                              userId: player.user_id,
+                              amount: 100,
+                              reason: "Бонус +100 CXP от администратора",
+                            },
+                            `Начислено +100 CXP игроку @${player.username}`
+                          )
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 font-mono text-[10px] font-bold uppercase transition"
+                      >
+                        +100 CXP
+                      </button>
+                      <button
+                        disabled={isBusy}
+                        onClick={() =>
+                          handlePlayerAction(
+                            {
+                              action: "admin_adjust_cxp",
+                              userId: player.user_id,
+                              amount: 500,
+                              reason: "Бонус +500 CXP от администратора",
+                            },
+                            `Начислено +500 CXP игроку @${player.username}`
+                          )
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-[#00F0FF]/15 hover:bg-[#00F0FF]/25 border border-[#00F0FF]/35 text-[#00F0FF] font-mono text-[10px] font-bold uppercase transition"
+                      >
+                        +500 CXP
+                      </button>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          value={customBal}
+                          onChange={(e) =>
+                            setCustomBalanceByUser((prev) => ({
+                              ...prev,
+                              [player.user_id]: e.target.value,
+                            }))
+                          }
+                          className="w-24 px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 font-mono text-xs text-white focus:outline-none focus:border-[#00F0FF]"
+                        />
+                        <button
+                          disabled={isBusy}
+                          onClick={() =>
+                            handlePlayerAction(
+                              {
+                                action: "admin_set_cxp",
+                                userId: player.user_id,
+                                balance: Number(customBal),
+                                reason: "Установка точного баланса в админ-панели",
+                              },
+                              `Баланс @${player.username} установлен на ${customBal} CXP`
+                            )
+                          }
+                          className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white font-mono text-[10px] uppercase transition"
+                        >
+                          Задать CXP
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grant Artifact Row */}
+                  <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Gift className="w-3.5 h-3.5 text-[#B46BFF]" />
+                      <span className="font-mono text-[10px] uppercase text-white/60">
+                        Выдать артефакт в инвентарь:
+                      </span>
+                      <select
+                        value={selectedSpec}
+                        onChange={(e) =>
+                          setSelectedSpecimenByUser((prev) => ({
+                            ...prev,
+                            [player.user_id]: e.target.value,
+                          }))
+                        }
+                        className="px-3 py-1.5 rounded-lg bg-black/70 border border-white/15 font-mono text-xs text-white focus:outline-none focus:border-[#8737FF]"
+                      >
+                        {DROP_SPECIMENS.map((sp) => (
+                          <option key={sp.item_id} value={sp.item_id}>
+                            [{sp.rarity.toUpperCase()}] {sp.item_name} ({sp.specimen_code})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        disabled={isBusy}
+                        onClick={() =>
+                          handlePlayerAction(
+                            {
+                              action: "admin_grant_item",
+                              userId: player.user_id,
+                              specimenId: selectedSpec,
+                            },
+                            `Артефакт выдан игроку @${player.username}`
+                          )
+                        }
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#8737FF]/25 hover:bg-[#8737FF]/40 border border-[#8737FF]/50 text-white font-mono text-[10px] font-bold uppercase transition"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Выдать предмет</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Player Inventory List */}
+                  {player.items.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 pt-1">
+                      {player.items.slice(0, 16).map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-black/50 border border-white/10"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded bg-white/10 text-[#00F0FF] font-bold">
+                                {item.rarity}
+                              </span>
+                              <span className="font-mono text-[9px] text-white/45">
+                                #{item.serial_number || 1}
+                              </span>
+                            </div>
+                            <div className="font-display font-bold text-xs text-white truncate mt-1">
+                              {item.item_name}
+                            </div>
+                            <div className="font-mono text-[9px] text-white/40">
+                              {item.specimen_code} · {item.obtained_via || "case_open"}
+                            </div>
+                          </div>
+                          <button
+                            disabled={isBusy}
+                            title="Изъять предмет из инвентаря"
+                            onClick={() =>
+                              handlePlayerAction(
+                                {
+                                  action: "admin_revoke_item",
+                                  userId: player.user_id,
+                                  inventoryItemId: item.id,
+                                },
+                                `Артефакт ${item.item_name} изъят у @${player.username}`
+                              )
+                            }
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition shrink-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs font-mono text-white/35 italic">
+                      Инвентарь пуст
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================
+          TAB 0.5: RECENT DROPS HISTORY
+          =================================================================== */}
+      {tab === "history" && (
+        <div className="space-y-4">
+          {recentDrops.length === 0 ? (
+            <div className="p-12 text-center rounded-2xl bg-white/[0.02] border border-white/10">
+              <p className="font-mono text-xs text-white/50">История открытий пока пуста</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {recentDrops.map((drop) => (
+                <div
+                  key={drop.id}
+                  className="cxr-panel p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="px-2.5 py-1 rounded-lg bg-white/10 font-mono text-[10px] uppercase font-bold text-[#00F0FF]">
+                      {drop.rarity}
+                    </span>
+                    <div>
+                      <div className="font-display font-bold text-sm text-white">
+                        {drop.item_name}{" "}
+                        <span className="font-mono text-xs text-white/45">
+                          ({drop.item_id} · #{drop.serial_number || 1})
+                        </span>
+                      </div>
+                      <div className="font-mono text-[11px] text-white/55">
+                        Игрок:{" "}
+                        <Link
+                          href={`/admin/users/${drop.user_id}`}
+                          className="text-[#B46BFF] hover:underline"
+                        >
+                          {drop.display_name || drop.username || drop.user_id}
+                        </Link>{" "}
+                        · Кейс: {drop.case_name} · Потрачено: {drop.cxp_spent} CXP
+                      </div>
+                    </div>
+                  </div>
+                  <div className="font-mono text-[10px] text-white/45">
+                    {new Date(drop.created_at).toLocaleString("ru-RU")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ===================================================================
           TAB 1: REWARDS & VOUCHERS (COVER CLAIMS)

@@ -23,6 +23,7 @@ export default function HolographicPassModal({
   const [tilt, setTilt] = useState({ x: 0, y: 0, glareX: 50, glareY: 50 });
   const [flipped, setFlipped] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   if (!isOpen) return null;
 
@@ -153,12 +154,19 @@ export default function HolographicPassModal({
                 {/* Resident Avatar & Name */}
                 <div className="flex flex-col items-center text-center my-auto space-y-3 py-3">
                   <div className="relative">
-                    <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-[#00F0FF] bg-black shadow-[0_0_30px_rgba(0,240,255,0.35)]">
-                      <img
-                        src={profile.avatar_url || "/logo.png"}
-                        alt={profile.display_name}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-[#00F0FF] bg-[#0B0816] shadow-[0_0_30px_rgba(0,240,255,0.35)] flex items-center justify-center">
+                      {profile.avatar_url && !avatarBroken ? (
+                        <img
+                          src={profile.avatar_url}
+                          alt={profile.display_name}
+                          onError={() => setAvatarBroken(true)}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="font-display font-black text-3xl text-white">
+                          {String(profile.display_name || profile.username || "C").charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     {profile.is_artist_verified && (
                       <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-[#00F0FF] text-[#050407] font-mono text-[8px] font-black uppercase tracking-wider flex items-center gap-0.5 shadow-lg">

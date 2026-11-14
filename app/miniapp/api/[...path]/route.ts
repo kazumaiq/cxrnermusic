@@ -8,7 +8,7 @@ function normalizeBaseUrl() {
     process.env.MINIAPP_PROXY_TARGET ||
     process.env.MINIAPP_BOT_API_BASE_URL ||
     process.env.BOT_API_BASE_URL ||
-    ""
+    "https://bot-1787153410-6782-kazumaiq.bothost.tech"
   ).trim();
   return raw.replace(/\/+$/, "");
 }
@@ -18,7 +18,7 @@ function corsHeaders(req: NextRequest) {
   return {
     "access-control-allow-origin": origin || "*",
     "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-    "access-control-allow-headers": "content-type,authorization,x-requested-with",
+    "access-control-allow-headers": "content-type,authorization,x-requested-with,x-telegram-init-data",
     "access-control-max-age": "600"
   };
 }

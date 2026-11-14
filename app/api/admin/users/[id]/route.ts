@@ -15,6 +15,10 @@ import {
   adminSetUserVerification,
   awardCxp,
   recordAdminAudit,
+  adminGrantDropItem,
+  adminRevokeDropItem,
+  adminSetExactCxpBalance,
+  getDropHistory,
 } from "@/lib/ecosystemDb";
 
 function getServiceSupabase() {
@@ -203,6 +207,46 @@ export async function PATCH(
       });
 
       return NextResponse.json({ ok: true, verificationStatus });
+    }
+
+    if (action === "grant_drop_item") {
+      const { specimenId, note } = body;
+      if (!specimenId) {
+        return NextResponse.json({ ok: false, error: "specimenId is required" }, { status: 400 });
+      }
+      const res = await adminGrantDropItem({
+        targetUserId,
+        itemId: specimenId,
+        adminEmail,
+        reason: note,
+      });
+      return NextResponse.json({ ok: res.ok, item: res.item });
+    }
+
+    if (action === "revoke_drop_item") {
+      const { inventoryItemId } = body;
+      if (!inventoryItemId) {
+        return NextResponse.json(
+          { ok: false, error: "inventoryItemId is required" },
+          { status: 400 }
+        );
+      }
+      const res = await adminRevokeDropItem({ targetUserId, inventoryItemId, adminEmail });
+      return NextResponse.json({ ok: res.ok });
+    }
+
+    if (action === "set_exact_cxp") {
+      const balance = Number(body.balance);
+      if (!Number.isFinite(balance) || balance < 0) {
+        return NextResponse.json({ ok: false, error: "Некорректный баланс CXP" }, { status: 400 });
+      }
+      const res = await adminSetExactCxpBalance({
+        targetUserId,
+        newBalance: balance,
+        adminEmail,
+        reason: body.reason || "Установка точного баланса CXP в досье",
+      });
+      return NextResponse.json({ ok: res.ok, newBalance: res.newBalance });
     }
 
     return NextResponse.json({ ok: false, error: "UNKNOWN_ACTION" }, { status: 400 });

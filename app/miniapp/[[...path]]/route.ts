@@ -56,8 +56,10 @@ function contentTypeFor(filePath: string) {
 
 function cacheControlFor(filePath: string) {
   const ext = path.extname(filePath).toLowerCase();
-  if (ext === ".html") return "no-store";
-  return "public, max-age=31536000, immutable";
+  if (ext === ".html" || ext === ".js" || ext === ".css" || ext === ".json") {
+    return "no-store, must-revalidate";
+  }
+  return "public, max-age=86400";
 }
 
 type RouteParams = { path?: string[] };
@@ -81,4 +83,3 @@ export async function GET(_: Request, ctx: { params: Promise<RouteParams> | Rout
     return new Response("Server error", { status: 500 });
   }
 }
-

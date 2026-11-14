@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   User,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
   Sparkles,
@@ -17,9 +16,12 @@ import {
   Crown,
   Eye,
   Check,
+  Image as ImageIcon,
 } from "lucide-react";
 import type { CxrnerProfile, MusicRole, ProfileCompletionResult } from "@/lib/ecosystemTypes";
 import { COSMETIC_FRAMES, COSMETIC_EFFECTS, COSMETIC_TITLES } from "@/lib/ecosystemTypes";
+import ImageUploadField from "@/components/profile/ImageUploadField";
+import ProfileHeroCard from "@/components/profile/ProfileHeroCard";
 
 interface ProfileEditorClientProps {
   initialProfile: CxrnerProfile;
@@ -44,13 +46,14 @@ const POPULAR_GENRES = [
   "Trap",
   "Hyperpop",
   "Electronic",
-  "Drill",
-  "Indie Rock",
-  "R&B",
   "Phonk",
+  "Dark Wave",
+  "R&B",
   "Ambient",
   "Synthwave",
 ];
+
+type EditorTab = "visuals" | "music" | "style";
 
 export default function ProfileEditorClient({
   initialProfile,
@@ -61,6 +64,8 @@ export default function ProfileEditorClient({
   const [profile, setProfile] = useState<CxrnerProfile>(initialProfile);
   const [completion, setCompletion] = useState<ProfileCompletionResult>(initialCompletion);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<EditorTab>("visuals");
+  const [showMobilePreview, setShowMobilePreview] = useState(true);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Form State
@@ -117,33 +122,7 @@ export default function ProfileEditorClient({
     }
   );
 
-  const toggleRole = (role: MusicRole) => {
-    if (selectedRoles.includes(role)) {
-      if (selectedRoles.length > 1) {
-        setSelectedRoles(selectedRoles.filter((r) => r !== role));
-      }
-    } else {
-      setSelectedRoles([...selectedRoles, role]);
-    }
-  };
-
-  const addGenre = () => {
-    const val = genreInput.trim();
-    if (val && !selectedGenres.includes(val)) {
-      setSelectedGenres([...selectedGenres, val]);
-      setGenreInput("");
-    }
-  };
-
-  const removeGenre = (genre: string) => {
-    setSelectedGenres(selectedGenres.filter((g) => g !== genre));
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setMessage(null);
-
-    // Build links arrays
+  const buildLinkArrays = () => {
     const musicLinks = [
       spotifyUrl ? { platform: "Spotify", url: spotifyUrl } : null,
       appleUrl ? { platform: "Apple Music", url: appleUrl } : null,
@@ -157,6 +136,80 @@ export default function ProfileEditorClient({
       instagramUrl ? { platform: "Instagram", url: instagramUrl } : null,
       telegramUrl ? { platform: "Telegram", url: telegramUrl } : null,
     ].filter(Boolean) as Array<{ platform: string; url: string }>;
+
+    return { musicLinks, socialLinks };
+  };
+
+  const livePreviewProfile: CxrnerProfile = useMemo(() => {
+    const { musicLinks, socialLinks } = buildLinkArrays();
+    return {
+      ...profile,
+      display_name: displayName || profile.display_name,
+      username: username || profile.username,
+      avatar_url: avatarUrl || null,
+      banner_url: bannerUrl || null,
+      bio: bio || null,
+      country: country || "RU",
+      city: city || null,
+      genres: selectedGenres,
+      music_roles: selectedRoles,
+      music_links: musicLinks,
+      social_links: socialLinks,
+      equipped_frame: equippedFrame || null,
+      equipped_effect: equippedEffect || null,
+      equipped_title: equippedTitle || null,
+    };
+  }, [
+    profile,
+    displayName,
+    username,
+    avatarUrl,
+    bannerUrl,
+    bio,
+    country,
+    city,
+    selectedGenres,
+    selectedRoles,
+    spotifyUrl,
+    appleUrl,
+    yandexUrl,
+    vkUrl,
+    soundcloudUrl,
+    youtubeUrl,
+    instagramUrl,
+    telegramUrl,
+    equippedFrame,
+    equippedEffect,
+    equippedTitle,
+  ]);
+
+  const toggleRole = (role: MusicRole) => {
+    if (selectedRoles.includes(role)) {
+      if (selectedRoles.length > 1) {
+        setSelectedRoles(selectedRoles.filter((r) => r !== role));
+      }
+    } else {
+      setSelectedRoles([...selectedRoles, role]);
+    }
+  };
+
+  const addGenre = (custom?: string) => {
+    const val = (custom ?? genreInput).trim();
+    if (val && !selectedGenres.includes(val)) {
+      setSelectedGenres([...selectedGenres, val]);
+      if (!custom) setGenreInput("");
+    }
+  };
+
+  const removeGenre = (genre: string) => {
+    setSelectedGenres(selectedGenres.filter((g) => g !== genre));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage(null);
+
+    const { musicLinks, socialLinks } = buildLinkArrays();
 
     try {
       const res = await fetch("/api/cabinet/profile", {
@@ -192,6 +245,8 @@ export default function ProfileEditorClient({
       if (data.profile) {
         setUsername(data.profile.username || username);
         setDisplayName(data.profile.display_name || "");
+        setAvatarUrl(data.profile.avatar_url || "");
+        setBannerUrl(data.profile.banner_url || "");
         if (data.profile.privacy_settings) {
           setPrivacy(data.profile.privacy_settings);
         }
@@ -204,7 +259,7 @@ export default function ProfileEditorClient({
           text: "Профиль сохранён! Разблокированы новые награды и начислены CXP!",
         });
       } else {
-        setMessage({ type: "success", text: "Профиль успешно обновлён" });
+        setMessage({ type: "success", text: "Изменения сохранены и уже видны в публичном профиле!" });
       }
     } catch {
       setMessage({ type: "error", text: "Ошибка сети при сохранении" });
@@ -219,22 +274,22 @@ export default function ProfileEditorClient({
     profile.equipped_badge === "ceo_founder";
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn">
       {isCeoSovereign && (
-        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#1A1105]/95 via-[#0E0720]/95 to-[#051821]/95 border border-[#F59E0B]/50 shadow-[0_0_45px_rgba(245,158,11,0.18)] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="p-5 rounded-3xl bg-[#110D16] border border-[#F59E0B]/45 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[10px] font-mono font-bold uppercase tracking-widest text-[#FDE68A]">
               <span>👑 SOVEREIGN FOUNDER & CEO ACCOUNT</span>
               <span className="text-[#00F0FF]">// ROOT #000001</span>
             </div>
-            <h2 className="font-display font-black text-lg sm:text-xl text-white">
-              KAZUMA (@kazumaiq) · kazumaiq.music@gmail.com
+            <h2 className="font-display font-black text-lg text-white">
+              {displayName || "KAZUMA"} (@{profile.username}) · {userEmail}
             </h2>
-            <p className="text-xs text-[#D9D9E2]/75">
-              Эксклюзивный резерв основателя активен: 99,999 CXP, все 6 флагманских артефактов с серийным номером #000001, золотая рамка Sovereign Gold и статус #1 в Зале Славы.
+            <p className="text-xs text-[#D9D9E2]/70">
+              Резерв основателя: 99,999 CXP, артефакты #000001, рамка Sovereign Gold и доступ ко всем разделам админ-панели.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Link
               href="/admin"
               className="px-3.5 py-2 rounded-xl bg-[#F59E0B]/20 hover:bg-[#F59E0B]/30 border border-[#F59E0B]/50 text-[11px] font-mono font-bold text-[#FDE68A] uppercase tracking-wider transition"
@@ -242,51 +297,45 @@ export default function ProfileEditorClient({
               ⚡ Админ-панель
             </Link>
             <Link
-              href="/admin/verifications"
+              href="/admin/drop"
               className="px-3.5 py-2 rounded-xl bg-[#00F0FF]/15 hover:bg-[#00F0FF]/25 border border-[#00F0FF]/40 text-[11px] font-mono font-bold text-[#00F0FF] uppercase tracking-wider transition"
             >
-              ✓ Верификации артистов
-            </Link>
-            <Link
-              href="/profile/kazumaiq"
-              className="px-3.5 py-2 rounded-xl bg-[#8737FF]/25 hover:bg-[#8737FF]/35 border border-[#B46BFF]/50 text-[11px] font-mono font-bold text-white uppercase tracking-wider transition"
-            >
-              👑 Профиль @kazumaiq
+              📦 Админка DROP
             </Link>
           </div>
         </div>
       )}
 
-      {/* Top Banner & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
+      {/* Header Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/10">
         <div>
           <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-[#B46BFF] font-semibold">
             <User className="w-4 h-4 text-[#00F0FF]" />
-            <span>CXRNER ID // НАСТРОЙКИ ПРОФИЛЯ</span>
+            <span>CXRNER ID // СТУДИЯ КАСТОМИЗАЦИИ</span>
           </div>
-          <h1 className="font-display font-black text-2xl sm:text-3xl text-white tracking-wide mt-1">
-            Цифровой Профиль Артиста
+          <h1 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight mt-1">
+            Настройка профиля артиста
           </h1>
-          <p className="text-xs sm:text-sm text-[#D9D9E2]/60 mt-0.5">
-            Управляйте вашей артистической идентичностью, коллекцией предметов и публичной страницей.
+          <p className="text-xs sm:text-sm text-[#D9D9E2]/65 mt-0.5">
+            Загрузите аватарку и баннер, выберите рамку и ссылки — изменения видны в реальном времени.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href={`/profile/${profile.username}`}
             target="_blank"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-mono font-medium text-white transition active:scale-95"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-xs font-mono font-medium text-white transition"
           >
             <Eye className="w-3.5 h-3.5 text-[#00F0FF]" />
-            <span>Публичная страница</span>
+            <span>Открыть профиль</span>
             <ExternalLink className="w-3 h-3 opacity-50" />
           </Link>
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="btn-energy inline-flex items-center gap-2 px-5 py-2 rounded-full font-mono text-xs uppercase tracking-wider font-bold"
+            className="btn-energy inline-flex items-center gap-2 px-5 py-2 rounded-full font-mono text-xs uppercase tracking-wider font-bold cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{saving ? "Сохранение..." : "Сохранить"}</span>
@@ -294,100 +343,128 @@ export default function ProfileEditorClient({
         </div>
       </div>
 
-      {/* Notifications / Alerts */}
+      {/* Save Status Message */}
       {message && (
         <div
           className={`p-4 rounded-2xl border flex items-center gap-3 font-sans text-xs sm:text-sm ${
             message.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-              : "bg-red-500/10 border-red-500/30 text-red-300"
+              ? "bg-emerald-500/12 border-emerald-500/40 text-emerald-200"
+              : "bg-rose-500/12 border-rose-500/40 text-rose-200"
           }`}
         >
           {message.type === "success" ? (
             <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
           ) : (
-            <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
           )}
           <span>{message.text}</span>
         </div>
       )}
 
-      {/* =========================================================================
-          PROFILE COMPLETION CARD (0 - 100%)
-         ========================================================================= */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-[#090611] border border-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.7)] backdrop-blur-xl relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <div>
+      {/* Compact Profile Completion Meter */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#0C0A15] border border-white/10 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#00F0FF]">
-              ПРОГРЕСС ИДЕНТИЧНОСТИ
+              Заполнено: {completion.total}%
             </span>
-            <h3 className="font-display font-black text-xl text-white mt-0.5">
-              PROFILE COMPLETION — {completion.total}%
-            </h3>
-          </div>
-          <div className="flex items-center gap-2 font-mono text-xs">
             {completion.total >= 80 ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold">
-                <Check className="w-3.5 h-3.5" />
-                БОНУС +100 CXP ПОЛУЧЕН
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 font-mono text-[10px] font-bold">
+                <Check className="w-3 h-3" /> Бонус +100 CXP получен
               </span>
             ) : (
-              <span className="px-3 py-1 rounded-full bg-[#8737FF]/20 border border-[#8737FF]/40 text-[#B46BFF]">
-                Награда на 80%: +100 CXP & Бейдж
+              <span className="px-2.5 py-0.5 rounded-full bg-[#8737FF]/20 border border-[#8737FF]/40 text-[#D8B4FE] font-mono text-[10px]">
+                На 80%: +100 CXP и бейдж
               </span>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setShowMobilePreview((v) => !v)}
+            className="lg:hidden px-3 py-1 rounded-full bg-white/[0.06] border border-white/15 font-mono text-[10px] text-white uppercase"
+          >
+            {showMobilePreview ? "Скрыть превью" : "Показать превью"}
+          </button>
         </div>
-
-        {/* Progress Bar */}
-        <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden relative">
+        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-[#8737FF] via-[#B46BFF] to-[#00F0FF] transition-all duration-700 ease-out shadow-[0_0_12px_#8737FF]"
+            className="h-full bg-gradient-to-r from-[#8737FF] via-[#B46BFF] to-[#00F0FF] transition-all duration-500"
             style={{ width: `${completion.total}%` }}
           />
         </div>
-
-        {/* Breakdown Checklist */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-5 border-t border-white/10">
-          {Object.entries(completion.breakdown).map(([key, item]) => (
-            <div
-              key={key}
-              className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-mono ${
-                item.done
-                  ? "bg-emerald-500/10 border-emerald-500/20 text-white"
-                  : "bg-white/5 border-white/10 text-[#D9D9E2]/50"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[10px] ${
-                    item.done ? "bg-emerald-500 text-black font-bold" : "bg-white/10 text-white/40"
-                  }`}
-                >
-                  {item.done ? "✓" : "○"}
-                </div>
-                <span>{item.label}</span>
-              </div>
-              <span className="font-bold">+{item.percent}%</span>
-            </div>
-          ))}
-        </div>
       </div>
 
-      {/* Main Grid: Form Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Form Fields */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Section 1: Basic Identity */}
-          <div className="p-6 rounded-3xl bg-[#090611]/70 border border-white/10 space-y-4">
-            <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
-              <User className="w-5 h-5 text-[#8737FF]" />
-              <span>1. Основные данные</span>
+      {/* Live WYSIWYG Preview */}
+      {showMobilePreview && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-white/50">
+              Живой предпросмотр твоей карточки CXRNER ID
+            </span>
+            <span className="font-mono text-[10px] text-[#00F0FF]">
+              cxrnermusic.vercel.app/profile/{username || profile.username}
+            </span>
+          </div>
+          <ProfileHeroCard profile={livePreviewProfile} previewMode />
+        </div>
+      )}
+
+      {/* Clean Customizer Tabs */}
+      <div className="inline-flex flex-wrap gap-1.5 p-1.5 rounded-2xl bg-[#0C0A15] border border-white/10">
+        {[
+          { key: "visuals" as EditorTab, label: "Фото и О себе", icon: ImageIcon },
+          { key: "music" as EditorTab, label: "Роли, Жанры и Ссылки", icon: Music },
+          { key: "style" as EditorTab, label: "Рамка, Свечение и Приватность", icon: Sparkles },
+        ].map((t) => {
+          const Icon = t.icon;
+          const active = activeTab === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActiveTab(t.key)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xs uppercase tracking-wider transition cursor-pointer ${
+                active
+                  ? "bg-white text-[#050407] font-bold shadow-md"
+                  : "text-[#D9D9E2]/65 hover:text-white hover:bg-white/[0.06]"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* TAB 1: PHOTOS & BASIC INFO */}
+      {activeTab === "visuals" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <ImageUploadField
+              label="Фото аватара"
+              kind="avatar"
+              value={avatarUrl}
+              onChange={setAvatarUrl}
+              hint="Квадратное фото с устройства или прямая ссылка"
+            />
+            <ImageUploadField
+              label="Баннер (Шапка профиля)"
+              kind="banner"
+              value={bannerUrl}
+              onChange={setBannerUrl}
+              hint="Широкая обложка 16:5 с устройства или прямая ссылка"
+            />
+          </div>
+
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#0C0A15] border border-white/10 space-y-4">
+            <h3 className="font-display font-bold text-base text-white flex items-center gap-2">
+              <User className="w-4 h-4 text-[#00F0FF]" />
+              <span>Основные данные</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
                   Отображаемое имя *
                 </label>
                 <input
@@ -395,12 +472,12 @@ export default function ProfileEditorClient({
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Например: KAZUMA"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
                   Уникальный username *
                 </label>
                 <div className="relative">
@@ -411,91 +488,68 @@ export default function ProfileEditorClient({
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="kazuma"
-                    className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none font-mono transition"
+                    placeholder="kazumaiq"
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none font-mono transition"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                Bio / О себе (минимум 10 символов)
+              <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
+                Bio / О себе
               </label>
               <textarea
-                rows={3}
+                rows={4}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Расскажите о вашей музыке, релизах, творческом пути..."
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none transition"
+                placeholder="Расскажите о вашей музыке, релизах и творчестве..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none transition"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
                   Страна
                 </label>
                 <input
                   type="text"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  placeholder="Россия, Беларусь, Казахстан..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none transition"
+                  placeholder="Россия, Казахстан, KG..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none transition"
                 />
               </div>
               <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                  Город (по желанию)
+                <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
+                  Город
                 </label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="Москва, Санкт-Петербург..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none transition"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                  URL Аватара
-                </label>
-                <input
-                  type="text"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 focus:border-[#B46BFF] text-white text-xs font-mono outline-none transition"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                  URL Обложки (Баннер)
-                </label>
-                <input
-                  type="text"
-                  value={bannerUrl}
-                  onChange={(e) => setBannerUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 focus:border-[#B46BFF] text-white text-xs font-mono outline-none transition"
+                  placeholder="Москва, Бишкек..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 focus:border-[#B46BFF] text-white text-sm outline-none transition"
                 />
               </div>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Section 2: Musical Roles & Genres */}
-          <div className="p-6 rounded-3xl bg-[#090611]/70 border border-white/10 space-y-4">
-            <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
-              <Music className="w-5 h-5 text-[#00F0FF]" />
-              <span>2. Музыкальная роль & Жанры</span>
+      {/* TAB 2: ROLES, GENRES, MUSIC & SOCIAL LINKS */}
+      {activeTab === "music" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#0C0A15] border border-white/10 space-y-5">
+            <h3 className="font-display font-bold text-base text-white flex items-center gap-2">
+              <Music className="w-4 h-4 text-[#00F0FF]" />
+              <span>Роли и жанры</span>
             </h3>
 
             <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
-                Роли в музыке (можно выбрать несколько)
+              <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
+                Роли в музыке
               </label>
               <div className="flex flex-wrap gap-2">
                 {ALL_ROLES.map((role) => {
@@ -505,10 +559,10 @@ export default function ProfileEditorClient({
                       key={role}
                       type="button"
                       onClick={() => toggleRole(role)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-mono transition ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer ${
                         isSelected
-                          ? "bg-[#8737FF] text-white border border-[#8737FF] shadow-[0_0_12px_rgba(135,55,255,0.4)] font-bold"
-                          : "bg-white/5 text-[#D9D9E2]/70 border border-white/15 hover:border-white/30"
+                          ? "bg-[#8737FF] text-white border border-[#8737FF] font-bold"
+                          : "bg-black/40 text-[#D9D9E2]/70 border border-white/15 hover:border-white/30"
                       }`}
                     >
                       {role}
@@ -518,11 +572,28 @@ export default function ProfileEditorClient({
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
-                Любимые музыкальные жанры
+            <div className="space-y-3">
+              <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider">
+                Жанры (можно выбрать готовые или ввести свой)
               </label>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-wrap gap-1.5">
+                {POPULAR_GENRES.map((pg) => (
+                  <button
+                    key={pg}
+                    type="button"
+                    onClick={() => (selectedGenres.includes(pg) ? removeGenre(pg) : addGenre(pg))}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-mono border transition cursor-pointer ${
+                      selectedGenres.includes(pg)
+                        ? "bg-[#00F0FF]/15 border-[#00F0FF]/50 text-[#00F0FF] font-bold"
+                        : "bg-white/[0.04] border-white/10 text-white/65 hover:text-white"
+                    }`}
+                  >
+                    + {pg}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={genreInput}
@@ -533,100 +604,97 @@ export default function ProfileEditorClient({
                       addGenre();
                     }
                   }}
-                  placeholder="Введите жанр и нажмите Enter..."
-                  className="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                  placeholder="Свой жанр + Enter..."
+                  className="flex-1 px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
                 />
                 <button
                   type="button"
-                  onClick={addGenre}
-                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono text-white transition"
+                  onClick={() => addGenre()}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono text-white transition cursor-pointer"
                 >
                   Добавить
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
-                {selectedGenres.map((g) => (
-                  <span
-                    key={g}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#8737FF]/20 border border-[#8737FF]/40 text-[#B46BFF] text-xs font-mono"
-                  >
-                    <span>#{g}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeGenre(g)}
-                      className="text-[#D9D9E2]/60 hover:text-white"
+              {selectedGenres.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {selectedGenres.map((g) => (
+                    <span
+                      key={g}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#8737FF]/20 border border-[#8737FF]/40 text-[#D8B4FE] text-xs font-mono"
                     >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
+                      <span>#{g}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeGenre(g)}
+                        className="text-white/60 hover:text-white cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Section 3: Music DSP Links */}
-          <div className="p-6 rounded-3xl bg-[#090611]/70 border border-white/10 space-y-4">
-            <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
-              <Globe className="w-5 h-5 text-[#8737FF]" />
-              <span>3. Ссылки на музыку & DSP площадки</span>
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#0C0A15] border border-white/10 space-y-4">
+            <h3 className="font-display font-bold text-base text-white flex items-center gap-2">
+              <Globe className="w-4 h-4 text-[#B46BFF]" />
+              <span>Музыкальные площадки и соцсети</span>
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                  Spotify профиль
-                </label>
-                <input
-                  type="url"
-                  value={spotifyUrl}
-                  onChange={(e) => setSpotifyUrl(e.target.value)}
-                  placeholder="https://open.spotify.com/artist/..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                  Apple Music профиль
-                </label>
-                <input
-                  type="url"
-                  value={appleUrl}
-                  onChange={(e) => setAppleUrl(e.target.value)}
-                  placeholder="https://music.apple.com/artist/..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                  Яндекс Музыка карточка
+                <label className="block text-[10px] font-mono text-[#D9D9E2]/65 uppercase mb-1">
+                  Яндекс Музыка
                 </label>
                 <input
                   type="url"
                   value={yandexUrl}
                   onChange={(e) => setYandexUrl(e.target.value)}
                   placeholder="https://music.yandex.ru/artist/..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
                 />
               </div>
-
               <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                  VK Музыка страница
+                <label className="block text-[10px] font-mono text-[#D9D9E2]/65 uppercase mb-1">
+                  VK Музыка
                 </label>
                 <input
                   type="url"
                   value={vkUrl}
                   onChange={(e) => setVkUrl(e.target.value)}
                   placeholder="https://vk.com/artist/..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
                 />
               </div>
-
               <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-mono text-[#D9D9E2]/65 uppercase mb-1">
+                  Spotify
+                </label>
+                <input
+                  type="url"
+                  value={spotifyUrl}
+                  onChange={(e) => setSpotifyUrl(e.target.value)}
+                  placeholder="https://open.spotify.com/artist/..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono text-[#D9D9E2]/65 uppercase mb-1">
+                  Apple Music
+                </label>
+                <input
+                  type="url"
+                  value={appleUrl}
+                  onChange={(e) => setAppleUrl(e.target.value)}
+                  placeholder="https://music.apple.com/artist/..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono text-[#D9D9E2]/65 uppercase mb-1">
                   SoundCloud
                 </label>
                 <input
@@ -634,35 +702,35 @@ export default function ProfileEditorClient({
                   value={soundcloudUrl}
                   onChange={(e) => setSoundcloudUrl(e.target.value)}
                   placeholder="https://soundcloud.com/..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
                 />
               </div>
-
               <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                  YouTube канал
+                <label className="block text-[10px] font-mono text-[#D9D9E2]/65 uppercase mb-1">
+                  YouTube
                 </label>
                 <input
                   type="url"
                   value={youtubeUrl}
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   placeholder="https://youtube.com/@..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
                 />
               </div>
-            </div>
-          </div>
-
-          {/* Section 4: Socials */}
-          <div className="p-6 rounded-3xl bg-[#090611]/70 border border-white/10 space-y-4">
-            <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#00F0FF]" />
-              <span>4. Социальные сети</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-mono text-[#D9D9E2]/65 uppercase mb-1">
+                  Telegram
+                </label>
+                <input
+                  type="url"
+                  value={telegramUrl}
+                  onChange={(e) => setTelegramUrl(e.target.value)}
+                  placeholder="https://t.me/..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono text-[#D9D9E2]/65 uppercase mb-1">
                   Instagram
                 </label>
                 <input
@@ -670,46 +738,33 @@ export default function ProfileEditorClient({
                   value={instagramUrl}
                   onChange={(e) => setInstagramUrl(e.target.value)}
                   placeholder="https://instagram.com/..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-1.5">
-                  Telegram канал / группа
-                </label>
-                <input
-                  type="url"
-                  value={telegramUrl}
-                  onChange={(e) => setTelegramUrl(e.target.value)}
-                  placeholder="https://t.me/..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
                 />
               </div>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Right 1 Col: Equips & Privacy */}
-        <div className="space-y-8">
-          {/* Equip Room */}
-          <div className="p-6 rounded-3xl bg-[#090611]/70 border border-white/10 space-y-5">
-            <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
-              <Crown className="w-5 h-5 text-[#B46BFF]" />
-              <span>Экипировка профиля</span>
+      {/* TAB 3: COSMETICS & PRIVACY */}
+      {activeTab === "style" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#0C0A15] border border-white/10 space-y-5">
+            <h3 className="font-display font-bold text-base text-white flex items-center gap-2">
+              <Crown className="w-4 h-4 text-[#B46BFF]" />
+              <span>Рамки, свечение и титул</span>
             </h3>
 
-            {/* Frame */}
             <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
-                Рамка аватара (Profile Frame)
+              <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
+                Рамка аватара
               </label>
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setEquippedFrame("")}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-mono border transition ${
-                    !equippedFrame ? "bg-white/10 border-white text-white" : "border-white/10 text-[#D9D9E2]/60"
+                  className={`text-left px-3 py-2 rounded-xl text-xs font-mono border transition cursor-pointer ${
+                    !equippedFrame ? "bg-white/12 border-white text-white font-bold" : "border-white/10 text-[#D9D9E2]/60"
                   }`}
                 >
                   По умолчанию
@@ -719,15 +774,15 @@ export default function ProfileEditorClient({
                     key={f.id}
                     type="button"
                     onClick={() => setEquippedFrame(f.id)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-mono border flex items-center justify-between transition ${
+                    className={`text-left px-3 py-2 rounded-xl text-xs font-mono border flex items-center justify-between transition cursor-pointer ${
                       equippedFrame === f.id
                         ? "bg-[#8737FF]/20 border-[#8737FF] text-white font-bold"
                         : "border-white/10 text-[#D9D9E2]/60 hover:text-white"
                     }`}
                   >
-                    <span>{f.name}</span>
+                    <span className="truncate">{f.name}</span>
                     <span
-                      className="w-3 h-3 rounded-full"
+                      className="w-3 h-3 rounded-full shrink-0 ml-2"
                       style={{ backgroundColor: f.previewColor }}
                     />
                   </button>
@@ -735,17 +790,16 @@ export default function ProfileEditorClient({
               </div>
             </div>
 
-            {/* Aura Effect */}
             <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
-                Эффект свечения (Avatar Effect)
+              <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
+                Эффект свечения
               </label>
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setEquippedEffect("")}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-mono border transition ${
-                    !equippedEffect ? "bg-white/10 border-white text-white" : "border-white/10 text-[#D9D9E2]/60"
+                  className={`text-left px-3 py-2 rounded-xl text-xs font-mono border transition cursor-pointer ${
+                    !equippedEffect ? "bg-white/12 border-white text-white font-bold" : "border-white/10 text-[#D9D9E2]/60"
                   }`}
                 >
                   Без эффекта
@@ -755,7 +809,7 @@ export default function ProfileEditorClient({
                     key={e.id}
                     type="button"
                     onClick={() => setEquippedEffect(e.id)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-mono border transition ${
+                    className={`text-left px-3 py-2 rounded-xl text-xs font-mono border transition cursor-pointer ${
                       equippedEffect === e.id
                         ? "bg-[#8737FF]/20 border-[#8737FF] text-white font-bold"
                         : "border-white/10 text-[#D9D9E2]/60 hover:text-white"
@@ -767,19 +821,18 @@ export default function ProfileEditorClient({
               </div>
             </div>
 
-            {/* Title */}
             <div>
-              <label className="block text-xs font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-mono text-[#D9D9E2]/70 uppercase tracking-wider mb-2">
                 Титул в профиле
               </label>
               <select
                 value={equippedTitle}
                 onChange={(e) => setEquippedTitle(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-white text-xs font-mono outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
               >
                 <option value="">Без титула</option>
                 {COSMETIC_TITLES.map((t) => (
-                  <option key={t} value={t} className="bg-[#090611] text-white">
+                  <option key={t} value={t} className="bg-[#0C0A15] text-white">
                     {t}
                   </option>
                 ))}
@@ -787,67 +840,70 @@ export default function ProfileEditorClient({
             </div>
           </div>
 
-          {/* Privacy Settings */}
-          <div className="p-6 rounded-3xl bg-[#090611]/70 border border-white/10 space-y-4">
-            <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-[#00F0FF]" />
-              <span>Настройки приватности</span>
-            </h3>
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#0C0A15] border border-white/10 space-y-5 flex flex-col justify-between">
+            <div className="space-y-4">
+              <h3 className="font-display font-bold text-base text-white flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-[#00F0FF]" />
+                <span>Настройки приватности</span>
+              </h3>
 
-            <div className="space-y-3">
-              <label className="flex items-center justify-between text-xs font-mono text-[#D9D9E2]/80 cursor-pointer">
-                <span>Публичный профиль</span>
-                <input
-                  type="checkbox"
-                  checked={privacy?.is_public ?? true}
-                  onChange={(e) => setPrivacy({ ...(privacy || { is_public: true, show_inventory: true, show_music: true, show_in_leaderboard: true }), is_public: e.target.checked })}
-                  className="rounded bg-white/10 border-white/20 text-[#8737FF] focus:ring-0"
-                />
-              </label>
-
-              <label className="flex items-center justify-between text-xs font-mono text-[#D9D9E2]/80 cursor-pointer">
-                <span>Показывать инвентарь DROP</span>
-                <input
-                  type="checkbox"
-                  checked={privacy?.show_inventory ?? true}
-                  onChange={(e) => setPrivacy({ ...(privacy || { is_public: true, show_inventory: true, show_music: true, show_in_leaderboard: true }), show_inventory: e.target.checked })}
-                  className="rounded bg-white/10 border-white/20 text-[#8737FF] focus:ring-0"
-                />
-              </label>
-
-              <label className="flex items-center justify-between text-xs font-mono text-[#D9D9E2]/80 cursor-pointer">
-                <span>Показывать музыкальные ссылки</span>
-                <input
-                  type="checkbox"
-                  checked={privacy?.show_music ?? true}
-                  onChange={(e) => setPrivacy({ ...(privacy || { is_public: true, show_inventory: true, show_music: true, show_in_leaderboard: true }), show_music: e.target.checked })}
-                  className="rounded bg-white/10 border-white/20 text-[#8737FF] focus:ring-0"
-                />
-              </label>
-
-              <label className="flex items-center justify-between text-xs font-mono text-[#D9D9E2]/80 cursor-pointer">
-                <span>Участие в рейтинге рефералов</span>
-                <input
-                  type="checkbox"
-                  checked={privacy?.show_in_leaderboard ?? true}
-                  onChange={(e) => setPrivacy({ ...(privacy || { is_public: true, show_inventory: true, show_music: true, show_in_leaderboard: true }), show_in_leaderboard: e.target.checked })}
-                  className="rounded bg-white/10 border-white/20 text-[#8737FF] focus:ring-0"
-                />
-              </label>
+              <div className="space-y-3">
+                {[
+                  { key: "is_public", label: "Публичный профиль доступен по ссылке" },
+                  { key: "show_inventory", label: "Показывать инвентарь и витрину DROP" },
+                  { key: "show_music", label: "Показывать ссылки на музыкальные площадки" },
+                  { key: "show_in_leaderboard", label: "Участвовать в рейтинге коллекционеров" },
+                ].map((opt) => (
+                  <label
+                    key={opt.key}
+                    className="flex items-center justify-between p-3 rounded-xl bg-black/35 border border-white/10 text-xs font-mono text-[#D9D9E2]/90 cursor-pointer"
+                  >
+                    <span>{opt.label}</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean((privacy as any)?.[opt.key] ?? true)}
+                      onChange={(e) =>
+                        setPrivacy({
+                          ...(privacy || {
+                            is_public: true,
+                            show_inventory: true,
+                            show_music: true,
+                            show_in_leaderboard: true,
+                          }),
+                          [opt.key]: e.target.checked,
+                        })
+                      }
+                      className="rounded bg-white/10 border-white/20 text-[#8737FF] focus:ring-0"
+                    />
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Bottom Save Action */}
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full btn-energy inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-mono text-xs uppercase tracking-wider font-bold shadow-lg"
-          >
-            <Save className="w-4 h-4" />
-            <span>{saving ? "Сохранение изменений..." : "Сохранить все изменения"}</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full btn-energy inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-mono text-xs uppercase tracking-wider font-bold cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? "Сохранение изменений..." : "Сохранить все изменения"}</span>
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Persistent Bottom Save Button */}
+      <div className="flex justify-end pt-2">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="btn-energy inline-flex items-center gap-2 px-7 py-3 rounded-full font-mono text-xs uppercase tracking-wider font-bold cursor-pointer shadow-lg"
+        >
+          <Save className="w-4 h-4" />
+          <span>{saving ? "Сохранение..." : "Сохранить изменения профиля"}</span>
+        </button>
       </div>
     </div>
   );

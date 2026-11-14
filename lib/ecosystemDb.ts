@@ -594,13 +594,18 @@ export async function getCxpWallet(userId: string): Promise<CxpWallet> {
           user_id: userId,
           balance: 99999,
           total_earned: 99999,
-          total_spent: vaultWallet?.total_spent ?? 0,
+          total_spent: vaultWallet?.total_spent ?? tableWallet?.total_spent ?? 0,
           updated_at: new Date().toISOString(),
         };
-        await writeCabinetVault(userId, (prev) => ({
-          ...prev,
-          ecosystem_wallet: ceoWallet,
-        }));
+        await Promise.allSettled([
+          writeCabinetVault(userId, (prev) => ({
+            ...prev,
+            ecosystem_wallet: ceoWallet,
+          })),
+          runOptionalTableQuery("cxrner_cxp_wallet", () =>
+            db.from("cxrner_cxp_wallet").upsert(ceoWallet)
+          ),
+        ]);
         return ceoWallet;
       }
     }
@@ -608,15 +613,37 @@ export async function getCxpWallet(userId: string): Promise<CxpWallet> {
     if (!tableErr && tableWallet && vaultWallet) {
       const tTable = new Date(tableWallet.updated_at || 0).getTime();
       const tVault = new Date(vaultWallet.updated_at || 0).getTime();
-      return (tVault > tTable ? vaultWallet : tableWallet) as CxpWallet;
-    }
-
-    if (!tableErr && tableWallet) {
-      return tableWallet as CxpWallet;
+      if (tVault >= tTable) {
+        if (tableWallet.balance !== vaultWallet.balance) {
+          void runOptionalTableQuery("cxrner_cxp_wallet", () =>
+            db.from("cxrner_cxp_wallet").upsert(vaultWallet)
+          );
+        }
+        return vaultWallet as CxpWallet;
+      } else {
+        if (vaultWallet.balance !== tableWallet.balance) {
+          void writeCabinetVault(userId, (prev) => ({
+            ...prev,
+            ecosystem_wallet: tableWallet as CxpWallet,
+          }));
+        }
+        return tableWallet as CxpWallet;
+      }
     }
 
     if (vaultWallet) {
+      void runOptionalTableQuery("cxrner_cxp_wallet", () =>
+        db.from("cxrner_cxp_wallet").upsert(vaultWallet)
+      );
       return vaultWallet;
+    }
+
+    if (!tableErr && tableWallet) {
+      void writeCabinetVault(userId, (prev) => ({
+        ...prev,
+        ecosystem_wallet: tableWallet as CxpWallet,
+      }));
+      return tableWallet as CxpWallet;
     }
 
     // 2. Initialize & persist starter 100 CXP wallet ONCE so subsequent debits stick
@@ -661,22 +688,37 @@ export async function getCxpWallet(userId: string): Promise<CxpWallet> {
 export async function getCxpTransactions(userId: string): Promise<CxpTransaction[]> {
   const db = await getDbForUser(userId);
   if (db) {
-    const { data, error } = await db
-      .from("cxrner_cxp_transactions")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(100);
+    const [{ data, error }, vault] = await Promise.all([
+      runOptionalTableQuery<any>("cxrner_cxp_transactions", () =>
+        db
+          .from("cxrner_cxp_transactions")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(100)
+      ),
+      readCabinetVault(userId, db),
+    ]);
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      return data as CxpTransaction[];
+    const dbTxs = !error && Array.isArray(data) ? (data as CxpTransaction[]) : [];
+    const vaultTxs = Array.isArray(vault?.ecosystem_transactions)
+      ? (vault.ecosystem_transactions as CxpTransaction[])
+      : [];
+
+    const mergedMap = new Map<string, CxpTransaction>();
+    for (const tx of [...vaultTxs, ...dbTxs]) {
+      const key =
+        tx.source_event_type && tx.source_event_id
+          ? `${tx.source_event_type}:${tx.source_event_id}`
+          : tx.id;
+      if (!mergedMap.has(key)) {
+        mergedMap.set(key, tx);
+      }
     }
 
-    const vault = await readCabinetVault(userId, db);
-    if (Array.isArray(vault?.ecosystem_transactions)) {
-      return vault.ecosystem_transactions as CxpTransaction[];
-    }
-    return [];
+    return Array.from(mergedMap.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
   }
 
   const store = loadLocalStore();
@@ -703,6 +745,7 @@ export async function awardCxp(params: {
     let finalBalance = 0;
     let isDuplicate = false;
     let insufficientFunds = false;
+    let syncedWallet: CxpWallet | null = null;
 
     await writeCabinetVault(userId, (prev) => {
       const txs = Array.isArray(prev.ecosystem_transactions)
@@ -746,6 +789,7 @@ export async function awardCxp(params: {
         total_spent: newSpent,
         updated_at: nowIso,
       };
+      syncedWallet = updatedWallet;
 
       const newTx: CxpTransaction = {
         id: crypto.randomUUID(),
@@ -777,45 +821,42 @@ export async function awardCxp(params: {
       return { ok: true, newBalance: finalBalance, duplicate: true };
     }
 
-    // Best-effort sync to relational wallet/transactions tables when present
-    if (!isTableKnownMissing("cxrner_cxp_transactions")) {
-      const { data: existingDbTx, error: txSelectErr } = await runOptionalTableQuery<{ id: string }>(
-        "cxrner_cxp_transactions",
-        () =>
-          db
-            .from("cxrner_cxp_transactions")
-            .select("id")
-            .eq("user_id", userId)
-            .eq("source_event_type", sourceEventType)
-            .eq("source_event_id", eventId)
-            .maybeSingle()
-      );
-
-      if (!txSelectErr && !existingDbTx) {
-        const { error: txInsertErr } = await runOptionalTableQuery(
-          "cxrner_cxp_transactions",
-          () =>
-            db.from("cxrner_cxp_transactions").insert({
-              user_id: userId,
-              amount,
-              operation_type: amount >= 0 ? "credit" : "debit",
-              reason,
-              source_event_type: sourceEventType,
-              source_event_id: eventId,
-              admin_notes: adminNotes || null,
-            })
-        );
-
-        if (!txInsertErr && !isTableKnownMissing("cxrner_cxp_wallet")) {
-          const updatedVault = await readCabinetVault(userId, db);
-          if (updatedVault?.ecosystem_wallet) {
-            await runOptionalTableQuery("cxrner_cxp_wallet", () =>
-              db.from("cxrner_cxp_wallet").upsert(updatedVault.ecosystem_wallet)
+    // Sync relational wallet and transactions tables in parallel
+    await Promise.allSettled([
+      syncedWallet && !isTableKnownMissing("cxrner_cxp_wallet")
+        ? runOptionalTableQuery("cxrner_cxp_wallet", () =>
+            db.from("cxrner_cxp_wallet").upsert(syncedWallet!)
+          )
+        : Promise.resolve(null),
+      !isTableKnownMissing("cxrner_cxp_transactions")
+        ? (async () => {
+            const { data: existingDbTx, error: txSelectErr } = await runOptionalTableQuery<{ id: string }>(
+              "cxrner_cxp_transactions",
+              () =>
+                db
+                  .from("cxrner_cxp_transactions")
+                  .select("id")
+                  .eq("user_id", userId)
+                  .eq("source_event_type", sourceEventType)
+                  .eq("source_event_id", eventId)
+                  .maybeSingle()
             );
-          }
-        }
-      }
-    }
+            if (!txSelectErr && !existingDbTx) {
+              await runOptionalTableQuery("cxrner_cxp_transactions", () =>
+                db.from("cxrner_cxp_transactions").insert({
+                  user_id: userId,
+                  amount,
+                  operation_type: amount >= 0 ? "credit" : "debit",
+                  reason,
+                  source_event_type: sourceEventType,
+                  source_event_id: eventId,
+                  admin_notes: adminNotes || null,
+                })
+              );
+            }
+          })()
+        : Promise.resolve(null),
+    ]);
 
     return { ok: true, newBalance: finalBalance };
   }
@@ -2202,28 +2243,48 @@ export async function getUserInventory(userId: string): Promise<DropInventoryIte
     const vaultItems = Array.isArray(vault?.ecosystem_inventory)
       ? (vault.ecosystem_inventory as DropInventoryItem[])
       : [];
+    const removedIds = new Set<string>(
+      Array.isArray(vault?.ecosystem_removed_item_ids)
+        ? (vault.ecosystem_removed_item_ids as string[])
+        : []
+    );
 
-    if (!dbErr && Array.isArray(dbRows) && dbRows.length > 0) {
-      const vaultMap = new Map(vaultItems.map((i) => [i.id, i]));
-      const mergedList = (dbRows as DropInventoryItem[]).map((row) =>
-        enrichInventoryItem({ ...row, ...(vaultMap.get(row.id) || {}) })
+    const dbList = !dbErr && Array.isArray(dbRows) ? (dbRows as DropInventoryItem[]) : [];
+
+    if (dbList.length > 0 || vaultItems.length > 0) {
+      const mergedById = new Map<string, DropInventoryItem>();
+      // First index vault items (which carry full rich metadata)
+      for (const vItem of vaultItems) {
+        if (!vItem?.id || removedIds.has(vItem.id)) continue;
+        mergedById.set(vItem.id, enrichInventoryItem(vItem));
+      }
+      // Then merge relational rows (preserving any vault overrides while adding any relational-only rows)
+      for (const row of dbList) {
+        if (!row?.id || removedIds.has(row.id)) continue;
+        const existing = mergedById.get(row.id);
+        mergedById.set(row.id, enrichInventoryItem({ ...row, ...(existing || {}) }));
+      }
+
+      let mergedList = Array.from(mergedById.values()).sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
       );
+
       if (isCeoVault && mergedList.length < 6) {
         const ceoItems = buildCeoSovereignInventory(userId);
-        const existingIds = new Set(mergedList.map((i) => i.item_id));
-        return [...mergedList, ...ceoItems.filter((c) => !existingIds.has(c.item_id))];
+        const existingItemIds = new Set(mergedList.map((i) => i.item_id));
+        mergedList = [...mergedList, ...ceoItems.filter((c) => !existingItemIds.has(c.item_id))];
       }
-      return mergedList;
-    }
 
-    if (vaultItems.length > 0) {
-      const enriched = vaultItems.map(enrichInventoryItem);
-      if (isCeoVault && enriched.length < 6) {
-        const ceoItems = buildCeoSovereignInventory(userId);
-        const existingIds = new Set(enriched.map((i) => i.item_id));
-        return [...enriched, ...ceoItems.filter((c) => !existingIds.has(c.item_id))];
+      // If vault was missing items that existed in relational table, reconcile vault in background
+      if (mergedList.length > vaultItems.length) {
+        void writeCabinetVault(userId, (prev) => ({
+          ...prev,
+          ecosystem_starter_granted: true,
+          ecosystem_inventory: mergedList,
+        }));
       }
-      return enriched;
+
+      return mergedList;
     }
 
     if (isCeoVault) {
@@ -2448,6 +2509,8 @@ export async function openDropCase(
 
   if (db) {
     let insufficientError: string | null = null;
+    let syncedWallet: CxpWallet | null = null;
+    let syncedDebitTx: CxpTransaction | null = null;
 
     // Single atomic vault read+write (eliminates 20+ sequential DB roundtrips!)
     await writeCabinetVault(userId, (prev) => {
@@ -2463,9 +2526,18 @@ export async function openDropCase(
         ? [...(prev.ecosystem_transactions as CxpTransaction[])]
         : [];
 
+      const isCeoVault = isCeoAccount({
+        username: prev?.username || (prev?.cxrner_id as any)?.username,
+        email: prev?.email || prev?.contact_email,
+        badge: (prev?.cxrner_id as any)?.equipped_badge,
+      });
+
       if (deductCost) {
-        const curBalance =
+        let curBalance =
           nextWallet && typeof nextWallet.balance === "number" ? nextWallet.balance : 100;
+        if (isCeoVault && curBalance < caseConfig.price_cxp) {
+          curBalance = 99999;
+        }
         if (curBalance < caseConfig.price_cxp) {
           insufficientError = `Недостаточно CXP для открытия ${caseConfig.name}. Требуется: ${caseConfig.price_cxp} CXP. Текущий баланс: ${curBalance} CXP.`;
           balanceAfter = curBalance;
@@ -2476,20 +2548,23 @@ export async function openDropCase(
         nextWallet = {
           user_id: userId,
           balance: updatedBal,
-          total_earned: nextWallet?.total_earned ?? 100,
+          total_earned: nextWallet?.total_earned ?? (isCeoVault ? 99999 : 100),
           total_spent: (nextWallet?.total_spent ?? 0) + caseConfig.price_cxp,
           updated_at: nowIso,
         };
-        nextTxs.unshift({
+        syncedWallet = nextWallet;
+        const debitTx: CxpTransaction = {
           id: crypto.randomUUID(),
           user_id: userId,
           amount: -caseConfig.price_cxp,
           operation_type: "debit",
           reason: `Открытие кейса ${caseConfig.name}`,
           source_event_type: "drop_case_open",
-          source_event_id: `case_${caseConfig.id}_${Date.now()}`,
+          source_event_id: `case_${caseConfig.id}_${newItem.id}`,
           created_at: nowIso,
-        });
+        };
+        syncedDebitTx = debitTx;
+        nextTxs.unshift(debitTx);
       }
 
       inv.unshift(newItem);
@@ -2539,14 +2614,24 @@ export async function openDropCase(
       throw new Error(insufficientError);
     }
 
-    // Background non-blocking sync when called from real-time HTTP endpoint
-    const syncRelationalTask = Promise.allSettled([
+    // Parallel relational sync (awaited so Vercel serverless functions never terminate before saving!)
+    await Promise.allSettled([
       runOptionalTableQuery("cxrner_drop_inventory", () =>
         db.from("cxrner_drop_inventory").insert(toCoreInventoryRow(newItem))
       ),
       runOptionalTableQuery("cxrner_drop_history", () =>
         db.from("cxrner_drop_history").insert(historyEntry)
       ),
+      syncedWallet
+        ? runOptionalTableQuery("cxrner_cxp_wallet", () =>
+            db.from("cxrner_cxp_wallet").upsert(syncedWallet!)
+          )
+        : Promise.resolve(null),
+      syncedDebitTx
+        ? runOptionalTableQuery("cxrner_cxp_transactions", () =>
+            db.from("cxrner_cxp_transactions").insert(syncedDebitTx!)
+          )
+        : Promise.resolve(null),
       claimRecord
         ? runOptionalTableQuery("special_reward_claims", () =>
             db.from("special_reward_claims").insert(claimRecord)
@@ -2555,8 +2640,7 @@ export async function openDropCase(
     ]);
 
     if (deductCost) {
-      void syncRelationalTask;
-      // Also fire-and-forget achievement checks so the user never waits on 10+ DB queries
+      // Non-critical achievement checks run asynchronously
       void (async () => {
         try {
           await unlockAchievement({ userId, achievementKey: "FIRST_DROP" });
@@ -2582,8 +2666,6 @@ export async function openDropCase(
         balanceAfter,
       };
     }
-
-    await syncRelationalTask;
   } else {
     const currentInventory = await getUserInventory(userId);
     duplicate = currentInventory.some((i) => i.item_id === picked.item_id);
@@ -2680,15 +2762,23 @@ export async function getDropHistory(
     }
 
     const [{ data, error }, vault] = await Promise.all([query, readCabinetVault(userId, db)]);
-    if (!error && Array.isArray(data) && data.length > 0) {
-      return data as DropHistoryEntry[];
-    }
-
-    const hist = Array.isArray(vault?.ecosystem_drop_history)
+    const dbHist = !error && Array.isArray(data) ? (data as DropHistoryEntry[]) : [];
+    const vaultHist = Array.isArray(vault?.ecosystem_drop_history)
       ? (vault.ecosystem_drop_history as DropHistoryEntry[])
       : [];
-    if (!rarityFilter || rarityFilter === "all") return hist;
-    return hist.filter((h) => h.rarity === rarityFilter);
+
+    const mergedById = new Map<string, DropHistoryEntry>();
+    for (const h of [...vaultHist, ...dbHist]) {
+      if (h?.id && !mergedById.has(h.id)) {
+        mergedById.set(h.id, h);
+      }
+    }
+
+    const combined = Array.from(mergedById.values()).sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
+    if (!rarityFilter || rarityFilter === "all") return combined;
+    return combined.filter((h) => h.rarity === rarityFilter);
   }
 
   const store = loadLocalStore();
@@ -2709,12 +2799,21 @@ export async function getSpecialRewardClaims(userId: string): Promise<SpecialRew
       readCabinetVault(userId, db),
     ]);
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      return data as SpecialRewardClaim[];
-    }
-    return Array.isArray(vault?.ecosystem_special_claims)
+    const dbClaims = !error && Array.isArray(data) ? (data as SpecialRewardClaim[]) : [];
+    const vaultClaims = Array.isArray(vault?.ecosystem_special_claims)
       ? (vault.ecosystem_special_claims as SpecialRewardClaim[])
       : [];
+
+    const mergedById = new Map<string, SpecialRewardClaim>();
+    for (const c of [...dbClaims, ...vaultClaims]) {
+      const key = c?.id || c?.claim_code;
+      if (key && !mergedById.has(key)) {
+        mergedById.set(key, c);
+      }
+    }
+    return Array.from(mergedById.values()).sort(
+      (a, b) => new Date(b.won_at || 0).getTime() - new Date(a.won_at || 0).getTime()
+    );
   }
 
   const store = loadLocalStore();
@@ -2724,23 +2823,31 @@ export async function getSpecialRewardClaims(userId: string): Promise<SpecialRew
 export async function getAllSpecialRewardClaims(): Promise<SpecialRewardClaim[]> {
   const { client: db } = await getEcosystemDbClient();
   if (db) {
-    const { data, error } = await db
-      .from("special_reward_claims")
-      .select("*")
-      .order("won_at", { ascending: false });
+    const [{ data, error }, users] = await Promise.all([
+      db.from("special_reward_claims").select("*").order("won_at", { ascending: false }),
+      listAllCabinetUsers(500),
+    ]);
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      return data as SpecialRewardClaim[];
-    }
-
-    const users = await listAllCabinetUsers(500);
-    const all: SpecialRewardClaim[] = [];
-    for (const u of users) {
-      if (Array.isArray(u.profile.ecosystem_special_claims)) {
-        all.push(...(u.profile.ecosystem_special_claims as SpecialRewardClaim[]));
+    const mergedById = new Map<string, SpecialRewardClaim>();
+    if (!error && Array.isArray(data)) {
+      for (const c of data as SpecialRewardClaim[]) {
+        const key = c?.id || c?.claim_code;
+        if (key) mergedById.set(key, c);
       }
     }
-    return all.sort((a, b) => new Date(b.won_at).getTime() - new Date(a.won_at).getTime());
+    for (const u of users) {
+      if (Array.isArray(u.profile.ecosystem_special_claims)) {
+        for (const c of u.profile.ecosystem_special_claims as SpecialRewardClaim[]) {
+          const key = c?.id || c?.claim_code;
+          if (key && !mergedById.has(key)) {
+            mergedById.set(key, c);
+          }
+        }
+      }
+    }
+    return Array.from(mergedById.values()).sort(
+      (a, b) => new Date(b.won_at || 0).getTime() - new Date(a.won_at || 0).getTime()
+    );
   }
 
   const store = loadLocalStore();
@@ -2824,11 +2931,36 @@ export async function updateSpecialClaimStatus(params: {
   return true;
 }
 
+export interface AdminDropPlayerSummary {
+  user_id: string;
+  username: string;
+  display_name: string;
+  email: string | null;
+  is_verified: boolean;
+  is_ceo: boolean;
+  balance: number;
+  total_earned: number;
+  total_spent: number;
+  items_count: number;
+  drops_count: number;
+  items: DropInventoryItem[];
+}
+
+export interface AdminRecentDropEntry extends DropHistoryEntry {
+  username?: string;
+  display_name?: string;
+}
+
 export async function getDropAnalytics(): Promise<{
   totalOpened: number;
   totalCxpSpent: number;
+  totalCxpInCirculation: number;
+  totalArtifactsInInventories: number;
   rarityBreakdown: Record<string, number>;
   specialRewardsWon: number;
+  recentDrops: AdminRecentDropEntry[];
+  playersSummary: AdminDropPlayerSummary[];
+  catalogSpecimens: typeof DROP_SPECIMENS;
 }> {
   const rarityBreakdown: Record<string, number> = {
     common: 0,
@@ -2840,47 +2972,380 @@ export async function getDropAnalytics(): Promise<{
   };
   let totalOpened = 0;
   let totalCxpSpent = 0;
+  let totalCxpInCirculation = 0;
+  let totalArtifactsInInventories = 0;
   let specialRewardsWon = 0;
 
   const { client: db } = await getEcosystemDbClient();
   if (db) {
-    const { data, error } = await db.from("cxrner_drop_history").select("rarity, cxp_spent");
-    let entries: Array<{ rarity: string; cxp_spent?: number }> = [];
+    const [{ data: histData }, { data: invData }, { data: walletData }, users] = await Promise.all([
+      db.from("cxrner_drop_history").select("*").order("created_at", { ascending: false }).limit(500),
+      db.from("cxrner_drop_inventory").select("*").order("created_at", { ascending: false }).limit(1000),
+      db.from("cxrner_cxp_wallet").select("*"),
+      listAllCabinetUsers(500),
+    ]);
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      entries = data;
-    } else {
-      const users = await listAllCabinetUsers(500);
-      for (const u of users) {
-        if (Array.isArray(u.profile.ecosystem_drop_history)) {
-          entries.push(...u.profile.ecosystem_drop_history);
-        }
+    const userMap = new Map(users.map((u) => [u.user_id, u.profile]));
+    const dbWalletMap = new Map<string, CxpWallet>();
+    if (Array.isArray(walletData)) {
+      for (const w of walletData as CxpWallet[]) {
+        if (w?.user_id) dbWalletMap.set(w.user_id, w);
       }
     }
 
-    for (const entry of entries) {
+    const dbInvByUser = new Map<string, DropInventoryItem[]>();
+    if (Array.isArray(invData)) {
+      for (const row of invData as DropInventoryItem[]) {
+        if (!row?.user_id) continue;
+        const arr = dbInvByUser.get(row.user_id) || [];
+        arr.push(row);
+        dbInvByUser.set(row.user_id, arr);
+      }
+    }
+
+    const allHistMap = new Map<string, AdminRecentDropEntry>();
+    if (Array.isArray(histData)) {
+      for (const h of histData as DropHistoryEntry[]) {
+        if (!h?.id) continue;
+        const prof = userMap.get(h.user_id) || {};
+        const cid = (prof.cxrner_id || {}) as Partial<CxrnerProfile>;
+        allHistMap.set(h.id, {
+          ...h,
+          username: cid.username || prof.username || `user_${String(h.user_id).slice(0, 6)}`,
+          display_name: cid.display_name || prof.artist_name || cid.username || "Артист",
+        });
+      }
+    }
+
+    const playersSummary: AdminDropPlayerSummary[] = [];
+
+    for (const u of users) {
+      const p = u.profile || {};
+      const cid = (p.cxrner_id || {}) as Partial<CxrnerProfile>;
+      const ver = (p.ecosystem_verification || {}) as Partial<CxrnerArtistVerification>;
+      const username = cid.username || p.username || `user_${u.user_id.slice(0, 6)}`;
+      const displayName = cid.display_name || p.artist_name || username;
+      const email = p.email || p.contact_email || null;
+      const isCeo = isCeoAccount({ username, email, badge: cid.equipped_badge });
+
+      const vHist = Array.isArray(p.ecosystem_drop_history)
+        ? (p.ecosystem_drop_history as DropHistoryEntry[])
+        : [];
+      for (const h of vHist) {
+        if (h?.id && !allHistMap.has(h.id)) {
+          allHistMap.set(h.id, {
+            ...h,
+            username,
+            display_name: displayName,
+          });
+        }
+      }
+
+      const removedIds = new Set<string>(
+        Array.isArray(p.ecosystem_removed_item_ids) ? (p.ecosystem_removed_item_ids as string[]) : []
+      );
+      const itemMap = new Map<string, DropInventoryItem>();
+      const vInv = Array.isArray(p.ecosystem_inventory)
+        ? (p.ecosystem_inventory as DropInventoryItem[])
+        : [];
+      for (const item of vInv) {
+        if (item?.id && !removedIds.has(item.id)) {
+          itemMap.set(item.id, enrichInventoryItem(item));
+        }
+      }
+      for (const row of dbInvByUser.get(u.user_id) || []) {
+        if (row?.id && !removedIds.has(row.id)) {
+          const prev = itemMap.get(row.id);
+          itemMap.set(row.id, enrichInventoryItem({ ...row, ...(prev || {}) }));
+        }
+      }
+      let items = Array.from(itemMap.values()).sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
+      if (isCeo && items.length < 6) {
+        const ceoItems = buildCeoSovereignInventory(u.user_id);
+        const existingIds = new Set(items.map((i) => i.item_id));
+        items = [...items, ...ceoItems.filter((c) => !existingIds.has(c.item_id))];
+      }
+
+      const vWallet = p.ecosystem_wallet as CxpWallet | undefined;
+      const tWallet = dbWalletMap.get(u.user_id);
+      let balance = vWallet?.balance ?? tWallet?.balance ?? 100;
+      let totalEarned = vWallet?.total_earned ?? tWallet?.total_earned ?? 100;
+      const totalSpent = vWallet?.total_spent ?? tWallet?.total_spent ?? 0;
+      if (isCeo && balance < 50000) {
+        balance = 99999;
+        totalEarned = 99999;
+      }
+
+      totalCxpInCirculation += balance;
+      totalArtifactsInInventories += items.length;
+
+      playersSummary.push({
+        user_id: u.user_id,
+        username,
+        display_name: displayName,
+        email,
+        is_verified: Boolean(cid.is_artist_verified || ver.status === "verified" || isCeo),
+        is_ceo: isCeo,
+        balance,
+        total_earned: totalEarned,
+        total_spent: totalSpent,
+        items_count: items.length,
+        drops_count: vHist.length,
+        items,
+      });
+    }
+
+    playersSummary.sort((a, b) => b.items_count - a.items_count || b.balance - a.balance);
+
+    const allHist = Array.from(allHistMap.values()).sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
+
+    for (const entry of allHist) {
       totalOpened += 1;
-      totalCxpSpent += entry.cxp_spent || 50;
+      totalCxpSpent += typeof entry.cxp_spent === "number" ? entry.cxp_spent : 50;
       rarityBreakdown[entry.rarity] = (rarityBreakdown[entry.rarity] || 0) + 1;
       if (entry.rarity === "special_reward") specialRewardsWon += 1;
     }
 
-    return { totalOpened, totalCxpSpent, rarityBreakdown, specialRewardsWon };
+    return {
+      totalOpened,
+      totalCxpSpent,
+      totalCxpInCirculation,
+      totalArtifactsInInventories,
+      rarityBreakdown,
+      specialRewardsWon,
+      recentDrops: allHist.slice(0, 60),
+      playersSummary,
+      catalogSpecimens: DROP_SPECIMENS,
+    };
   }
 
   const store = loadLocalStore();
+  const recentDrops: AdminRecentDropEntry[] = [];
   if (store.dropHistory) {
     for (const list of Object.values(store.dropHistory)) {
       for (const entry of list) {
         totalOpened += 1;
-        totalCxpSpent += entry.cxp_spent || 50;
+        totalCxpSpent += typeof entry.cxp_spent === "number" ? entry.cxp_spent : 50;
         rarityBreakdown[entry.rarity] = (rarityBreakdown[entry.rarity] || 0) + 1;
         if (entry.rarity === "special_reward") specialRewardsWon += 1;
+        recentDrops.push(entry);
       }
     }
   }
 
-  return { totalOpened, totalCxpSpent, rarityBreakdown, specialRewardsWon };
+  return {
+    totalOpened,
+    totalCxpSpent,
+    totalCxpInCirculation,
+    totalArtifactsInInventories,
+    rarityBreakdown,
+    specialRewardsWon,
+    recentDrops: recentDrops.slice(0, 60),
+    playersSummary: [],
+    catalogSpecimens: DROP_SPECIMENS,
+  };
+}
+
+export async function adminGrantDropItem(params: {
+  targetUserId: string;
+  itemId: string;
+  adminEmail: string;
+  reason?: string;
+}): Promise<{ ok: boolean; item: DropInventoryItem }> {
+  const { targetUserId, itemId, adminEmail, reason } = params;
+  const spec = DROP_SPECIMENS.find((s) => s.item_id === itemId);
+  if (!spec) {
+    throw new Error(`Артефакт ${itemId} не найден в каталоге DROP_SPECIMENS`);
+  }
+
+  const nowIso = new Date().toISOString();
+  const serialNumber = Math.floor(1 + Math.random() * 999);
+  const isSpecial = Boolean(spec.is_special_reward || spec.rarity === "special_reward");
+  const claimCode = isSpecial
+    ? `${spec.specimen_code || "CV"}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    : undefined;
+
+  const grantedItem: DropInventoryItem = enrichInventoryItem({
+    id: crypto.randomUUID(),
+    user_id: targetUserId,
+    item_id: spec.item_id,
+    item_name: spec.item_name,
+    specimen_code: spec.specimen_code,
+    specimen_class: spec.specimen_class,
+    collection_name: spec.collection_name,
+    rarity: spec.rarity,
+    drop_chance: spec.drop_chance,
+    serial_number: serialNumber,
+    description: spec.description,
+    image_url: spec.image_url,
+    model_3d_type: "procedural",
+    model_color: spec.model_color,
+    obtained_via: "admin_grant",
+    is_equipped: false,
+    is_pinned: true,
+    is_hidden: false,
+    ...(isSpecial ? { is_special_reward: true, claim_code: claimCode } : {}),
+    created_at: nowIso,
+  });
+
+  const historyEntry: DropHistoryEntry = {
+    id: crypto.randomUUID(),
+    user_id: targetUserId,
+    case_id: "admin_grant",
+    case_name: `ВЫДАЧА АДМИНИСТРАТОРА (${adminEmail})`,
+    item_id: spec.item_id,
+    item_name: spec.item_name,
+    rarity: spec.rarity,
+    serial_number: serialNumber,
+    cxp_spent: 0,
+    created_at: nowIso,
+  };
+
+  const claimRecord: SpecialRewardClaim | undefined = isSpecial
+    ? {
+        id: crypto.randomUUID(),
+        user_id: targetUserId,
+        reward_id: spec.item_id,
+        reward_name: spec.item_name,
+        claim_code: claimCode!,
+        status: "WON",
+        won_at: nowIso,
+        admin_notes: reason || `Выдано администратором ${adminEmail}`,
+      }
+    : undefined;
+
+  const db = await getDbForUser(targetUserId);
+  if (db) {
+    await writeCabinetVault(targetUserId, (prev) => {
+      const inv = Array.isArray(prev.ecosystem_inventory)
+        ? [...(prev.ecosystem_inventory as DropInventoryItem[])]
+        : [];
+      inv.unshift(grantedItem);
+      const hist = Array.isArray(prev.ecosystem_drop_history)
+        ? [...(prev.ecosystem_drop_history as DropHistoryEntry[])]
+        : [];
+      hist.unshift(historyEntry);
+      const claims = Array.isArray(prev.ecosystem_special_claims)
+        ? [...(prev.ecosystem_special_claims as SpecialRewardClaim[])]
+        : [];
+      if (claimRecord) claims.unshift(claimRecord);
+
+      return {
+        ...prev,
+        ecosystem_starter_granted: true,
+        ecosystem_inventory: inv,
+        ecosystem_drop_history: hist.slice(0, 200),
+        ecosystem_special_claims: claims,
+      };
+    });
+
+    await Promise.allSettled([
+      runOptionalTableQuery("cxrner_drop_inventory", () =>
+        db.from("cxrner_drop_inventory").insert(toCoreInventoryRow(grantedItem))
+      ),
+      runOptionalTableQuery("cxrner_drop_history", () =>
+        db.from("cxrner_drop_history").insert(historyEntry)
+      ),
+      claimRecord
+        ? runOptionalTableQuery("special_reward_claims", () =>
+            db.from("special_reward_claims").insert(claimRecord)
+          )
+        : Promise.resolve(null),
+      createNotification({
+        userId: targetUserId,
+        type: "drop_item",
+        title: `Вам выдан артефакт: ${spec.item_name}!`,
+        message: reason
+          ? `Администратор начислил вам «${spec.item_name}» (#${serialNumber}). Причина: ${reason}`
+          : `Администратор начислил вам коллекционный артефакт «${spec.item_name}» (#${serialNumber}).`,
+        link: "/cabinet/drop/inventory",
+      }),
+      recordAdminAudit({
+        adminEmail,
+        action: "admin_grant_drop_item",
+        targetUserId,
+        details: { itemId: spec.item_id, itemName: spec.item_name, serialNumber, reason },
+      }),
+    ]);
+  }
+
+  return { ok: true, item: grantedItem };
+}
+
+export async function adminRevokeDropItem(params: {
+  targetUserId: string;
+  inventoryItemId: string;
+  adminEmail: string;
+  reason?: string;
+}): Promise<{ ok: boolean }> {
+  const { targetUserId, inventoryItemId, adminEmail, reason } = params;
+  const db = await getDbForUser(targetUserId);
+  if (db) {
+    await writeCabinetVault(targetUserId, (prev) => {
+      const inv = Array.isArray(prev.ecosystem_inventory)
+        ? (prev.ecosystem_inventory as DropInventoryItem[]).filter((i) => i.id !== inventoryItemId)
+        : [];
+      const removed = Array.isArray(prev.ecosystem_removed_item_ids)
+        ? [...(prev.ecosystem_removed_item_ids as string[])]
+        : [];
+      if (!removed.includes(inventoryItemId)) removed.push(inventoryItemId);
+      return {
+        ...prev,
+        ecosystem_inventory: inv,
+        ecosystem_removed_item_ids: removed,
+      };
+    });
+
+    await Promise.allSettled([
+      runOptionalTableQuery("cxrner_drop_inventory", () =>
+        db
+          .from("cxrner_drop_inventory")
+          .delete()
+          .eq("id", inventoryItemId)
+          .eq("user_id", targetUserId)
+      ),
+      recordAdminAudit({
+        adminEmail,
+        action: "admin_revoke_drop_item",
+        targetUserId,
+        details: { inventoryItemId, reason },
+      }),
+    ]);
+  }
+  return { ok: true };
+}
+
+export async function adminSetExactCxpBalance(params: {
+  targetUserId: string;
+  newBalance: number;
+  reason: string;
+  adminEmail: string;
+}): Promise<{ ok: boolean; newBalance: number }> {
+  const { targetUserId, newBalance, reason, adminEmail } = params;
+  const current = await getCxpWallet(targetUserId);
+  const delta = Math.round(newBalance) - (current.balance || 0);
+  if (delta === 0) {
+    return { ok: true, newBalance: current.balance };
+  }
+  const res = await awardCxp({
+    userId: targetUserId,
+    amount: delta,
+    reason: `Установка баланса администратором (${newBalance} CXP): ${reason}`,
+    sourceEventType: "admin_set_balance",
+    sourceEventId: `setbal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    adminNotes: `Выполнил ${adminEmail}: ${reason}`,
+  });
+  await recordAdminAudit({
+    adminEmail,
+    action: "cxp_set_exact_balance",
+    targetUserId,
+    details: { previousBalance: current.balance, newBalance: res.newBalance, reason },
+  });
+  return { ok: true, newBalance: res.newBalance };
 }
 
 export async function updateItemDisplayStatus(params: {
@@ -4134,9 +4599,14 @@ export async function salvageInventoryItem(params: {
       const inv = Array.isArray(prev.ecosystem_inventory)
         ? (prev.ecosystem_inventory as DropInventoryItem[])
         : currentInventory;
+      const removed = Array.isArray(prev.ecosystem_removed_item_ids)
+        ? [...(prev.ecosystem_removed_item_ids as string[])]
+        : [];
+      if (!removed.includes(inventoryItemId)) removed.push(inventoryItemId);
       return {
         ...prev,
         ecosystem_inventory: inv.filter((i) => i.id !== inventoryItemId),
+        ecosystem_removed_item_ids: removed,
       };
     });
 
@@ -4159,6 +4629,7 @@ export async function salvageInventoryItem(params: {
     amount: refundedCxp,
     reason: `Распыление образца: ${targetItem.item_name} (#${targetItem.serial_number})`,
     sourceEventType: "drop_salvage_refund",
+    sourceEventId: `salvage_${inventoryItemId}`,
   });
 
   return {
@@ -4255,6 +4726,13 @@ export async function fuseInventoryItems(params: {
         : [...remainingInventory];
       inv.unshift(fusedItem);
 
+      const removed = Array.isArray(prev.ecosystem_removed_item_ids)
+        ? [...(prev.ecosystem_removed_item_ids as string[])]
+        : [];
+      for (const rid of uniqueIds) {
+        if (!removed.includes(rid)) removed.push(rid);
+      }
+
       const hist = Array.isArray(prev.ecosystem_drop_history)
         ? [...(prev.ecosystem_drop_history as DropHistoryEntry[])]
         : [];
@@ -4263,6 +4741,7 @@ export async function fuseInventoryItems(params: {
       return {
         ...prev,
         ecosystem_inventory: inv,
+        ecosystem_removed_item_ids: removed,
         ecosystem_drop_history: hist.slice(0, 200),
       };
     });
@@ -4301,6 +4780,7 @@ export async function fuseInventoryItems(params: {
     amount: bonusCxp,
     reason: `Бонус лаборатории синтеза: ${fusedItem.item_name} [${nextRarity.toUpperCase()}]`,
     sourceEventType: "drop_fusion_bonus",
+    sourceEventId: `fusion_${fusedItem.id}`,
   });
 
   if (["epic", "legendary", "mythic"].includes(nextRarity)) {
@@ -4422,6 +4902,7 @@ export async function claimDailyDropScan(userId: string): Promise<{
     amount: rewardRule.cxp,
     reason: `Ежедневный скан архива (День ${streakDay}/7)`,
     sourceEventType: "daily_archive_scan",
+    sourceEventId: `daily_scan_${userId}_${todayKey}`,
   });
 
   let bonusItem: DropInventoryItem | null = null;
@@ -4802,10 +5283,22 @@ export async function runCaseBattle(params: {
   let finalBalance = 100;
   let userSerial = Math.floor(100 + Math.random() * 8800);
   let botSerial = Math.floor(100 + Math.random() * 8800);
+  let syncedWallet: CxpWallet | null = null;
+  let syncedBattleTx: CxpTransaction | null = null;
+  const wonItems: DropInventoryItem[] = [];
+  const battleHistoryEntries: DropHistoryEntry[] = [];
 
   const vaultSaved = await writeCabinetVault(userId, (v) => {
-    const baseBalance =
+    const isCeoVault = isCeoAccount({
+      username: v?.username || (v?.cxrner_id as any)?.username,
+      email: v?.email || v?.contact_email,
+      badge: (v?.cxrner_id as any)?.equipped_badge,
+    });
+    let baseBalance =
       typeof v.ecosystem_wallet?.balance === "number" ? v.ecosystem_wallet.balance : 100;
+    if (isCeoVault && baseBalance < targetCase.price_cxp) {
+      baseBalance = 99999;
+    }
     if (baseBalance < targetCase.price_cxp) {
       insufficientBalance = true;
       finalBalance = baseBalance;
@@ -4833,9 +5326,10 @@ export async function runCaseBattle(params: {
         ? `Победа в 1v1 ДУЭЛИ (${targetCase.name}): забраны 2 артефакта!`
         : `Дуэль 1v1 (${targetCase.name}): утешительный кэшбэк +${cashbackCxp} CXP`,
       source_event_type: "case_battle_1v1",
-      source_event_id: `battle_${targetCase.id}_${Date.now()}`,
+      source_event_id: `battle_${targetCase.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       created_at: now,
     };
+    syncedBattleTx = battleTx;
 
     const nextInv = [...prevInv];
     if (won) {
@@ -4860,20 +5354,58 @@ export async function runCaseBattle(params: {
         is_hidden: false,
         created_at: now,
       });
-      nextInv.unshift(toInvItem(botRollDef, botSerial), toInvItem(userRollDef, userSerial));
+      const itemA = toInvItem(botRollDef, botSerial);
+      const itemB = toInvItem(userRollDef, userSerial);
+      wonItems.push(itemA, itemB);
+      nextInv.unshift(itemA, itemB);
+
+      battleHistoryEntries.push(
+        {
+          id: crypto.randomUUID(),
+          user_id: userId,
+          case_id: targetCase.id,
+          case_name: `1v1 ДУЭЛЬ: ${targetCase.name}`,
+          item_id: itemB.item_id,
+          item_name: itemB.item_name,
+          rarity: itemB.rarity,
+          serial_number: itemB.serial_number,
+          cxp_spent: targetCase.price_cxp,
+          created_at: now,
+        },
+        {
+          id: crypto.randomUUID(),
+          user_id: userId,
+          case_id: targetCase.id,
+          case_name: `1v1 ТРОФЕЙ СОПЕРНИКА (${opponentName})`,
+          item_id: itemA.item_id,
+          item_name: itemA.item_name,
+          rarity: itemA.rarity,
+          serial_number: itemA.serial_number,
+          cxp_spent: 0,
+          created_at: now,
+        }
+      );
     }
+
+    const updatedWallet: CxpWallet = {
+      user_id: userId,
+      balance: nextBalance,
+      total_earned: (v.ecosystem_wallet?.total_earned ?? (isCeoVault ? 99999 : 100)) + cashbackCxp,
+      total_spent: (v.ecosystem_wallet?.total_spent ?? 0) + targetCase.price_cxp,
+      updated_at: now,
+    };
+    syncedWallet = updatedWallet;
+
+    const prevHist = Array.isArray(v.ecosystem_drop_history)
+      ? (v.ecosystem_drop_history as DropHistoryEntry[])
+      : [];
 
     return {
       ...v,
-      ecosystem_wallet: {
-        user_id: userId,
-        balance: nextBalance,
-        total_earned: (v.ecosystem_wallet?.total_earned ?? 100) + cashbackCxp,
-        total_spent: (v.ecosystem_wallet?.total_spent ?? 0) + targetCase.price_cxp,
-        updated_at: now,
-      },
-      ecosystem_transactions: [battleTx, ...prevTxs].slice(0, 100),
+      ecosystem_wallet: updatedWallet,
+      ecosystem_transactions: [battleTx, ...prevTxs].slice(0, 200),
       ecosystem_inventory: nextInv,
+      ecosystem_drop_history: [...battleHistoryEntries, ...prevHist].slice(0, 200),
     };
   });
 
@@ -4885,6 +5417,32 @@ export async function runCaseBattle(params: {
   }
   if (!vaultSaved) {
     return { ok: false, error: "Не удалось провести дуэль" };
+  }
+
+  const db = await getDbForUser(userId);
+  if (db) {
+    await Promise.allSettled([
+      syncedWallet
+        ? runOptionalTableQuery("cxrner_cxp_wallet", () =>
+            db.from("cxrner_cxp_wallet").upsert(syncedWallet!)
+          )
+        : Promise.resolve(null),
+      syncedBattleTx
+        ? runOptionalTableQuery("cxrner_cxp_transactions", () =>
+            db.from("cxrner_cxp_transactions").insert(syncedBattleTx!)
+          )
+        : Promise.resolve(null),
+      wonItems.length > 0
+        ? runOptionalTableQuery("cxrner_drop_inventory", () =>
+            db.from("cxrner_drop_inventory").insert(wonItems.map(toCoreInventoryRow))
+          )
+        : Promise.resolve(null),
+      battleHistoryEntries.length > 0
+        ? runOptionalTableQuery("cxrner_drop_history", () =>
+            db.from("cxrner_drop_history").insert(battleHistoryEntries)
+          )
+        : Promise.resolve(null),
+    ]);
   }
 
   return {
@@ -4916,6 +5474,19 @@ export async function runCaseBattle(params: {
   };
 }
 
+const GIFT_HMAC_SECRET =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.ADMIN_PASSWORD ||
+  "cxrner_drop_gift_hmac_2026";
+
+function signGiftPayload(data: string): string {
+  return crypto
+    .createHmac("sha256", GIFT_HMAC_SECRET)
+    .update(data)
+    .digest("base64url")
+    .slice(0, 16);
+}
+
 export async function createDropGift(params: {
   userId: string;
   inventoryItemId?: string;
@@ -4927,10 +5498,7 @@ export async function createDropGift(params: {
   error?: string;
 }> {
   const { userId, inventoryItemId } = params;
-  const vault = await readCabinetVault(userId);
-  const inv: DropInventoryItem[] = Array.isArray(vault?.ecosystem_inventory)
-    ? vault!.ecosystem_inventory!
-    : [];
+  const inv = await getUserInventory(userId);
 
   const target = inventoryItemId
     ? inv.find((i) => i.id === inventoryItemId || i.item_id === inventoryItemId)
@@ -4942,30 +5510,46 @@ export async function createDropGift(params: {
 
   const itemDef =
     DROP_SPECIMENS.find((d) => d.item_id === target.item_id) || DROP_SPECIMENS[0];
-  const rawCode = Buffer.from(
-    JSON.stringify({
-      iid: itemDef.item_id,
-      from: userId.slice(0, 6),
-      ts: Date.now().toString(36),
-    })
-  )
+  const payloadObj = {
+    iid: itemDef.item_id,
+    sn: target.serial_number || 101,
+    from: userId,
+    gid: crypto.randomUUID().slice(0, 8),
+    ts: Date.now().toString(36),
+  };
+  const rawPayload = Buffer.from(JSON.stringify(payloadObj))
     .toString("base64url")
     .replace(/=/g, "");
-  const giftCode = `GIFT-${rawCode}`;
+  const sig = signGiftPayload(rawPayload);
+  const giftCode = `GIFT-${rawPayload}.${sig}`;
 
   const now = new Date().toISOString();
   await writeCabinetVault(userId, (v) => {
     const prevInv: DropInventoryItem[] = Array.isArray(v.ecosystem_inventory)
       ? v.ecosystem_inventory
+      : inv;
+    const nextInv = prevInv.filter((i) => i.id !== target.id);
+    const prevRemoved: string[] = Array.isArray((v as any).ecosystem_removed_item_ids)
+      ? (v as any).ecosystem_removed_item_ids
       : [];
-    const idx = prevInv.findIndex((i) => i.id === target.id);
-    const nextInv = idx >= 0 ? prevInv.filter((_, i) => i !== idx) : prevInv;
     return {
       ...v,
       ecosystem_inventory: nextInv,
+      ecosystem_removed_item_ids: Array.from(new Set([target.id, ...prevRemoved])).slice(0, 500),
       updated_at: now,
     };
   });
+
+  const db = await getDbForUser(userId);
+  if (db) {
+    try {
+      await runOptionalTableQuery("cxrner_drop_inventory", () =>
+        db.from("cxrner_drop_inventory").delete().eq("id", target.id)
+      );
+    } catch {
+      // ignore fallback error
+    }
+  }
 
   return {
     ok: true,
@@ -5022,11 +5606,16 @@ export async function claimDropGiftOrPromo(params: {
 
   const upper = cleanCode.toUpperCase();
   const now = new Date().toISOString();
+  const currentWallet = await getCxpWallet(userId);
+  const currentInv = await getUserInventory(userId);
 
   const promo = BUILTIN_PROMO_CODES[upper];
   if (promo) {
     let alreadyUsed = false;
-    let newBalance = 100;
+    let newBalance = currentWallet.balance;
+    let totalEarned = currentWallet.total_earned;
+    let totalSpent = currentWallet.total_spent;
+    let newPromoEntry: DropInventoryItem | null = null;
     let grantedItem:
       | {
           id: string;
@@ -5046,16 +5635,21 @@ export async function claimDropGiftOrPromo(params: {
         : [];
       if (claimed.includes(upper)) {
         alreadyUsed = true;
-        newBalance = v.ecosystem_wallet?.balance ?? 100;
+        newBalance = v.ecosystem_wallet?.balance ?? currentWallet.balance;
         return v;
       }
 
-      const prevBal =
-        typeof v.ecosystem_wallet?.balance === "number" ? v.ecosystem_wallet.balance : 100;
+      const prevBal = Math.max(
+        currentWallet.balance,
+        typeof v.ecosystem_wallet?.balance === "number" ? v.ecosystem_wallet.balance : 100
+      );
       newBalance = prevBal + promo.cxp;
+      totalEarned = Math.max(currentWallet.total_earned, v.ecosystem_wallet?.total_earned ?? 100) + promo.cxp;
+      totalSpent = Math.max(currentWallet.total_spent, v.ecosystem_wallet?.total_spent ?? 0);
+
       const prevInv: DropInventoryItem[] = Array.isArray(v.ecosystem_inventory)
         ? v.ecosystem_inventory
-        : [];
+        : currentInv;
       const nextInv = [...prevInv];
 
       if (promo.itemIdx !== undefined) {
@@ -5072,7 +5666,7 @@ export async function claimDropGiftOrPromo(params: {
             description: def.description,
             collection_name: def.collection_name,
           };
-          nextInv.unshift({
+          newPromoEntry = {
             id: crypto.randomUUID(),
             user_id: userId,
             item_id: def.item_id,
@@ -5092,9 +5686,24 @@ export async function claimDropGiftOrPromo(params: {
             is_pinned: prevInv.length === 0,
             is_hidden: false,
             created_at: now,
-          });
+          };
+          nextInv.unshift(newPromoEntry);
         }
       }
+
+      const prevTxs: CxpTransaction[] = Array.isArray(v.ecosystem_transactions)
+        ? v.ecosystem_transactions
+        : [];
+      const promoTx: CxpTransaction = {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        amount: promo.cxp,
+        operation_type: "credit",
+        reason: promo.title,
+        source_event_type: "promo_code",
+        source_event_id: `promo_${upper}`,
+        created_at: now,
+      };
 
       return {
         ...v,
@@ -5102,16 +5711,54 @@ export async function claimDropGiftOrPromo(params: {
         ecosystem_wallet: {
           user_id: userId,
           balance: newBalance,
-          total_earned: (v.ecosystem_wallet?.total_earned ?? 100) + promo.cxp,
-          total_spent: v.ecosystem_wallet?.total_spent ?? 0,
+          total_earned: totalEarned,
+          total_spent: totalSpent,
           updated_at: now,
         },
         ecosystem_inventory: nextInv,
+        ecosystem_transactions: [promoTx, ...prevTxs].slice(0, 100),
       };
     });
 
     if (alreadyUsed) {
       return { ok: false, error: `Промокод ${upper} уже активирован на вашем аккаунте` };
+    }
+
+    const db = await getDbForUser(userId);
+    if (db) {
+      try {
+        await Promise.allSettled([
+          runOptionalTableQuery("cxrner_cxp_wallet", () =>
+            db.from("cxrner_cxp_wallet").upsert(
+              {
+                user_id: userId,
+                balance: newBalance,
+                total_earned: totalEarned,
+                total_spent: totalSpent,
+                updated_at: now,
+              },
+              { onConflict: "user_id" }
+            )
+          ),
+          runOptionalTableQuery("cxrner_cxp_transactions", () =>
+            db.from("cxrner_cxp_transactions").insert({
+              user_id: userId,
+              amount: promo.cxp,
+              operation_type: "credit",
+              reason: promo.title,
+              source_event_type: "promo_code",
+              source_event_id: `promo_${upper}`,
+            })
+          ),
+          newPromoEntry
+            ? runOptionalTableQuery("cxrner_drop_inventory", () =>
+                db.from("cxrner_drop_inventory").insert(toCoreInventoryRow(newPromoEntry!))
+              )
+            : Promise.resolve(null),
+        ]);
+      } catch {
+        // ignore fallback error
+      }
     }
 
     return {
@@ -5125,14 +5772,27 @@ export async function claimDropGiftOrPromo(params: {
 
   if (cleanCode.startsWith("GIFT-")) {
     try {
-      const payloadStr = Buffer.from(cleanCode.slice(5), "base64url").toString("utf8");
+      const body = cleanCode.slice(5);
+      const [rawPayload, sig] = body.split(".");
+      if (!rawPayload || !sig || signGiftPayload(rawPayload) !== sig) {
+        return { ok: false, error: "Недействительная или повреждённая подпись подарочного кода" };
+      }
+
+      const payloadStr = Buffer.from(rawPayload, "base64url").toString("utf8");
       const parsed = JSON.parse(payloadStr);
       const itemDef =
-        DROP_SPECIMENS.find((d) => d.item_id === parsed?.iid) || DROP_SPECIMENS[3];
+        DROP_SPECIMENS.find((d) => d.item_id === parsed?.iid) || DROP_SPECIMENS[0];
+
+      // Prevent self-claim CXP farming: if sender reclaims their own gift, 0 bonus CXP is awarded
+      const isSelfClaim = Boolean(parsed?.from && parsed.from === userId);
+      const bonusCxp = isSelfClaim ? 0 : 15;
 
       let alreadyClaimed = false;
-      let newBalance = 100;
-      let serial = 101;
+      let newBalance = currentWallet.balance;
+      let totalEarned = currentWallet.total_earned;
+      let totalSpent = currentWallet.total_spent;
+      let serial = typeof parsed?.sn === "number" ? parsed.sn : 101;
+      let createdGiftItem: DropInventoryItem | null = null;
 
       await writeCabinetVault(userId, (v) => {
         const claimed: string[] = Array.isArray((v as any).ecosystem_claimed_promos)
@@ -5140,18 +5800,20 @@ export async function claimDropGiftOrPromo(params: {
           : [];
         if (claimed.includes(cleanCode)) {
           alreadyClaimed = true;
-          newBalance = v.ecosystem_wallet?.balance ?? 100;
+          newBalance = v.ecosystem_wallet?.balance ?? currentWallet.balance;
           return v;
         }
 
         const prevInv: DropInventoryItem[] = Array.isArray(v.ecosystem_inventory)
           ? v.ecosystem_inventory
-          : [];
-        serial = prevInv.length + 1 + Math.floor(Math.random() * 700);
-        newBalance =
-          (typeof v.ecosystem_wallet?.balance === "number"
-            ? v.ecosystem_wallet.balance
-            : 100) + 15;
+          : currentInv;
+        const prevBal = Math.max(
+          currentWallet.balance,
+          typeof v.ecosystem_wallet?.balance === "number" ? v.ecosystem_wallet.balance : 100
+        );
+        newBalance = prevBal + bonusCxp;
+        totalEarned = Math.max(currentWallet.total_earned, v.ecosystem_wallet?.total_earned ?? 100) + bonusCxp;
+        totalSpent = Math.max(currentWallet.total_spent, v.ecosystem_wallet?.total_spent ?? 0);
 
         const giftEntry: DropInventoryItem = {
           id: crypto.randomUUID(),
@@ -5174,6 +5836,7 @@ export async function claimDropGiftOrPromo(params: {
           is_hidden: false,
           created_at: now,
         };
+        createdGiftItem = giftEntry;
 
         return {
           ...v,
@@ -5181,8 +5844,8 @@ export async function claimDropGiftOrPromo(params: {
           ecosystem_wallet: {
             user_id: userId,
             balance: newBalance,
-            total_earned: (v.ecosystem_wallet?.total_earned ?? 100) + 15,
-            total_spent: v.ecosystem_wallet?.total_spent ?? 0,
+            total_earned: totalEarned,
+            total_spent: totalSpent,
             updated_at: now,
           },
           ecosystem_inventory: [giftEntry, ...prevInv],
@@ -5190,13 +5853,40 @@ export async function claimDropGiftOrPromo(params: {
       });
 
       if (alreadyClaimed) {
-        return { ok: false, error: "Эта подарочная капсула уже была распакована вами" };
+        return { ok: false, error: "Эта подарочная капсула уже была распакована" };
+      }
+
+      const db = await getDbForUser(userId);
+      if (db && createdGiftItem) {
+        try {
+          await Promise.allSettled([
+            runOptionalTableQuery("cxrner_cxp_wallet", () =>
+              db.from("cxrner_cxp_wallet").upsert(
+                {
+                  user_id: userId,
+                  balance: newBalance,
+                  total_earned: totalEarned,
+                  total_spent: totalSpent,
+                  updated_at: now,
+                },
+                { onConflict: "user_id" }
+              )
+            ),
+            runOptionalTableQuery("cxrner_drop_inventory", () =>
+              db.from("cxrner_drop_inventory").insert(toCoreInventoryRow(createdGiftItem!))
+            ),
+          ]);
+        } catch {
+          // ignore fallback error
+        }
       }
 
       return {
         ok: true,
-        message: `Подарочная капсула распакована: ${itemDef.item_name} + 15 CXP!`,
-        cxpAwarded: 15,
+        message: isSelfClaim
+          ? `Артефакт ${itemDef.item_name} возвращён в ваш инвентарь`
+          : `Подарочная капсула распакована: ${itemDef.item_name} + ${bonusCxp} CXP!`,
+        cxpAwarded: bonusCxp,
         droppedItem: {
           id: itemDef.item_id,
           name: itemDef.item_name,

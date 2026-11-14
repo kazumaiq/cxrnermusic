@@ -21,7 +21,11 @@ import {
   Layers,
   FileText,
   Key,
+  Plus,
+  Trash2,
+  Gift,
 } from "lucide-react";
+import { DROP_SPECIMENS } from "@/lib/ecosystemTypes";
 
 interface UserDossierClientProps {
   userId: string;
@@ -48,6 +52,49 @@ export default function UserDossierClient({ userId }: UserDossierClientProps) {
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustLoading, setAdjustLoading] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [grantSpecimenId, setGrantSpecimenId] = useState(
+    DROP_SPECIMENS[0]?.item_id || "item_cxrner_crest"
+  );
+
+  const handleGrantItem = async () => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "grant_drop_item",
+          specimenId: grantSpecimenId,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setActionNotice(`Артефакт ${data.item?.item_name || ""} выдан в инвентарь игрока`);
+        fetchDossier();
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleRevokeItem = async (inventoryItemId: string, itemName: string) => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "revoke_drop_item",
+          inventoryItemId,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setActionNotice(`Артефакт ${itemName} изъят из инвентаря`);
+        fetchDossier();
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const fetchDossier = async () => {
     setLoading(true);
@@ -556,9 +603,33 @@ export default function UserDossierClient({ userId }: UserDossierClientProps) {
       {/* TAB 4: DROP INVENTORY */}
       {activeTab === "inventory" && (
         <div className="p-6 rounded-3xl bg-[#090611] border border-white/10 space-y-4 animate-fadeIn">
-          <h3 className="font-display font-bold text-lg text-white">
-            Инвентарь предметов ({dropInventory.total})
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h3 className="font-display font-bold text-lg text-white">
+              Инвентарь предметов ({dropInventory.total})
+            </h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <Gift className="w-4 h-4 text-[#B46BFF]" />
+              <select
+                value={grantSpecimenId}
+                onChange={(e) => setGrantSpecimenId(e.target.value)}
+                className="px-3 py-1.5 rounded-xl bg-black/60 border border-white/15 font-mono text-xs text-white focus:outline-none focus:border-[#8737FF]"
+              >
+                {DROP_SPECIMENS.map((sp) => (
+                  <option key={sp.item_id} value={sp.item_id}>
+                    [{sp.rarity.toUpperCase()}] {sp.item_name} ({sp.specimen_code})
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleGrantItem}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#8737FF] hover:bg-[#9D55FF] text-white font-mono text-xs font-bold uppercase transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Выдать артефакт</span>
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {dropInventory.items.map((item: any) => (
               <div key={item.id} className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2 text-xs font-mono">
@@ -566,13 +637,24 @@ export default function UserDossierClient({ userId }: UserDossierClientProps) {
                   <span className="px-2 py-0.5 rounded bg-[#8737FF]/20 text-[#B46BFF] uppercase font-bold text-[10px]">
                     {item.rarity}
                   </span>
-                  <span className="text-[#D9D9E2]/50">#{String(item.serial_number).padStart(4, "0")}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#D9D9E2]/50">#{String(item.serial_number).padStart(4, "0")}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRevokeItem(item.id, item.item_name)}
+                      title="Изъять из инвентаря"
+                      className="p-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <div className="font-display font-bold text-sm text-white">{item.item_name}</div>
                 <div className="text-[10px] text-[#00F0FF]">{item.collection_name}</div>
                 <div className="flex items-center gap-2 pt-2 border-t border-white/5 text-[10px] text-[#D9D9E2]/50">
                   {item.is_pinned && <span className="text-[#B46BFF]">📌 Закреплён</span>}
                   {item.is_hidden && <span className="text-amber-400">👁 Скрыт</span>}
+                  <span className="ml-auto">{item.obtained_via || "case_open"}</span>
                 </div>
               </div>
             ))}
