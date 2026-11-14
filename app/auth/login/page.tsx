@@ -127,6 +127,24 @@ function LoginForm() {
       });
 
       if (!signInError && data?.session) {
+        try {
+          const urlRef = searchParams.get("ref")?.trim();
+          const storedRef = localStorage.getItem("cxrner_ref_code")?.trim();
+          const cookieMatch = document.cookie.match(/(?:^|; )cxrner_ref_code=([^;]+)/);
+          const pendingRef = urlRef || storedRef || (cookieMatch ? decodeURIComponent(cookieMatch[1]) : "");
+          if (pendingRef) {
+            const trackRes = await fetch("/api/referral/track", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ referralCode: pendingRef }),
+            }).catch(() => null);
+            if (trackRes?.ok) {
+              localStorage.removeItem("cxrner_ref_code");
+            }
+          }
+        } catch {
+          // ignore
+        }
         router.push("/dashboard");
         return;
       }

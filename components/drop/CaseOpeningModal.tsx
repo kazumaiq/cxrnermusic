@@ -1,43 +1,118 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
+import confetti from "canvas-confetti";
 import {
   X,
   Sparkles,
-  Boxes,
-  ArrowRight,
-  ShieldAlert,
   Award,
-  RotateCw,
-  ExternalLink,
+  Copy,
   Check,
+  AlertCircle,
+  Loader2,
   Eye,
+  Box,
+  RotateCcw,
 } from "lucide-react";
-import confetti from "canvas-confetti";
-import type { DropCaseConfig, DropInventoryItem, ItemRarity } from "@/lib/ecosystemTypes";
-import { RARITY_THEMES } from "./SpecimenVisual";
+import type { DropCaseConfig, DropInventoryItem, DropRarity } from "@/lib/ecosystemTypes";
 import SpecimenVisual from "./SpecimenVisual";
-import CollectionItem3DViewer from "@/components/3d/CollectionItem3DViewer";
-import {
-  playZipTearSound,
-  playChargeUpSound,
-  playRevealSound,
-  playClickSound,
-} from "@/lib/soundFX";
+import { playChargeUpSound, playZipTearSound, playRevealSound, playClickSound } from "@/lib/soundFX";
+import type { ZipStagePhase } from "./ZipPacket3DViewer";
+
+const ZipPacket3DViewer = dynamic(() => import("./ZipPacket3DViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] sm:h-[360px] w-full flex items-center justify-center rounded-2xl bg-white/[0.02] border border-white/10">
+      <Loader2 className="w-6 h-6 animate-spin text-[#B46BFF]" />
+    </div>
+  ),
+});
 
 interface CaseOpeningModalProps {
   isOpen: boolean;
   onClose: () => void;
   caseConfig: DropCaseConfig;
   userBalance: number;
-  onSuccess: (data: {
-    item: DropInventoryItem;
-    balanceAfter: number;
-    claimCode?: string;
-    isSpecialReward?: boolean;
-  }) => void;
+  onSuccess: (
+    item: DropInventoryItem,
+    newBalance: number,
+    claimCode?: string,
+    isSpecial?: boolean
+  ) => void;
   onInspectItem?: (item: DropInventoryItem) => void;
 }
+
+interface RarityDirection {
+  label: string;
+  tagline: string;
+  color: string;
+  burstColors: string[];
+  screenShake: boolean;
+  glitch: boolean;
+}
+
+const RARITY_DIRECTION: Record<DropRarity, RarityDirection> = {
+  common: {
+    label: "COMMON SPECIMEN",
+    tagline: "СТАНДАРТНЫЙ ОБРАЗЕЦ АРХИВА",
+    color: "#A1A1AA",
+    burstColors: ["#E4E4E7", "#A1A1AA", "#52525B"],
+    screenShake: false,
+    glitch: false,
+  },
+  rare: {
+    label: "RARE // CYAN TIER",
+    tagline: "РЕДКИЙ ЦИФРОВОЙ АРТЕФАКТ",
+    color: "#00F0FF",
+    burstColors: ["#00F0FF", "#38BDF8", "#FFFFFF"],
+    screenShake: false,
+    glitch: false,
+  },
+  epic: {
+    label: "EPIC // ULTRAVIOLET",
+    tagline: "ЭПИЧЕСКАЯ РЕЛИКВИЯ ЛЕЙБЛА",
+    color: "#B46BFF",
+    burstColors: ["#B46BFF", "#8737FF", "#E879F9"],
+    screenShake: true,
+    glitch: false,
+  },
+  legendary: {
+    label: "LEGENDARY // SOLAR FLARE",
+    tagline: "ЛЕГЕНДАРНЫЙ ОБРАЗЕЦ ХРАНИЛИЩА",
+    color: "#F59E0B",
+    burstColors: ["#F59E0B", "#FBBF24", "#FFFFFF"],
+    screenShake: true,
+    glitch: false,
+  },
+  mythic: {
+    label: "MYTHIC // BREACH DETECTED",
+    tagline: "МИФИЧЕСКАЯ АНОМАЛИЯ ARCHIVE",
+    color: "#F43F5E",
+    burstColors: ["#F43F5E", "#FB7185", "#00F0FF", "#FFFFFF"],
+    screenShake: true,
+    glitch: true,
+  },
+  special_reward: {
+    label: "SPECIAL PRIZE // 0.1% VOUCHER",
+    tagline: "ЭКСКЛЮЗИВНЫЙ ВАУЧЕР НА ОБЛОЖКУ",
+    color: "#FACC15",
+    burstColors: ["#FACC15", "#FEF08A", "#F59E0B", "#FFFFFF"],
+    screenShake: true,
+    glitch: true,
+  },
+};
+
+const SEQUENCE_STEPS = [
+  "01 // ПРОВЕРКА ПЕЧАТИ КЕЙСА",
+  "02 // СКАНИРОВАНИЕ СЕРИЙНОГО КОДА",
+  "03 // НАГНЕТАНИЕ ЭНЕРГИИ КАМЕРЫ",
+  "04 // ВСКРЫТИЕ ВАКУУМНОЙ ПЛОМБЫ",
+  "05 // РАЗРЫВ ZIP-МОЛНИИ",
+  "06 // ИДЕНТИФИКАЦИЯ РЕДКОСТИ",
+  "07 // ИЗВЛЕЧЕНИЕ АРТЕФАКТА",
+];
 
 export default function CaseOpeningModal({
   isOpen,
@@ -47,513 +122,517 @@ export default function CaseOpeningModal({
   onSuccess,
   onInspectItem,
 }: CaseOpeningModalProps) {
-  // Stages: "confirm" | "opening" | "revealed"
+  const [mounted, setMounted] = useState(false);
   const [stage, setStage] = useState<"confirm" | "opening" | "revealed">("confirm");
-  const [openingProgress, setOpeningProgress] = useState(0); // 0 to 100
-  const [openedItem, setOpenedItem] = useState<DropInventoryItem | null>(null);
-  const [claimCode, setClaimCode] = useState<string | null>(null);
+  const [zipPhase, setZipPhase] = useState<ZipStagePhase>("idle");
+  const [stepIndex, setStepIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState("");
+  const [wonItem, setWonItem] = useState<DropInventoryItem | null>(null);
+  const [claimCode, setClaimCode] = useState<string | undefined>();
   const [isSpecial, setIsSpecial] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"card" | "3d">("card");
   const [copiedCode, setCopiedCode] = useState(false);
-  const [view3D, setView3D] = useState(false);
-  const [flashBurst, setFlashBurst] = useState(false);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timersRef = useRef<number[]>([]);
+  const backdropRef = useRef<HTMLDivElement | null>(null);
+
+  const clearAllTimers = () => {
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+    timersRef.current = [];
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    return () => clearAllTimers();
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (stage === "revealed" && backdropRef.current) {
+      backdropRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [stage]);
 
   useEffect(() => {
     if (isOpen) {
+      clearAllTimers();
       setStage("confirm");
-      setOpeningProgress(0);
-      setOpenedItem(null);
-      setClaimCode(null);
+      setZipPhase("idle");
+      setStepIndex(0);
+      setProgress(0);
+      setError("");
+      setWonItem(null);
+      setClaimCode(undefined);
       setIsSpecial(false);
-      setErrorMessage(null);
-      setCopiedCode(false);
-      setView3D(false);
-      setFlashBurst(false);
+      setViewMode("card");
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isOpen, caseConfig]);
+  }, [isOpen, caseConfig.id]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  const handleStartOpening = async () => {
-    if (userBalance < caseConfig.price_cxp) {
-      setErrorMessage(
-        `Недостаточно CXP. Требуется: ${caseConfig.price_cxp} CXP. Баланс: ${userBalance} CXP.`
-      );
+  const caseAccent =
+    caseConfig.id === "case_002_black_specimen"
+      ? "#A855F7"
+      : caseConfig.id === "case_003_chrome_age"
+      ? "#00F0FF"
+      : "#8737FF";
+
+  const canAfford = userBalance >= caseConfig.price_cxp;
+
+  const fireRarityCelebration = (rarity: DropRarity) => {
+    const dir = RARITY_DIRECTION[rarity] || RARITY_DIRECTION.common;
+    if (rarity === "common") return;
+
+    try {
+      confetti({
+        particleCount: rarity === "special_reward" || rarity === "mythic" ? 130 : 75,
+        spread: rarity === "special_reward" ? 95 : 68,
+        origin: { y: 0.56 },
+        colors: dir.burstColors,
+      });
+
+      if (rarity === "legendary" || rarity === "mythic" || rarity === "special_reward") {
+        window.setTimeout(() => {
+          confetti({
+            particleCount: 65,
+            angle: 60,
+            spread: 60,
+            origin: { x: 0.1, y: 0.65 },
+            colors: dir.burstColors,
+          });
+          confetti({
+            particleCount: 65,
+            angle: 120,
+            spread: 60,
+            origin: { x: 0.9, y: 0.65 },
+            colors: dir.burstColors,
+          });
+        }, 280);
+      }
+    } catch {
+      // Safe fallback if canvas confetti unavailable
+    }
+  };
+
+  const startOpening = async () => {
+    if (!canAfford) {
+      setError(`Недостаточно CXP. Необходимо ${caseConfig.price_cxp} CXP.`);
       return;
     }
 
+    clearAllTimers();
+    setError("");
     setStage("opening");
-    setOpeningProgress(0);
-    setErrorMessage(null);
-
-    // Audio SFX sequence
-    playZipTearSound();
+    setZipPhase("charging");
+    setStepIndex(0);
+    setProgress(8);
     playChargeUpSound();
 
-    // Start 4.5s animation progress timer
-    const startTime = Date.now();
-    const duration = 4600;
-
-    let serverResult: any = null;
-    let apiError: string | null = null;
-
-    // Fire API call concurrently
+    // Concurrent API call determining authoritative drop server-side
     const apiPromise = fetch("/api/cabinet/drop/open", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ caseId: caseConfig.id }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          serverResult = data;
-        } else {
-          apiError = data.error || "Ошибка открытия кейса";
-        }
-      })
-      .catch((err) => {
-        apiError = err.message || "Ошибка сети";
-      });
-
-    const interval = setInterval(async () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
-      setOpeningProgress(progress);
-
-      if (elapsed >= duration) {
-        clearInterval(interval);
-        await apiPromise;
-
-        if (apiError || !serverResult) {
-          setErrorMessage(apiError || "Не удалось завершить открытие кейса");
-          setStage("confirm");
-          return;
-        }
-
-        // Commit server result
-        setOpenedItem(serverResult.item);
-        setIsSpecial(Boolean(serverResult.isSpecialReward));
-        if (serverResult.claimCode) {
-          setClaimCode(serverResult.claimCode);
-        }
-
-        // Trigger brief cinematic flash burst
-        setFlashBurst(true);
-        setTimeout(() => setFlashBurst(false), 380);
-
-        setStage("revealed");
-
-        // Audio reveal fanfare
-        playRevealSound(serverResult.item.rarity);
-
-        // Tier-Specific Confetti Celebration
-        const rarity = serverResult.item.rarity;
-        const rarityColors: Record<string, string[]> = {
-          special_reward: ["#F59E0B", "#FCD34D", "#FFFFFF", "#8737FF", "#00F0FF"],
-          mythic: ["#F43F5E", "#FB7185", "#8737FF", "#FFFFFF", "#05030A"],
-          legendary: ["#F59E0B", "#FCD34D", "#FFFFFF", "#FFB703"],
-          epic: ["#A855F7", "#C084FC", "#00F0FF", "#FFFFFF"],
-          rare: ["#00F0FF", "#38BDF8", "#FFFFFF", "#818CF8"],
-          common: ["#94A3B8", "#CBD5E1", "#FFFFFF"],
-        };
-        const colors = rarityColors[rarity] || ["#8737FF", "#00F0FF", "#FFFFFF"];
-        const particleCount = serverResult.isSpecialReward
-          ? 160
-          : rarity === "mythic"
-          ? 130
-          : rarity === "legendary"
-          ? 110
-          : 80;
-
-        try {
-          confetti({
-            particleCount,
-            spread: 90,
-            origin: { y: 0.5 },
-            colors,
-          });
-
-          // Secondary dual-side salvo for high tier drops
-          if (["special_reward", "mythic", "legendary"].includes(rarity)) {
-            setTimeout(() => {
-              confetti({
-                particleCount: 75,
-                angle: 60,
-                spread: 65,
-                origin: { x: 0.08, y: 0.62 },
-                colors,
-              });
-              confetti({
-                particleCount: 75,
-                angle: 120,
-                spread: 65,
-                origin: { x: 0.92, y: 0.62 },
-                colors,
-              });
-            }, 260);
-          }
-        } catch {}
-
-        onSuccess({
-          item: serverResult.item,
-          balanceAfter: serverResult.balanceAfter,
-          claimCode: serverResult.claimCode,
-          isSpecialReward: serverResult.isSpecialReward,
-        });
+    }).then(async (res) => {
+      const json = await res.json();
+      if (!res.ok || !json.ok || !json.item) {
+        throw new Error(json.error || "Ошибка открытия кейса");
       }
-    }, 50);
+      return json;
+    });
 
-    timerRef.current = interval;
-  };
+    // Multi-beat choreographed timeline synced with 3D pouch animations
+    const beats: Array<{ ms: number; fn: () => void }> = [
+      { ms: 420, fn: () => { setStepIndex(1); setProgress(22); } },
+      { ms: 960, fn: () => { setStepIndex(2); setProgress(40); } },
+      {
+        ms: 1580,
+        fn: () => {
+          setStepIndex(3);
+          setProgress(58);
+          setZipPhase("ripping");
+          playZipTearSound();
+        },
+      },
+      { ms: 2350, fn: () => { setStepIndex(4); setProgress(76); } },
+      {
+        ms: 3050,
+        fn: () => {
+          setStepIndex(5);
+          setProgress(91);
+          setZipPhase("bloom");
+        },
+      },
+    ];
 
-  const handleCopyCode = () => {
-    if (claimCode) {
-      navigator.clipboard.writeText(claimCode);
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
+    beats.forEach((b) => {
+      timersRef.current.push(window.setTimeout(b.fn, b.ms));
+    });
+
+    try {
+      const [result] = await Promise.all([
+        apiPromise,
+        new Promise((r) => {
+          timersRef.current.push(window.setTimeout(r, 3850));
+        }),
+      ]);
+
+      const item = result.item as DropInventoryItem;
+      const balanceAfter = Number(result.balanceAfter ?? userBalance - caseConfig.price_cxp);
+      const itemRarity: DropRarity = result.isSpecialReward ? "special_reward" : item.rarity;
+
+      setWonItem(item);
+      setClaimCode(result.claimCode);
+      setIsSpecial(Boolean(result.isSpecialReward));
+      setStepIndex(6);
+      setProgress(100);
+      setZipPhase("revealed");
+      setStage("revealed");
+
+      playRevealSound(itemRarity);
+      fireRarityCelebration(itemRarity);
+      onSuccess(item, balanceAfter, result.claimCode, Boolean(result.isSpecialReward));
+    } catch (err: any) {
+      clearAllTimers();
+      setStage("confirm");
+      setZipPhase("idle");
+      setError(err?.message || "Сбой синхронизации открытия кейса");
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in">
-      <div className="relative w-full max-w-xl rounded-3xl border border-[#B46BFF]/45 bg-[#090611] shadow-[0_0_80px_rgba(135,55,255,0.35)] overflow-hidden">
-        {/* Blinding Reveal Flash Burst Overlay */}
-        {flashBurst && (
-          <div className="absolute inset-0 z-40 bg-white pointer-events-none transition-opacity duration-300 animate-pulse" />
-        )}
+  const activeDir = wonItem
+    ? RARITY_DIRECTION[isSpecial ? "special_reward" : wonItem.rarity] || RARITY_DIRECTION.common
+    : RARITY_DIRECTION.common;
 
-        {/* Ambient Top Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-[#8737FF]/35 to-transparent blur-3xl pointer-events-none" />
-
-        {/* Modal Close Button (available in confirm and revealed stages) */}
-        {stage !== "opening" && (
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-
-        {/* ===================================================================
-            STAGE 1: CONFIRMATION DIALOG (PRE-OPEN)
-            =================================================================== */}
-        {stage === "confirm" && (
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="text-center space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 font-mono text-[10px] uppercase tracking-widest text-[#D9D9E2]">
-                <Boxes className="w-3.5 h-3.5 text-[#B46BFF]" />
-                <span>CONFIRM CASE UNSEAL</span>
-              </div>
-              <h2 className="font-display font-black text-2xl sm:text-3xl uppercase tracking-tight text-white">
-                {caseConfig.name}
-              </h2>
-              <p className="text-xs sm:text-sm text-[#D9D9E2]/75 max-w-md mx-auto">
-                {caseConfig.description}
-              </p>
-            </div>
-
-            {/* Case Pouch Preview Visual */}
-            <div className="relative w-36 h-48 mx-auto rounded-2xl overflow-hidden border border-[#B46BFF]/30 bg-black/50 p-2 flex items-center justify-center shadow-xl">
-              <img
-                src={caseConfig.cover_url}
-                alt={caseConfig.name}
-                className="w-full h-full object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.8)]"
+  const modalBody = (
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 z-[9998] overflow-y-auto overscroll-contain bg-[#030206]/92 backdrop-blur-2xl"
+      style={{ WebkitOverflowScrolling: "touch" }}
+      onClick={() => {
+        if (stage !== "opening") {
+          playClickSound();
+          onClose();
+        }
+      }}
+    >
+      <div className="min-h-full w-full flex flex-col items-center justify-start px-3 pt-4 pb-28 sm:p-6">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={`relative my-auto w-full max-w-xl sm:max-w-2xl rounded-3xl border bg-gradient-to-b from-[#0E0B18] via-[#07050C] to-[#040307] shadow-[0_30px_100px_rgba(0,0,0,0.92)] ${
+            stage === "revealed" && activeDir.screenShake ? "animate-[dropShakeIntense_0.45s_ease-out]" : ""
+          }`}
+          style={{
+            borderColor:
+              stage === "revealed" ? `${activeDir.color}77` : "rgba(255,255,255,0.14)",
+          }}
+        >
+          {/* Sticky Top Precision Metallic Header Bar */}
+          <div className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-7 py-3.5 rounded-t-3xl border-b border-white/10 bg-[#0D0A16]/95 backdrop-blur-xl">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span
+                className="w-2 h-2 rounded-full animate-pulse shrink-0"
+                style={{
+                  backgroundColor: stage === "revealed" ? activeDir.color : caseAccent,
+                }}
               />
-            </div>
-
-            {/* Transaction Breakdown */}
-            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2.5 font-mono text-xs">
-              <div className="flex justify-between items-center text-[#D9D9E2]/70">
-                <span>Стоимость открытия:</span>
-                <span className="font-display font-black text-white text-sm">
-                  {caseConfig.price_cxp} CXP
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[#D9D9E2]/70">
-                <span>Ваш баланс:</span>
-                <span
-                  className={`font-display font-black text-sm ${
-                    userBalance >= caseConfig.price_cxp ? "text-[#00F0FF]" : "text-rose-400"
-                  }`}
-                >
-                  {userBalance} CXP
-                </span>
-              </div>
-              <div className="pt-2 border-t border-white/10 flex justify-between items-center text-[#D9D9E2]/50 text-[10px]">
-                <span>Гарантия безопасности:</span>
-                <span className="text-emerald-400">100% Cryptographic Roll</span>
-              </div>
-            </div>
-
-            {errorMessage && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs text-center font-sans">
-                {errorMessage}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                onClick={onClose}
-                className="px-5 py-3 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/10 font-mono text-xs uppercase tracking-wider text-[#D9D9E2] transition"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleStartOpening}
-                disabled={userBalance < caseConfig.price_cxp}
-                className="btn-energy px-5 py-3 rounded-full font-sans text-xs uppercase font-bold tracking-wider text-white shadow-[0_0_25px_rgba(135,55,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                OPEN CASE ({caseConfig.price_cxp} CXP)
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ===================================================================
-            STAGE 2: PHYSICAL CASE OPENING ANIMATION (4.6 SECONDS)
-            =================================================================== */}
-        {stage === "opening" && (
-          <div className="p-8 sm:p-12 text-center space-y-6">
-            <div className="space-y-1">
-              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#00F0FF] animate-pulse">
-                // UNSEALING SPECIMEN POUCH //
+              <span className="font-mono text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] text-white/85 truncate">
+                {stage === "confirm"
+                  ? `CHAMBER // ${caseConfig.name}`
+                  : stage === "opening"
+                  ? "UNSEALING PROTOCOL ACTIVE"
+                  : activeDir.label}
               </span>
-              <h3 className="font-display font-black text-xl uppercase tracking-tight text-white">
-                {openingProgress < 30
-                  ? "Инициализация капсулы..."
-                  : openingProgress < 65
-                  ? "Разрыв лазерного шва..."
-                  : openingProgress < 90
-                  ? "Снятие криптографической защиты..."
-                  : "Декодирование артефакта!"}
-              </h3>
             </div>
 
-            {/* Visual Zipper Tear Centerpiece with container vibration */}
-            <div
-              className={`relative w-44 h-60 mx-auto flex items-center justify-center transition-transform ${
-                openingProgress > 30 ? "animate-drop-shake" : ""
-              }`}
-            >
-              {/* Expanding Volumetric Light Glow */}
-              <div
-                className="absolute inset-0 rounded-full blur-3xl transition-all duration-300 pointer-events-none"
-                style={{
-                  background:
-                    openingProgress > 70
-                      ? "radial-gradient(circle, rgba(0,240,255,0.85), rgba(135,55,255,0.7), transparent)"
-                      : "radial-gradient(circle, rgba(135,55,255,0.55), transparent)",
-                  transform: `scale(${1 + openingProgress / 70})`,
-                  opacity: 0.45 + openingProgress / 140,
+            {stage !== "opening" && (
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound();
+                  onClose();
                 }}
-              />
-
-              {/* Case Visual with Rip Effect */}
-              <div
-                className="relative z-10 w-full h-full transition-transform duration-300"
-                style={{
-                  transform: `scale(${1 + Math.sin(openingProgress / 8) * 0.06})`,
-                }}
+                className="p-2 rounded-full bg-white/[0.08] hover:bg-white/20 border border-white/15 text-white transition shrink-0"
+                aria-label="Закрыть окно"
               >
-                <img
-                  src={caseConfig.cover_url}
-                  alt="Opening Case"
-                  className="w-full h-full object-contain filter drop-shadow-[0_0_35px_rgba(135,55,255,0.7)]"
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* STAGE 1 & 2: CONFIRM OR LIVE 3D UNSEALING SEQUENCE */}
+          {stage !== "revealed" && (
+            <div className="p-4 sm:p-7 space-y-5">
+              {/* Live Unified 3D Specimen Pouch Stage */}
+              <div className="relative rounded-2xl border border-white/12 bg-[#040308] overflow-hidden">
+                <ZipPacket3DViewer
+                  caseId={caseConfig.id}
+                  themeColor={zipPhase === "bloom" ? "#FFFFFF" : caseAccent}
+                  stagePhase={zipPhase}
+                  labelCode={caseConfig.subtitle}
+                  specimenName={caseConfig.name}
+                  heightClass="h-[245px] sm:h-[310px]"
                 />
 
-                {/* Laser Zipper Rip Line with spark ping */}
-                {openingProgress > 20 && openingProgress < 90 && (
+              {/* Laser Beam Sweep Overlay During Unsealing */}
+              {stage === "opening" && (
+                <>
+                  <div className="pointer-events-none absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#00F0FF] to-transparent shadow-[0_0_16px_#00F0FF] animate-laser-sweep z-20" />
+                  {zipPhase === "ripping" && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-20">
+                      <div className="w-28 h-28 rounded-full border-2 border-[#00F0FF] animate-shockwave-ring" />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {stage === "opening" ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between font-mono text-[11px]">
+                  <span className="text-[#00F0FF] font-bold tracking-wider">
+                    {SEQUENCE_STEPS[stepIndex]}
+                  </span>
+                  <span className="text-white/70 tabular-nums">{progress}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                   <div
-                    className="absolute top-[28%] left-0 h-1 bg-gradient-to-r from-transparent via-[#00F0FF] to-white shadow-[0_0_20px_#00F0FF]"
-                    style={{
-                      width: `${Math.min(100, (openingProgress - 20) * 1.5)}%`,
-                    }}
-                  >
-                    <span className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-[0_0_15px_#FFF] animate-ping" />
+                    className="h-full rounded-full bg-gradient-to-r from-[#8737FF] via-[#B46BFF] to-[#00F0FF] transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/10 font-mono text-xs">
+                  <div>
+                    <span className="text-white/45 block text-[10px]">СТОИМОСТЬ ВСКРЫТИЯ</span>
+                    <span className="font-display font-black text-xl text-white">
+                      {caseConfig.price_cxp} CXP
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-white/45 block text-[10px]">ДОСТУПНЫЙ БАЛАНС</span>
+                    <span
+                      className={`font-display font-black text-xl ${
+                        canAfford ? "text-[#00F0FF]" : "text-rose-400"
+                      }`}
+                    >
+                      {userBalance} CXP
+                    </span>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 flex items-center gap-2.5 text-xs text-rose-200">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
                   </div>
                 )}
-              </div>
-            </div>
 
-            {/* High-Tech Diagnostic Hacker Readout */}
-            <div className="h-6 flex items-center justify-center font-mono text-[10px] text-[#00F0FF] tracking-wider uppercase">
-              {openingProgress < 25 && "// INITIALIZING DECOMPRESSION CHAMBER //"}
-              {openingProgress >= 25 && openingProgress < 50 && "// CUTTING LASER SEAL • VACUUM RELEASE //"}
-              {openingProgress >= 50 && openingProgress < 75 && "// ANALYZING SPECIMEN FREQUENCY //"}
-              {openingProgress >= 75 && openingProgress < 95 && "// DECRYPTING CRYPTO SIGNATURE... //"}
-              {openingProgress >= 95 && "// EXTRACTION READY • REVEALING! //"}
-            </div>
-
-            {/* Cinematic Progress Bar */}
-            <div className="max-w-xs mx-auto space-y-2">
-              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-[#8737FF] via-[#00F0FF] to-white rounded-full transition-all duration-100 shadow-[0_0_10px_#00F0FF]"
-                  style={{ width: `${openingProgress}%` }}
-                />
+                <button
+                  type="button"
+                  onClick={startOpening}
+                  disabled={!canAfford}
+                  className="w-full btn-energy py-4 rounded-full font-display text-xs sm:text-sm uppercase font-black tracking-wider text-white disabled:opacity-45 disabled:pointer-events-none flex items-center justify-center gap-2.5 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-[#00F0FF]" />
+                  <span>
+                    {canAfford
+                      ? `ВСКРЫТЬ ОБРАЗЕЦ ЗА ${caseConfig.price_cxp} CXP`
+                      : `НЕ ХВАТАЕТ ${caseConfig.price_cxp - userBalance} CXP`}
+                  </span>
+                </button>
               </div>
-              <span className="font-mono text-[10px] text-[#D9D9E2]/50 tracking-widest">
-                {openingProgress}% COMPLETED
-              </span>
-            </div>
+            )}
           </div>
         )}
 
-        {/* ===================================================================
-            STAGE 3: ITEM REVEAL WINDOW (CINEMATIC WOW REVEAL)
-            =================================================================== */}
-        {stage === "revealed" && openedItem && (
-          <div className="relative p-6 sm:p-8 space-y-6">
-            {/* Rotating Sunburst Background Lightbeams */}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-35">
-              <div
-                className="w-[600px] h-[600px] rounded-full animate-drop-sunburst"
-                style={{
-                  background: `conic-gradient(from 0deg at 50% 50%, rgba(135,55,255,0.3) 0deg 15deg, transparent 15deg 30deg, rgba(0,240,255,0.25) 30deg 45deg, transparent 45deg 60deg, rgba(135,55,255,0.3) 60deg 75deg, transparent 75deg 90deg, rgba(0,240,255,0.25) 90deg 105deg, transparent 105deg 120deg, rgba(135,55,255,0.3) 120deg 135deg, transparent 135deg 150deg, rgba(0,240,255,0.25) 150deg 165deg, transparent 165deg 180deg, rgba(135,55,255,0.3) 180deg 195deg, transparent 195deg 210deg, rgba(0,240,255,0.25) 210deg 225deg, transparent 225deg 240deg, rgba(135,55,255,0.3) 240deg 255deg, transparent 255deg 270deg, rgba(0,240,255,0.25) 270deg 285deg, transparent 285deg 300deg, rgba(135,55,255,0.3) 300deg 315deg, transparent 315deg 330deg, rgba(0,240,255,0.25) 330deg 345deg, transparent 345deg 360deg)`,
-                }}
-              />
-            </div>
+        {/* STAGE 3: DISTINCT PER-RARITY REVEAL SHOWCASE */}
+        {stage === "revealed" && wonItem && (
+          <div className="p-4 sm:p-7 space-y-4 sm:space-y-5 relative overflow-x-clip">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-20 rounded-b-3xl"
+              style={{
+                background: `radial-gradient(circle at 50% 25%, ${activeDir.color}, transparent 68%)`,
+              }}
+            />
 
-            {/* Header Notification */}
-            <div className="relative z-10 text-center space-y-1.5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/15 font-mono text-[10px] uppercase tracking-widest text-[#00F0FF]">
-                <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                <span>NEW SPECIMEN DISCOVERED</span>
+            <div className="relative z-10 text-center space-y-1">
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border font-mono text-[10px] font-bold uppercase tracking-[0.2em] ${
+                  activeDir.glitch ? "animate-glitch-slice" : ""
+                }`}
+                style={{
+                  color: activeDir.color,
+                  borderColor: `${activeDir.color}66`,
+                  backgroundColor: `${activeDir.color}18`,
+                }}
+              >
+                <span>{activeDir.tagline}</span>
               </div>
-              <h2 className="font-display font-black text-2xl sm:text-3xl uppercase tracking-tight text-white">
-                {openedItem.item_name}
+
+              <h2 className="font-display font-black text-xl sm:text-3xl uppercase tracking-tight text-white leading-tight pt-1">
+                {wonItem.item_name}
               </h2>
-              <p className="font-mono text-xs text-[#D9D9E2]/70 uppercase tracking-widest">
-                COLLECTION: {openedItem.collection_name} • №
-                {String(openedItem.serial_number).padStart(6, "0")}
+              <p className="font-mono text-[11px] text-white/60">
+                СЕРИЙНЫЙ №{String(wonItem.serial_number).padStart(6, "0")} ·{" "}
+                {wonItem.collection_name || "CXRNER ARCHIVE"}
               </p>
             </div>
 
-            {/* 2D / 3D Toggle */}
-            <div className="relative z-10 flex justify-center gap-2">
-              <button
-                onClick={() => setView3D(false)}
-                className={`px-3 py-1 rounded-full font-mono text-[10px] uppercase tracking-wider transition ${
-                  !view3D
-                    ? "bg-white text-black font-bold shadow-md"
-                    : "bg-white/10 text-white/70 hover:bg-white/15"
-                }`}
-              >
-                2D POUCH
-              </button>
-              <button
-                onClick={() => setView3D(true)}
-                className={`px-3 py-1 rounded-full font-mono text-[10px] uppercase tracking-wider transition ${
-                  view3D
-                    ? "bg-[#8737FF] text-white font-bold shadow-[0_0_12px_#8737FF]"
-                    : "bg-white/10 text-white/70 hover:bg-white/15"
-                }`}
-              >
-                3D MESH
-              </button>
+            {/* Dual Mode View Switcher: Museum Slab / Interactive 3D Pouch */}
+            <div className="relative z-10 flex justify-center">
+              <div className="inline-flex p-1 rounded-full bg-white/[0.05] border border-white/12 font-mono text-[10px] uppercase">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    setViewMode("card");
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition cursor-pointer ${
+                    viewMode === "card"
+                      ? "bg-white text-[#050407] font-bold"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>Экспонат</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    setViewMode("3d");
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition cursor-pointer ${
+                    viewMode === "3d"
+                      ? "bg-white text-[#050407] font-bold"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  <Box className="w-3 h-3" />
+                  <span>3D Осмотр</span>
+                </button>
+              </div>
             </div>
 
-            {/* Specimen Visual Presentation with Bouncy Card Pop Animation */}
-            <div className="relative z-10 max-w-[280px] mx-auto animate-drop-card-pop">
-              {view3D ? (
-                <div className="w-full h-64 rounded-2xl bg-black/60 border border-white/10 p-2">
-                  <CollectionItem3DViewer
-                    itemName={openedItem.item_name}
-                    rarity={openedItem.rarity as any}
-                    modelColor={openedItem.model_color}
-                    serialNumber={openedItem.serial_number}
+            <div className="relative z-10 flex justify-center">
+              {viewMode === "card" ? (
+                <div className="w-44 sm:w-56">
+                  <SpecimenVisual
+                    itemId={wonItem.item_id}
+                    itemName={wonItem.item_name}
+                    rarity={isSpecial ? "special_reward" : wonItem.rarity}
+                    imageUrl={wonItem.image_url}
+                    serialNumber={wonItem.serial_number}
+                    collectionName={wonItem.collection_name}
+                    isSpecialReward={isSpecial}
+                    interactiveTilt
                   />
                 </div>
               ) : (
-                <SpecimenVisual
-                  itemId={openedItem.item_id}
-                  itemName={openedItem.item_name}
-                  rarity={openedItem.rarity}
-                  imageUrl={openedItem.image_url}
-                  serialNumber={openedItem.serial_number}
-                  collectionName={openedItem.collection_name}
-                  isSpecialReward={isSpecial}
-                />
+                <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#05040A]">
+                  <ZipPacket3DViewer
+                    imageUrl={wonItem.image_url}
+                    themeColor={activeDir.color}
+                    labelCode={`№${String(wonItem.serial_number).padStart(6, "0")}`}
+                    specimenName={wonItem.item_name}
+                    stagePhase="revealed"
+                    heightClass="h-[250px] sm:h-[310px]"
+                  />
+                </div>
               )}
             </div>
 
-            {/* Description */}
-            <p className="relative z-10 text-xs sm:text-sm text-[#D9D9E2]/85 text-center max-w-md mx-auto leading-relaxed font-sans">
-              {openedItem.description}
-            </p>
+            {wonItem.description && (
+              <p className="relative z-10 text-center text-xs text-[#D9D9E2]/70 max-w-md mx-auto leading-relaxed">
+                {wonItem.description}
+              </p>
+            )}
 
-            {/* Special Voucher Claim Notice */}
-            {isSpecial && claimCode && (
-              <div className="relative z-10 p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-900/30 to-amber-500/20 border border-amber-500/50 space-y-3 text-center shadow-xl">
-                <div className="flex items-center justify-center gap-2 font-display font-black text-xs text-amber-300 uppercase tracking-wider">
-                  <Award className="w-4 h-4 text-amber-400" />
-                  <span>ВЫ ВЫИГРАЛИ БЕСПЛАТНУЮ ОБЛОЖКУ РЕЛИЗА!</span>
+            {/* Special Cover Voucher Code Banner */}
+            {claimCode && (
+              <div className="relative z-10 p-4 rounded-2xl bg-yellow-500/12 border border-yellow-400/50 space-y-2.5 text-center">
+                <div className="inline-flex items-center gap-2 font-mono text-xs font-bold text-yellow-300 uppercase">
+                  <Award className="w-4 h-4" />
+                  <span>ОФИЦИАЛЬНЫЙ CLAIM-КОД ВАУЧЕРА</span>
                 </div>
-                <p className="text-xs text-[#D9D9E2]/90 leading-relaxed font-sans">
-                  Напишите лично дизайнеру в Telegram:{" "}
-                  <a
-                    href="https://t.me/kazumaiq"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-amber-300 font-bold underline"
-                  >
-                    @kazumaiq
-                  </a>
-                  . Отправьте свой никнейм и код выигрыша для согласования дизайна.
-                </p>
-                <div className="flex items-center justify-center gap-2 pt-1">
-                  <span className="px-3 py-1.5 rounded-lg bg-black/60 border border-amber-500/60 font-mono text-xs font-bold text-amber-300">
+                <div className="flex items-center justify-center gap-2">
+                  <code className="px-4 py-2 rounded-xl bg-black/70 border border-yellow-400/40 font-mono text-base font-black text-yellow-200 tracking-widest">
                     {claimCode}
-                  </span>
+                  </code>
                   <button
-                    onClick={handleCopyCode}
-                    className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 font-mono text-xs uppercase flex items-center gap-1 transition"
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(claimCode);
+                      setCopiedCode(true);
+                      window.setTimeout(() => setCopiedCode(false), 2000);
+                    }}
+                    className="p-2.5 rounded-xl bg-yellow-400 text-[#050407] hover:brightness-110 transition"
+                    title="Копировать код"
                   >
-                    {copiedCode ? <Check className="w-3.5 h-3.5" /> : null}
-                    <span>{copiedCode ? "Скопировано" : "Копировать код"}</span>
+                    {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
+                <p className="text-[11px] text-yellow-100/80">
+                  Передайте этот код основателю (@kazumaiq) или в поддержку кабинета для активации бесплатного дизайна обложки.
+                </p>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+            {/* Post-Reveal Actions */}
+            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
               <button
-                onClick={onClose}
-                className="btn-energy px-4 py-3 rounded-full font-sans text-xs uppercase font-bold tracking-wider text-white shadow-[0_0_20px_rgba(135,55,255,0.4)]"
+                type="button"
+                onClick={startOpening}
+                disabled={userBalance < caseConfig.price_cxp}
+                className="btn-energy min-h-[44px] py-3 px-4 rounded-full font-mono text-[11px] font-bold uppercase tracking-wider text-white disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                В инвентарь
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Ещё раз ({caseConfig.price_cxp})</span>
               </button>
+
               {onInspectItem && (
                 <button
+                  type="button"
                   onClick={() => {
                     onClose();
-                    onInspectItem(openedItem);
+                    onInspectItem(wonItem);
                   }}
-                  className="px-4 py-3 rounded-full border border-white/20 bg-white/[0.05] hover:bg-white/10 font-mono text-xs uppercase tracking-wider text-white flex items-center justify-center gap-1.5 transition"
+                  className="btn-void-ghost min-h-[44px] py-3 px-4 rounded-full font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <Eye className="w-3.5 h-3.5 text-[#00F0FF]" />
+                  <Box className="w-3.5 h-3.5 text-[#00F0FF]" />
                   <span>3D Осмотр</span>
                 </button>
               )}
+
               <button
-                onClick={() => setStage("confirm")}
-                className="px-4 py-3 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 hover:bg-[#8737FF]/25 font-mono text-xs uppercase tracking-wider text-[#D9D9E2] flex items-center justify-center gap-1.5 transition"
+                type="button"
+                onClick={onClose}
+                className="min-h-[44px] py-3 px-4 rounded-full bg-white text-[#050407] hover:brightness-95 font-mono text-[11px] font-extrabold uppercase tracking-wider transition cursor-pointer"
               >
-                <RotateCw className="w-3.5 h-3.5 text-[#B46BFF]" />
-                <span>Открыть ещё</span>
+                Готово
               </button>
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
+
+  return createPortal(modalBody, document.body);
 }

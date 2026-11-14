@@ -77,6 +77,17 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link
+                  href="/drop"
+                  className="text-white hover:text-[#B46BFF] transition inline-flex items-center gap-1.5 font-semibold"
+                >
+                  <span className="text-[#B46BFF]">CXRNER DROP</span>
+                  <span className="px-1.5 py-0.2 rounded bg-white/10 text-white text-[8px] font-bold">
+                    GAME
+                  </span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/#about" className="hover:text-white transition">
                   О лейбле
                 </Link>

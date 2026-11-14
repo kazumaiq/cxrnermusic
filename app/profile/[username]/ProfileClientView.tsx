@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import type { CxrnerProfile, DropInventoryItem, CxrnerArtistProfile } from "@/lib/ecosystemTypes";
 import { ACHIEVEMENTS_CATALOG } from "@/lib/ecosystemTypes";
-import CollectionItem3DViewer from "@/components/3d/CollectionItem3DViewer";
+import SpecimenVisual from "@/components/drop/SpecimenVisual";
+import ItemInspectModal from "@/components/drop/ItemInspectModal";
 
 interface ProfileClientViewProps {
   profile: CxrnerProfile;
@@ -279,62 +280,36 @@ export default function ProfileClientView({
                 <div
                   key={item.id}
                   onClick={() => setSelectedItem(item)}
-                  className="group relative rounded-2xl bg-[#0A0714] border border-white/15 p-5 cursor-pointer hover:border-[#B46BFF] hover:shadow-[0_8px_32px_rgba(135,55,255,0.25)] transition duration-300 flex flex-col justify-between"
+                  className="cxr-panel group rounded-2xl p-4 sm:p-5 cursor-pointer hover:border-white/35 transition duration-300 flex flex-col justify-between gap-4"
                 >
-                  <div>
-                    {/* Header: Rarity & Serial */}
-                    <div className="flex items-center justify-between mb-4">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider font-bold border ${
-                          item.rarity === "mythic"
-                            ? "bg-red-500/20 text-red-300 border-red-500/40"
-                            : item.rarity === "legendary"
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                            : item.rarity === "epic"
-                            ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
-                            : item.rarity === "rare"
-                            ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
-                            : "bg-white/10 text-white/70 border-white/20"
-                        }`}
-                      >
-                        {item.rarity}
-                      </span>
-                      <span className="font-mono text-xs text-[#D9D9E2]/50">
-                        #{String(item.serial_number).padStart(4, "0")}
-                      </span>
-                    </div>
-
-                    {/* Central 3D Graphic Preview */}
-                    <div className="relative h-44 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center overflow-hidden group-hover:scale-[1.02] transition duration-300">
-                      <div
-                        className="w-24 h-24 rounded-full blur-xl absolute"
-                        style={{ backgroundColor: item.model_color, opacity: 0.3 }}
-                      />
-                      <CollectionItem3DViewer
-                        itemName={item.item_name}
-                        rarity={item.rarity}
-                        modelColor={item.model_color}
-                        serialNumber={item.serial_number}
-                      />
-                    </div>
-
-                    {/* Item Details */}
-                    <div className="mt-4">
-                      <div className="font-mono text-[10px] uppercase text-[#00F0FF] font-semibold tracking-wider">
-                        {item.collection_name}
-                      </div>
-                      <h4 className="font-display font-bold text-base text-white mt-0.5 group-hover:text-[#B46BFF] transition">
-                        {item.item_name}
-                      </h4>
-                      <p className="text-xs text-[#D9D9E2]/60 line-clamp-2 mt-1 font-sans">
-                        {item.description}
-                      </p>
-                    </div>
+                  <div className="w-full max-w-[230px] mx-auto">
+                    <SpecimenVisual
+                      itemId={item.item_id}
+                      itemName={item.item_name}
+                      rarity={item.rarity}
+                      imageUrl={item.image_url}
+                      serialNumber={item.serial_number}
+                      collectionName={item.collection_name}
+                      isSpecialReward={item.rarity === "special_reward"}
+                      interactiveTilt
+                    />
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-[#D9D9E2]/50 group-hover:text-white transition">
-                    <span>360° INSPECT</span>
-                    <Sparkles className="w-3.5 h-3.5 text-[#B46BFF]" />
+                  <div>
+                    <div className="font-mono text-[10px] uppercase text-[#00F0FF] font-semibold tracking-wider">
+                      {item.collection_name}
+                    </div>
+                    <h4 className="font-display font-bold text-base text-white mt-0.5 group-hover:text-[#B46BFF] transition">
+                      {item.item_name}
+                    </h4>
+                    <p className="text-xs text-[#D9D9E2]/60 line-clamp-2 mt-1 font-sans">
+                      {item.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-[#D9D9E2]/55 group-hover:text-white transition">
+                    <span>3D ОСМОТР ЭКСПОНАТА</span>
+                    <Sparkles className="w-3.5 h-3.5 text-[#00F0FF]" />
                   </div>
                 </div>
               ))}
@@ -392,55 +367,10 @@ export default function ProfileClientView({
 
       {/* 3D Specimen Fullscreen Inspection Modal */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4">
-          <div className="relative w-full max-w-2xl bg-[#090611] border border-white/20 rounded-3xl overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.9)] p-6 sm:p-8 animate-fadeIn">
-            <button
-              type="button"
-              onClick={() => setSelectedItem(null)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs uppercase text-[#00F0FF] font-bold">
-                  {selectedItem.collection_name}
-                </span>
-                <span className="text-[#D9D9E2]/40">•</span>
-                <span className="font-mono text-xs text-[#D9D9E2]/70">
-                  #{String(selectedItem.serial_number).padStart(4, "0")}
-                </span>
-              </div>
-
-              <h2 className="font-display font-black text-2xl sm:text-3xl text-white">
-                {selectedItem.item_name}
-              </h2>
-
-              {/* 3D Canvas */}
-              <CollectionItem3DViewer
-                itemName={selectedItem.item_name}
-                rarity={selectedItem.rarity}
-                modelColor={selectedItem.model_color}
-                serialNumber={selectedItem.serial_number}
-              />
-
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-[#D9D9E2]/60">Категория редкости:</span>
-                  <span className="text-[#B46BFF] font-bold uppercase">{selectedItem.rarity}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-[#D9D9E2]/60">Способ получения:</span>
-                  <span className="text-white">{selectedItem.obtained_via}</span>
-                </div>
-                <p className="text-xs text-[#D9D9E2]/80 font-sans pt-2 border-t border-white/10">
-                  {selectedItem.description}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ItemInspectModal
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   );

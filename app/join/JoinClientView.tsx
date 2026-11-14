@@ -93,7 +93,7 @@ export default function JoinClientView({ initialRefCode }: JoinClientViewProps) 
           {/* Action Buttons */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
             <NextLink
-              href="/auth/register"
+              href={refCode ? `/auth/register?ref=${encodeURIComponent(refCode)}` : "/auth/register"}
               className="btn-energy w-full sm:w-auto px-8 py-3 rounded-full font-mono text-xs uppercase tracking-wider font-bold inline-flex items-center justify-center gap-2 shadow-xl"
             >
               <span>Создать аккаунт</span>
@@ -101,7 +101,7 @@ export default function JoinClientView({ initialRefCode }: JoinClientViewProps) 
             </NextLink>
 
             <NextLink
-              href="/auth/login"
+              href={refCode ? `/auth/login?ref=${encodeURIComponent(refCode)}` : "/auth/login"}
               className="w-full sm:w-auto px-6 py-3 rounded-full bg-white/10 hover:bg-white/15 border border-white/20 font-mono text-xs uppercase tracking-wider text-white transition"
             >
               Уже есть аккаунт? Войти

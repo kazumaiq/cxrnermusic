@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { verifyAdminRequest, getAdminUser } from "@/lib/admin";
 import { getAllSpecialRewardClaims, updateSpecialClaimStatus } from "@/lib/ecosystemDb";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const supabase = await getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const isAuthed = await verifyAdminRequest(req);
+    if (!isAuthed) {
+      return NextResponse.json({ ok: false, error: "ADMIN_UNAUTHORIZED" }, { status: 403 });
+    }
 
-    // Allow authenticated admins or fallback
     const claims = await getAllSpecialRewardClaims();
     return NextResponse.json({ ok: true, claims });
   } catch (err: any) {
@@ -19,11 +18,12 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const supabase = await getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const isAuthed = await verifyAdminRequest(req);
+    if (!isAuthed) {
+      return NextResponse.json({ ok: false, error: "ADMIN_UNAUTHORIZED" }, { status: 403 });
+    }
 
+    const adminUser = await getAdminUser();
     const body = await req.json();
     const { claimId, status, notes } = body;
 
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest) {
       claimId,
       status,
       notes,
-      adminId: user?.email || "admin",
+      adminId: adminUser?.email || "admin",
     });
 
     return NextResponse.json({ ok: success });

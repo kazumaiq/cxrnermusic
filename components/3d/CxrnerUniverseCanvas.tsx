@@ -3,490 +3,535 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import * as THREE from "three";
-import { getUniverseState, triggerUniverseDisrupt } from "../../lib/universeBridge";
-import { playQuantumDisrupt } from "../../lib/soundFX";
+import { getUniverseState } from "@/lib/universeBridge";
 
 /**
- * CXRNER MUSIC — Deep Space Cosmic Engine
- *
- * Clean, artifact-free deep space environment:
- *  - Volumetric deep-space Nebula backdrop shader (dark obsidian, subtle violet & indigo clouds)
- *  - Multi-layer 3D Starfield (far, mid, near stars) with scroll warp & smooth pointer parallax
- *  - Subtle distant orbital horizon rings (low-contrast dark chrome, never competing with UI text)
- *  - Zero overlapping bright geometry, zero z-fighting, stable 60 FPS on desktop & iOS Safari
+ * Generates a procedural studio HDR-like environment cube map using PMREMGenerator
+ * so metallic obsidian and liquid-chrome geometries reflect crisp studio softboxes
+ * without any external HDR network dependency.
  */
+function createStudioEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
 
-const NEBULA_VERTEX_SHADER = /* glsl */ `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = vec4(position.xy, 0.9999, 1.0);
-  }
-`;
+  const envScene = new THREE.Scene();
+  envScene.background = new THREE.Color(0x040307);
 
-const NEBULA_FRAGMENT_SHADER = /* glsl */ `
-  uniform float uTime;
-  uniform float uScroll;
-  uniform float uEnergy;
-  uniform vec2 uPointer;
-  uniform vec2 uResolution;
-  varying vec2 vUv;
+  // Overhead cool silver softbox
+  const topLight = new THREE.Mesh(
+    new THREE.PlaneGeometry(18, 8),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 2.25, 2.45), side: THREE.DoubleSide })
+  );
+  topLight.position.set(0, 9, -2);
+  topLight.rotation.x = Math.PI / 2;
+  envScene.add(topLight);
 
-  float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
-  }
+  // Left Electric Violet studio strip
+  const violetStrip = new THREE.Mesh(
+    new THREE.PlaneGeometry(4, 16),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(1.8, 0.72, 3.2), side: THREE.DoubleSide })
+  );
+  violetStrip.position.set(-9, 1, 2);
+  violetStrip.rotation.y = Math.PI / 2;
+  envScene.add(violetStrip);
 
-  float noise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(
-      mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
-      mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
-      u.y
-    );
-  }
+  // Right Neon Cyan rim strip
+  const cyanStrip = new THREE.Mesh(
+    new THREE.PlaneGeometry(3, 14),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(0.2, 2.35, 2.75), side: THREE.DoubleSide })
+  );
+  cyanStrip.position.set(9, -1, 1);
+  cyanStrip.rotation.y = -Math.PI / 2;
+  envScene.add(cyanStrip);
 
-  float fbm(vec2 p) {
-    float v = 0.0;
-    float a = 0.5;
-    mat2 rot = mat2(0.8, 0.6, -0.6, 0.8);
-    for (int i = 0; i < 4; i++) {
-      v += a * noise(p);
-      p = rot * p * 2.05;
-      a *= 0.5;
+  // Warm crisp rim light behind sculpture
+  const rimStrip = new THREE.Mesh(
+    new THREE.PlaneGeometry(14, 2.5),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(2.6, 2.5, 2.8), side: THREE.DoubleSide })
+  );
+  rimStrip.position.set(0, 2, -10);
+  envScene.add(rimStrip);
+
+  const rt = pmrem.fromScene(envScene, 0.04);
+  // Dispose temporary env geometries/materials immediately
+  envScene.traverse((obj) => {
+    if (obj instanceof THREE.Mesh) {
+      obj.geometry.dispose();
+      if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());
+      else obj.material.dispose();
     }
-    return v;
-  }
-
-  void main() {
-    vec2 aspect = vec2(uResolution.x / max(1.0, uResolution.y), 1.0);
-    vec2 p = (vUv - 0.5) * aspect;
-    p += uPointer * 0.04;
-
-    float t = uTime * 0.035;
-    float n1 = fbm(p * 1.45 + vec2(t, -t * 0.6 + uScroll * 0.9));
-    float n2 = fbm(p * 2.3 - vec2(t * 0.8, uScroll * 1.4) + n1 * 0.65);
-
-    float nebula = smoothstep(0.32, 0.88, n1 * 0.55 + n2 * 0.45);
-    float coreGlow = exp(-length(p - vec2(0.15, 0.05)) * 2.1);
-
-    vec3 spaceVoid = vec3(0.016, 0.012, 0.028);
-    vec3 deepIndigo = vec3(0.06, 0.03, 0.14);
-    vec3 cosmicViolet = vec3(0.28, 0.10, 0.55);
-    vec3 subtleCyan = vec3(0.03, 0.22, 0.34);
-
-    vec3 col = spaceVoid;
-    col = mix(col, deepIndigo, nebula * 0.85);
-    col += cosmicViolet * (nebula * n2 * (0.38 + uEnergy * 0.25));
-    col += cosmicViolet * coreGlow * (0.18 + uEnergy * 0.15);
-    col += subtleCyan * smoothstep(0.55, 0.95, n2) * 0.14;
-
-    // Subtle vignette so edges stay deep and clean
-    float vig = smoothstep(1.35, 0.25, length(vUv - 0.5));
-    col *= mix(0.65, 1.0, vig);
-
-    gl_FragColor = vec4(col, 1.0);
-  }
-`;
-
-const STAR_VERTEX_SHADER = /* glsl */ `
-  uniform float uTime;
-  uniform float uScroll;
-  uniform float uPixelRatio;
-  uniform float uEnergy;
-  uniform float uWarp;
-  attribute float aSize;
-  attribute float aSeed;
-  attribute float aLayer;
-  varying float vAlpha;
-  varying float vTint;
-
-  void main() {
-    vec3 pos = position;
-
-    // Continuous deep-space drift + scroll flight along Z
-    float speed = (0.35 + aLayer * 0.55) * (1.0 + uWarp * 3.5);
-    float zSpan = 110.0;
-    pos.z = mod(pos.z + uScroll * (26.0 + aLayer * 18.0) + uTime * speed + 95.0, zSpan) - 95.0;
-
-    vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
-    float dist = max(-mvPos.z, 0.5);
-
-    gl_PointSize = aSize * uPixelRatio * (1.0 + uEnergy * 0.3) * (85.0 / dist);
-    gl_PointSize = clamp(gl_PointSize, 1.0, 9.0);
-
-    float nearFade = smoothstep(1.2, 6.0, dist);
-    float farFade = smoothstep(98.0, 28.0, dist);
-    float twinkle = 0.65 + 0.35 * sin(uTime * (1.2 + aSeed * 2.4) + aSeed * 31.4);
-
-    vAlpha = nearFade * farFade * twinkle * (0.55 + aLayer * 0.25);
-    vTint = fract(aSeed * 7.13);
-
-    gl_Position = projectionMatrix * mvPos;
-  }
-`;
-
-const STAR_FRAGMENT_SHADER = /* glsl */ `
-  varying float vAlpha;
-  varying float vTint;
-
-  void main() {
-    vec2 p = gl_PointCoord - 0.5;
-    float r = length(p) * 2.0;
-    if (r > 1.0) discard;
-
-    // Crisp star core + soft halo
-    float core = exp(-r * r * 9.0);
-    float halo = exp(-r * r * 2.6) * 0.35;
-
-    vec3 pureWhite = vec3(0.95, 0.96, 1.0);
-    vec3 softViolet = vec3(0.75, 0.55, 1.0);
-    vec3 iceBlue = vec3(0.55, 0.85, 1.0);
-
-    vec3 col = pureWhite;
-    if (vTint > 0.72) col = mix(pureWhite, softViolet, 0.7);
-    else if (vTint > 0.48) col = mix(pureWhite, iceBlue, 0.55);
-
-    gl_FragColor = vec4(col, (core + halo) * vAlpha);
-  }
-`;
+  });
+  pmrem.dispose();
+  return rt.texture;
+}
 
 export default function CxrnerUniverseCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pathname = usePathname() || "";
   const isHomeRef = useRef<boolean>(pathname === "/");
-  const [webglUnsupported, setWebglUnsupported] = useState(false);
+  const isDropRef = useRef<boolean>(pathname.startsWith("/drop"));
+  const [fallbackActive, setFallbackActive] = useState(false);
 
   useEffect(() => {
     isHomeRef.current = pathname === "/";
+    isDropRef.current = pathname.startsWith("/drop");
   }, [pathname]);
-
-  if (pathname.startsWith("/link") || pathname.startsWith("/admin") || pathname.startsWith("/miniapp")) {
-    return null;
-  }
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || typeof window === "undefined") return;
+    if (!canvas) return;
 
-    const isMobileInit = window.innerWidth < 768;
-    let renderer: THREE.WebGLRenderer;
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
+    let renderer: THREE.WebGLRenderer | null = null;
     try {
       renderer = new THREE.WebGLRenderer({
         canvas,
-        antialias: !isMobileInit,
-        alpha: false,
+        alpha: true,
+        antialias: !isMobile,
         powerPreference: "high-performance",
-        stencil: false,
-        depth: true,
       });
     } catch {
-      setWebglUnsupported(true);
+      setFallbackActive(true);
       return;
     }
 
-    const dprCap = isMobileInit ? 1.5 : 2;
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, dprCap);
-    renderer.setPixelRatio(pixelRatio);
+    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.45 : 2);
+    renderer.setPixelRatio(dpr);
     renderer.setSize(window.innerWidth, window.innerHeight, false);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
 
+    const envTexture = createStudioEnvironment(renderer);
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x040308);
+    scene.environment = envTexture;
+    scene.fog = new THREE.FogExp2(0x040307, 0.022);
 
     const camera = new THREE.PerspectiveCamera(
-      isMobileInit ? 56 : 48,
-      window.innerWidth / Math.max(1, window.innerHeight),
+      isMobile ? 54 : 44,
+      window.innerWidth / window.innerHeight,
       0.1,
       140
     );
-    camera.position.set(0, 0, 8);
+    camera.position.set(0, 0.2, 16);
 
-    // =========================================================================
-    // 1. FULLSCREEN NEBULA BACKDROP (Always behind everything, zero depth write)
-    // =========================================================================
-    const nebulaUniforms = {
-      uTime: { value: 0 },
-      uScroll: { value: 0 },
-      uEnergy: { value: 0 },
-      uPointer: { value: new THREE.Vector2(0, 0) },
-      uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-    };
+    // Architectural Cluster Group (Choreographed by scroll & cursor)
+    const cluster = new THREE.Group();
+    scene.add(cluster);
 
-    const nebulaGeo = new THREE.PlaneGeometry(2, 2);
-    const nebulaMat = new THREE.ShaderMaterial({
-      vertexShader: NEBULA_VERTEX_SHADER,
-      fragmentShader: NEBULA_FRAGMENT_SHADER,
-      uniforms: nebulaUniforms,
-      depthWrite: false,
-      depthTest: false,
+    // 1. Central Obsidian Core Faceted Crystal
+    const coreGeo = new THREE.IcosahedronGeometry(2.15, 1);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x0b0912,
+      metalness: 0.94,
+      roughness: 0.12,
+      envMapIntensity: 1.85,
+      flatShading: true,
     });
-    const nebulaMesh = new THREE.Mesh(nebulaGeo, nebulaMat);
-    nebulaMesh.frustumCulled = false;
-    nebulaMesh.renderOrder = -10;
-    scene.add(nebulaMesh);
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    cluster.add(coreMesh);
 
-    // =========================================================================
-    // 2. MULTI-LAYER DEEP STARFIELD
-    // =========================================================================
-    const starCount = isMobileInit ? 650 : 1800;
-    const starGeo = new THREE.BufferGeometry();
-    const starPositions = new Float32Array(starCount * 3);
-    const starSizes = new Float32Array(starCount);
-    const starSeeds = new Float32Array(starCount);
-    const starLayers = new Float32Array(starCount);
+    // Precision Wireframe Over-lattice on Obsidian Core
+    const latticeGeo = new THREE.IcosahedronGeometry(2.22, 1);
+    const latticeMat = new THREE.MeshBasicMaterial({
+      color: 0xb46bff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.24,
+    });
+    const latticeMesh = new THREE.Mesh(latticeGeo, latticeMat);
+    cluster.add(latticeMesh);
 
-    for (let i = 0; i < starCount; i++) {
-      const layer = i % 3; // 0 = far, 1 = mid, 2 = near
-      const spreadX = 48 + layer * 14;
-      const spreadY = 34 + layer * 10;
+    // 2. Sculptural Chrome Gyroscope Rings
+    const ringMatChrome = new THREE.MeshStandardMaterial({
+      color: 0xe4e4ee,
+      metalness: 1.0,
+      roughness: 0.08,
+      envMapIntensity: 2.2,
+    });
 
-      starPositions[i * 3] = (Math.random() - 0.5) * spreadX;
-      starPositions[i * 3 + 1] = (Math.random() - 0.5) * spreadY;
-      starPositions[i * 3 + 2] = -Math.random() * 105 + 5;
+    const outerRingGeo = new THREE.TorusGeometry(3.85, 0.045, 20, 128);
+    const outerRing = new THREE.Mesh(outerRingGeo, ringMatChrome);
+    outerRing.rotation.set(Math.PI * 0.34, Math.PI * 0.14, 0);
+    cluster.add(outerRing);
 
-      starSizes[i] = layer === 0 ? 0.9 + Math.random() * 0.9 : layer === 1 ? 1.3 + Math.random() * 1.3 : 1.8 + Math.random() * 1.8;
-      starSeeds[i] = Math.random();
-      starLayers[i] = layer * 0.5;
+    const innerRingMat = new THREE.MeshStandardMaterial({
+      color: 0x8737ff,
+      metalness: 0.88,
+      roughness: 0.16,
+      emissive: 0x3b1280,
+      emissiveIntensity: 0.55,
+    });
+    const innerRingGeo = new THREE.TorusGeometry(2.95, 0.032, 16, 108);
+    const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+    innerRing.rotation.set(-Math.PI * 0.28, Math.PI * 0.36, 0);
+    cluster.add(innerRing);
+
+    const cyanRingMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      transparent: true,
+      opacity: 0.32,
+    });
+    const cyanRingGeo = new THREE.TorusGeometry(4.55, 0.015, 8, 128);
+    const cyanRing = new THREE.Mesh(cyanRingGeo, cyanRingMat);
+    cyanRing.rotation.set(Math.PI * 0.45, -Math.PI * 0.1, 0.3);
+    cluster.add(cyanRing);
+
+    // 3. Instanced Chrome Architectural Monolith Shards
+    const shardCount = isMobile ? 16 : 28;
+    const shardGeo = new THREE.BoxGeometry(0.18, 1.35, 0.24);
+    const shardMat = new THREE.MeshStandardMaterial({
+      color: 0xd9d9e2,
+      metalness: 0.96,
+      roughness: 0.14,
+      envMapIntensity: 1.9,
+    });
+    const shardsMesh = new THREE.InstancedMesh(shardGeo, shardMat, shardCount);
+
+    interface ShardData {
+      radius: number;
+      angle: number;
+      height: number;
+      speed: number;
+      rotSpeed: number;
+      scaleY: number;
+      phase: number;
     }
 
-    starGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-    starGeo.setAttribute("aSize", new THREE.BufferAttribute(starSizes, 1));
-    starGeo.setAttribute("aSeed", new THREE.BufferAttribute(starSeeds, 1));
-    starGeo.setAttribute("aLayer", new THREE.BufferAttribute(starLayers, 1));
+    const shardData: ShardData[] = [];
+    for (let i = 0; i < shardCount; i++) {
+      const t = i / shardCount;
+      shardData.push({
+        radius: 4.8 + (i % 4) * 1.15,
+        angle: t * Math.PI * 2,
+        height: ((i % 7) - 3) * 0.72,
+        speed: (0.08 + (i % 5) * 0.025) * (i % 2 === 0 ? 1 : -1),
+        rotSpeed: 0.25 + (i % 3) * 0.18,
+        scaleY: 0.55 + (i % 4) * 0.38,
+        phase: i * 1.17,
+      });
+    }
+    cluster.add(shardsMesh);
 
-    const starUniforms = {
-      uTime: { value: 0 },
-      uScroll: { value: 0 },
-      uPixelRatio: { value: pixelRatio },
-      uEnergy: { value: 0 },
-      uWarp: { value: 0 },
-    };
+    // 4. Deep Spatial Ambient Metallic Dust & Ion Particles
+    const particleCount = isMobile ? 220 : 520;
+    const pPositions = new Float32Array(particleCount * 3);
+    const pColors = new Float32Array(particleCount * 3);
+    const pSizes = new Float32Array(particleCount);
 
-    const starMat = new THREE.ShaderMaterial({
-      vertexShader: STAR_VERTEX_SHADER,
-      fragmentShader: STAR_FRAGMENT_SHADER,
-      uniforms: starUniforms,
+    const cChrome = new THREE.Color(0xe6e6f0);
+    const cViolet = new THREE.Color(0x9b51ff);
+    const cCyan = new THREE.Color(0x00f0ff);
+
+    for (let i = 0; i < particleCount; i++) {
+      const spreadX = 36;
+      const spreadY = 24;
+      const spreadZ = 34;
+      pPositions[i * 3] = (Math.random() - 0.5) * spreadX;
+      pPositions[i * 3 + 1] = (Math.random() - 0.5) * spreadY;
+      pPositions[i * 3 + 2] = (Math.random() - 0.5) * spreadZ - 4;
+
+      const pick = Math.random();
+      const c = pick > 0.88 ? cCyan : pick > 0.52 ? cViolet : cChrome;
+      pColors[i * 3] = c.r;
+      pColors[i * 3 + 1] = c.g;
+      pColors[i * 3 + 2] = c.b;
+
+      pSizes[i] = Math.random() * 2.2 + 0.6;
+    }
+
+    const particleGeo = new THREE.BufferGeometry();
+    particleGeo.setAttribute("position", new THREE.BufferAttribute(pPositions, 3));
+    particleGeo.setAttribute("color", new THREE.BufferAttribute(pColors, 3));
+    const particleMat = new THREE.PointsMaterial({
+      size: isMobile ? 0.085 : 0.068,
+      vertexColors: true,
       transparent: true,
+      opacity: 0.72,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
+    const particleSystem = new THREE.Points(particleGeo, particleMat);
+    scene.add(particleSystem);
 
-    const starField = new THREE.Points(starGeo, starMat);
-    starField.frustumCulled = false;
-    scene.add(starField);
+    // Direct studio lights reinforcing reflections & subtle atmosphere shift
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    keyLight.position.set(8, 12, 10);
+    scene.add(keyLight);
 
-    // =========================================================================
-    // 3. DISTANT SUBTLE ORBITAL HORIZON RINGS (Low-contrast, far behind UI)
-    // =========================================================================
-    const horizonGroup = new THREE.Group();
-    horizonGroup.position.set(isMobileInit ? 0 : 3.2, 0.2, -18);
-    scene.add(horizonGroup);
+    const rimLight = new THREE.PointLight(0x8737ff, 14, 38, 1.5);
+    rimLight.position.set(-7, -3, 7);
+    scene.add(rimLight);
 
-    const ringGeo1 = new THREE.TorusGeometry(6.8, 0.018, 8, 120);
-    const ringMat1 = new THREE.MeshBasicMaterial({
-      color: 0x8737ff,
-      transparent: true,
-      opacity: 0.22,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const horizonRing1 = new THREE.Mesh(ringGeo1, ringMat1);
-    horizonRing1.rotation.set(Math.PI * 0.36, 0.25, 0);
+    const cyanFill = new THREE.PointLight(0x00f0ff, 7, 32, 1.5);
+    cyanFill.position.set(8, -5, 4);
+    scene.add(cyanFill);
 
-    const ringGeo2 = new THREE.TorusGeometry(9.4, 0.012, 8, 140);
-    const ringMat2 = new THREE.MeshBasicMaterial({
-      color: 0xa5b4fc,
-      transparent: true,
-      opacity: 0.12,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const horizonRing2 = new THREE.Mesh(ringGeo2, ringMat2);
-    horizonRing2.rotation.set(-Math.PI * 0.28, -0.35, 0.2);
+    // Input & Scroll Choreography State
+    let mouseX = 0;
+    let mouseY = 0;
+    let targetMouseX = 0;
+    let targetMouseY = 0;
+    let isDragging = false;
+    let lastDragX = 0;
+    let lastDragY = 0;
+    let manualRotY = 0;
+    let manualRotX = 0;
 
-    horizonGroup.add(horizonRing1, horizonRing2);
+    const handlePointerMove = (e: PointerEvent) => {
+      targetMouseX = (e.clientX / window.innerWidth) * 2 - 1;
+      targetMouseY = -(e.clientY / window.innerHeight) * 2 + 1;
 
-    // =========================================================================
-    // 4. SCROLL, POINTER & RESIZE HANDLERS
-    // =========================================================================
-    let scrollTarget = 0;
-    let smoothScroll = 0;
-    let pointerX = 0;
-    let pointerY = 0;
-    let smoothPointerX = 0;
-    let smoothPointerY = 0;
-    let isMobile = isMobileInit;
-
-    const updateScroll = () => {
-      const docHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-      scrollTarget = THREE.MathUtils.clamp(window.scrollY / docHeight, 0, 1);
-    };
-    updateScroll();
-
-    const onPointerMove = (e: PointerEvent) => {
-      pointerX = (e.clientX / Math.max(1, window.innerWidth)) * 2 - 1;
-      pointerY = -(e.clientY / Math.max(1, window.innerHeight)) * 2 + 1;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!e.touches || e.touches.length === 0) return;
-      const t = e.touches[0];
-      pointerX = (t.clientX / Math.max(1, window.innerWidth)) * 2 - 1;
-      pointerY = -(t.clientY / Math.max(1, window.innerHeight)) * 2 + 1;
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.code === "Space" &&
-        isHomeRef.current &&
-        document.activeElement?.tagName !== "INPUT" &&
-        document.activeElement?.tagName !== "TEXTAREA"
-      ) {
-        triggerUniverseDisrupt();
-        playQuantumDisrupt();
+      if (isDragging) {
+        const dx = e.clientX - lastDragX;
+        const dy = e.clientY - lastDragY;
+        manualRotY += dx * 0.0055;
+        manualRotX += dy * 0.004;
+        lastDragX = e.clientX;
+        lastDragY = e.clientY;
       }
     };
 
-    const onResize = () => {
-      const w = window.innerWidth;
-      const h = Math.max(1, window.innerHeight);
-      isMobile = w < 768;
-      const pr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
-      renderer.setPixelRatio(pr);
-      renderer.setSize(w, h, false);
-      starUniforms.uPixelRatio.value = pr;
-      nebulaUniforms.uResolution.value.set(w, h);
-      camera.fov = isMobile ? 56 : 48;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
+    const handlePointerDown = (e: PointerEvent) => {
+      // Allow dragging background without stealing button clicks
+      const target = e.target as HTMLElement;
+      if (target && (target.closest("button") || target.closest("a") || target.closest("input"))) {
+        return;
+      }
+      isDragging = true;
+      lastDragX = e.clientX;
+      lastDragY = e.clientY;
     };
 
-    window.addEventListener("scroll", updateScroll, { passive: true });
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("resize", onResize);
+    const handlePointerUp = () => {
+      isDragging = false;
+    };
 
-    // =========================================================================
-    // 5. ANIMATION LOOP
-    // =========================================================================
+    const handleResize = () => {
+      if (!renderer) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.fov = w < 768 ? 54 : 44;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("pointerdown", handlePointerDown, { passive: true });
+    window.addEventListener("pointerup", handlePointerUp, { passive: true });
+    window.addEventListener("resize", handleResize);
+
+    const dummy = new THREE.Object3D();
+    const clock = new THREE.Clock();
     let rafId = 0;
-    let isVisible = true;
-    let elapsed = 0;
-    let lastTime = performance.now();
+    let isDisposed = false;
+    let isDocumentHidden = document.hidden;
 
-    const renderFrame = (now: number) => {
-      if (!isVisible) return;
-      rafId = requestAnimationFrame(renderFrame);
+    const onVisibilityChange = () => {
+      isDocumentHidden = document.hidden;
+      if (!isDocumentHidden) {
+        clock.getDelta();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
-      const dt = Math.min(0.05, (now - lastTime) / 1000);
-      lastTime = now;
-      elapsed += dt;
+    const renderFrame = () => {
+      if (isDisposed || !renderer) return;
+      rafId = window.requestAnimationFrame(renderFrame);
+      if (isDocumentHidden) return;
 
-      const uState = getUniverseState();
-      uState.shockwave = Math.max(0, uState.shockwave - dt * 1.4);
-      uState.disruption = Math.max(0, uState.disruption - dt * 0.9);
-      uState.dragDeltaX *= 0.92;
-      uState.dragDeltaY *= 0.92;
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.elapsedTime;
+      const bridge = getUniverseState();
 
-      smoothScroll = THREE.MathUtils.lerp(smoothScroll, isHomeRef.current ? scrollTarget : 0.05, 0.08);
-      smoothPointerX = THREE.MathUtils.lerp(smoothPointerX, pointerX, 0.05);
-      smoothPointerY = THREE.MathUtils.lerp(smoothPointerY, pointerY, 0.05);
+      mouseX += (targetMouseX - mouseX) * 0.06;
+      mouseY += (targetMouseY - mouseY) * 0.06;
 
-      const s = smoothScroll;
-      const energy = Math.min(1, uState.audioEnergy + uState.shockwave * 0.65);
+      // Consume queued bridge drag impulses
+      if (bridge.dragDeltaX !== 0 || bridge.dragDeltaY !== 0) {
+        manualRotY += bridge.dragDeltaX * 0.01;
+        manualRotX += bridge.dragDeltaY * 0.01;
+        bridge.dragDeltaX = 0;
+        bridge.dragDeltaY = 0;
+      }
 
-      // Smooth camera parallax
-      camera.position.x = smoothPointerX * (isMobile ? 0.3 : 0.75) + Math.sin(s * Math.PI) * 0.6;
-      camera.position.y = smoothPointerY * (isMobile ? 0.25 : 0.55) + Math.cos(s * Math.PI * 0.8) * 0.35;
-      camera.lookAt(smoothPointerX * 0.15, smoothPointerY * 0.15, -24);
+      // Compute document scroll progress [0..1]
+      const scrollMax = Math.max(
+        1,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+      const scrollNorm = Math.min(1, Math.max(0, window.scrollY / scrollMax));
 
-      // Update Nebula
-      nebulaUniforms.uTime.value = elapsed;
-      nebulaUniforms.uScroll.value = s;
-      nebulaUniforms.uEnergy.value = energy;
-      nebulaUniforms.uPointer.value.set(smoothPointerX, smoothPointerY);
+      // Decay burst shockwave & disruption
+      if (bridge.shockwave > 0.002) {
+        bridge.shockwave *= Math.pow(0.06, dt);
+      } else {
+        bridge.shockwave = 0;
+      }
 
-      // Update Starfield
-      starUniforms.uTime.value = elapsed;
-      starUniforms.uScroll.value = s;
-      starUniforms.uEnergy.value = energy;
-      starUniforms.uWarp.value = uState.disruption;
-      starField.rotation.z = elapsed * 0.008 + s * 0.18 + uState.dragDeltaX * 0.2;
+      if (bridge.disruption > 0.002) {
+        bridge.disruption *= Math.pow(0.08, dt);
+      } else {
+        bridge.disruption = 0;
+      }
 
-      // Subtle distant orbital rings
-      horizonGroup.position.x = THREE.MathUtils.lerp(isMobile ? 0 : 3.2, isMobile ? 0 : -2.4, s);
-      horizonGroup.rotation.y = elapsed * 0.04 + smoothPointerX * 0.12 + s * 0.8;
-      horizonGroup.rotation.x = smoothPointerY * 0.08;
-      horizonRing1.rotation.z = elapsed * 0.05;
-      horizonRing2.rotation.z = -elapsed * 0.035;
-      ringMat1.opacity = 0.18 + energy * 0.18;
+      const audioPulse = bridge.audioPlaying ? bridge.audioEnergy : 0;
+      const atmos = bridge.atmosphereColor;
+      if (atmos) {
+        rimLight.color.setRGB(
+          0.45 + atmos[0] * 0.55,
+          0.25 + atmos[1] * 0.55,
+          0.55 + atmos[2] * 0.45
+        );
+      }
+
+      // Section-responsive 3D Composition Choreography:
+      // Hero (0.0): Monument sits to the right on desktop so title typography breathes on left
+      // Middle Sections (0.35 - 0.7): Glides smoothly across center-back with atmospheric zoom
+      // Lower Sections / /drop: Pulls gently left/center with deep sculptural presence
+      const desktopRightBias = window.innerWidth >= 1024 ? 3.55 : 0;
+      let targetX = 0;
+      let targetY = 0;
+      let targetZ = -1.5;
+
+      if (isHomeRef.current) {
+        const waveX = Math.cos(scrollNorm * Math.PI * 2.2) * desktopRightBias;
+        targetX = waveX + mouseX * 0.85;
+        targetY = Math.sin(scrollNorm * Math.PI * 1.5) * 1.15 + mouseY * 0.55;
+        targetZ = -1.2 - Math.sin(scrollNorm * Math.PI) * 3.8 + audioPulse * 0.75;
+      } else if (isDropRef.current) {
+        // Subtle atmospheric perimeter so /drop local 3D specimen canvas takes center stage
+        targetX = mouseX * 0.5;
+        targetY = 0.6 + mouseY * 0.4;
+        targetZ = -6.5;
+      } else {
+        targetX = mouseX * 0.6;
+        targetY = mouseY * 0.4;
+        targetZ = -3.8;
+      }
+
+      cluster.position.x += (targetX - cluster.position.x) * 0.055;
+      cluster.position.y += (targetY - cluster.position.y) * 0.055;
+      cluster.position.z += (targetZ - cluster.position.z) * 0.055;
+
+      const motionFactor = reducedMotion ? 0.15 : 1.0;
+
+      // Smooth architectural sculpture rotation
+      cluster.rotation.y =
+        elapsed * 0.11 * motionFactor +
+        scrollNorm * Math.PI * 1.8 +
+        manualRotY +
+        mouseX * 0.28;
+      cluster.rotation.x =
+        Math.sin(elapsed * 0.25) * 0.14 * motionFactor +
+        manualRotX +
+        mouseY * 0.18;
+
+      const scalePulse =
+        1 +
+        audioPulse * 0.14 +
+        bridge.shockwave * 0.22 -
+        bridge.disruption * 0.08;
+      coreMesh.scale.setScalar(scalePulse);
+      latticeMesh.scale.setScalar(
+        scalePulse * (1.03 + bridge.disruption * 0.35 + audioPulse * 0.08)
+      );
+      latticeMat.opacity = Math.min(0.85, 0.2 + bridge.disruption * 0.55 + audioPulse * 0.3);
+
+      coreMesh.rotation.y += dt * (0.28 + audioPulse * 1.2) * motionFactor;
+      coreMesh.rotation.z += dt * 0.14 * motionFactor;
+
+      outerRing.rotation.z += dt * (0.18 + bridge.shockwave * 1.5) * motionFactor;
+      innerRing.rotation.x -= dt * (0.24 + audioPulse * 0.8) * motionFactor;
+      cyanRing.rotation.y += dt * 0.15 * motionFactor;
+
+      // Update Instanced Chrome Architectural Blades
+      const spreadBoost = 1 + bridge.disruption * 0.72 + bridge.shockwave * 0.4;
+      for (let i = 0; i < shardCount; i++) {
+        const s = shardData[i];
+        const angle = s.angle + elapsed * s.speed * motionFactor;
+        const r = s.radius * spreadBoost + (bridge.targetNodeIndex === i ? 0.9 : 0);
+        dummy.position.set(
+          Math.cos(angle) * r,
+          s.height + Math.sin(elapsed * 0.7 + s.phase) * 0.45 * motionFactor,
+          Math.sin(angle) * r
+        );
+        dummy.lookAt(0, dummy.position.y, 0);
+        dummy.rotateX(elapsed * s.rotSpeed * motionFactor);
+        dummy.scale.set(
+          1 + bridge.hoverIntensity * 0.2,
+          s.scaleY + audioPulse * 0.45,
+          1
+        );
+        dummy.updateMatrix();
+        shardsMesh.setMatrixAt(i, dummy.matrix);
+      }
+      shardsMesh.instanceMatrix.needsUpdate = true;
+
+      // Gentle cosmic drift of particle field
+      particleSystem.rotation.y = elapsed * 0.018 * motionFactor + mouseX * 0.05;
+      particleSystem.rotation.x = mouseY * 0.04;
+
+      // Subtle Camera Breathing & Scroll FOV Shift
+      camera.position.x += (mouseX * 0.65 - camera.position.x) * 0.04;
+      camera.position.y += (0.2 + mouseY * 0.45 - camera.position.y) * 0.04;
+      camera.lookAt(cluster.position.x * 0.28, cluster.position.y * 0.25, -1);
 
       renderer.render(scene, camera);
     };
 
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        isVisible = false;
-        if (rafId) {
-          cancelAnimationFrame(rafId);
-          rafId = 0;
-        }
-      } else {
-        isVisible = true;
-        lastTime = performance.now();
-        if (!rafId) {
-          rafId = requestAnimationFrame(renderFrame);
-        }
-      }
-    };
+    renderFrame();
 
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    rafId = requestAnimationFrame(renderFrame);
-
-    // =========================================================================
-    // 6. FULL GPU RESOURCE DISPOSAL
-    // =========================================================================
     return () => {
-      isVisible = false;
-      if (rafId) cancelAnimationFrame(rafId);
-
+      isDisposed = true;
+      window.cancelAnimationFrame(rafId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("scroll", updateScroll);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("resize", handleResize);
 
-      nebulaGeo.dispose();
-      nebulaMat.dispose();
-      starGeo.dispose();
-      starMat.dispose();
-      ringGeo1.dispose();
-      ringMat1.dispose();
-      ringGeo2.dispose();
-      ringMat2.dispose();
+      coreGeo.dispose();
+      coreMat.dispose();
+      latticeGeo.dispose();
+      latticeMat.dispose();
+      outerRingGeo.dispose();
+      innerRingGeo.dispose();
+      cyanRingGeo.dispose();
+      ringMatChrome.dispose();
+      innerRingMat.dispose();
+      cyanRingMat.dispose();
+      shardGeo.dispose();
+      shardMat.dispose();
+      shardsMesh.dispose();
+      particleGeo.dispose();
+      particleMat.dispose();
+      envTexture.dispose();
 
-      renderer.dispose();
+      renderer?.dispose();
     };
   }, []);
 
-  if (webglUnsupported) {
+  if (fallbackActive) {
     return (
-      <div className="absolute inset-0 bg-[#040308] overflow-hidden" aria-hidden="true">
-        <div className="absolute top-1/4 right-1/4 w-[460px] h-[460px] rounded-full bg-[#8737FF]/15 blur-[140px]" />
-        <div className="absolute bottom-1/4 left-1/4 w-[520px] h-[520px] rounded-full bg-[#00F0FF]/8 blur-[160px]" />
-      </div>
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle at 75% 28%, rgba(180,107,255,0.16) 0%, transparent 45%), radial-gradient(circle at 25% 75%, rgba(0,240,255,0.1) 0%, transparent 40%)",
+        }}
+      />
     );
   }
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full block pointer-events-none select-none"
+      className="fixed inset-0 w-full h-full pointer-events-none select-none"
       aria-hidden="true"
     />
   );

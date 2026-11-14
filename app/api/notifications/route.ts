@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getUserNotifications, markNotificationsRead } from "@/lib/ecosystemDb";
 
 export async function GET() {
   try {
@@ -12,19 +13,7 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
 
-    let notifications: any[] = [];
-    try {
-      const { data } = await supabase
-        .from("cxrner_notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(30);
-      notifications = data || [];
-    } catch {
-      // fallback
-    }
-
+    const notifications = await getUserNotifications(user.id);
     const unreadCount = notifications.filter((n) => !n.is_read).length;
 
     return NextResponse.json({
@@ -51,22 +40,11 @@ export async function PATCH(request: Request) {
     const body = await request.json().catch(() => ({}));
     const { notificationId, markAll } = body;
 
-    try {
-      if (markAll) {
-        await supabase
-          .from("cxrner_notifications")
-          .update({ is_read: true })
-          .eq("user_id", user.id);
-      } else if (notificationId) {
-        await supabase
-          .from("cxrner_notifications")
-          .update({ is_read: true })
-          .eq("id", notificationId)
-          .eq("user_id", user.id);
-      }
-    } catch {
-      // ignore
-    }
+    await markNotificationsRead({
+      userId: user.id,
+      notificationId,
+      markAll: Boolean(markAll),
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {

@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { cookies } from "next/headers";
+import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabaseServer";
+import {
+  getProfileByUserId,
+  upsertUserProfile,
+  sanitizeUsername,
+  recordReferralAttribution,
+  evaluateReferralMilestones,
+} from "@/lib/ecosystemDb";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -49,36 +57,97 @@ export async function GET(request: Request) {
         return NextResponse.redirect(targetUrl);
       }
 
-      // If session exchanged successfully, ensure user profile exists in cxrner_cabinet_users
+      // If session exchanged successfully, ensure user profile exists WITHOUT wiping existing JSON fields
+      let referralSettled = false;
       if (data?.user) {
         try {
           const userMeta = data.user.user_metadata || {};
           const artistName =
+            userMeta.artist_name ||
             userMeta.full_name ||
             userMeta.name ||
             data.user.email?.split("@")[0] ||
             "Артист";
 
-          await supabase.from("cxrner_cabinet_users").upsert(
+          const dbWrite = getSupabaseAdminClient() || supabase;
+          const { data: existingCabinet } = await dbWrite
+            .from("cxrner_cabinet_users")
+            .select("profile")
+            .eq("user_id", data.user.id)
+            .maybeSingle();
+
+          const currentCabinetProfile = (existingCabinet?.profile as Record<string, any>) || {};
+          const mergedCabinetProfile = {
+            ...currentCabinetProfile,
+            artist_name: currentCabinetProfile.artist_name || artistName,
+            avatar_url: currentCabinetProfile.avatar_url || userMeta.avatar_url || userMeta.picture || null,
+            email: currentCabinetProfile.email || data.user.email,
+          };
+
+          await dbWrite.from("cxrner_cabinet_users").upsert(
             {
               user_id: data.user.id,
-              profile: {
-                artist_name: artistName,
-                avatar_url: userMeta.avatar_url || null,
-                email: data.user.email,
-              },
+              profile: mergedCabinetProfile,
               updated_at: new Date().toISOString(),
             },
             { onConflict: "user_id" }
           );
+
+          // Ensure ecosystem CXRNER ID profile exists too
+          let ecoProfile = await getProfileByUserId(data.user.id);
+          if (!ecoProfile) {
+            const initialUsername =
+              sanitizeUsername(userMeta.username || artistName || data.user.email?.split("@")[0] || "") ||
+              `user_${data.user.id.slice(0, 6)}`;
+            const created = await upsertUserProfile({
+              userId: data.user.id,
+              username: initialUsername,
+              displayName: artistName,
+              avatarUrl: userMeta.avatar_url || userMeta.picture || null,
+            });
+            ecoProfile = created.profile;
+          }
+
+          // Reconcile pending referral attribution from cookie or user metadata
+          const cookieStore = await cookies();
+          const refCookie = cookieStore.get("cxrner_ref_code")?.value || "";
+          const pendingRef = (refCookie || userMeta.referred_by_code || "").trim();
+          const emailConfirmed = Boolean(data.user.email_confirmed_at || data.user.confirmed_at);
+
+          if (pendingRef) {
+            const trackRes = await recordReferralAttribution({
+              referrerCode: pendingRef,
+              newUserId: data.user.id,
+              emailVerified: emailConfirmed,
+            });
+            if (
+              trackRes.ok ||
+              trackRes.error === "ALREADY_ATTRIBUTED" ||
+              trackRes.error === "SELF_REFERRAL_FORBIDDEN" ||
+              trackRes.error === "REFERRER_NOT_FOUND"
+            ) {
+              referralSettled = true;
+            }
+          }
+
+          if (emailConfirmed || ecoProfile?.telegram_id) {
+            await evaluateReferralMilestones(data.user.id, {
+              emailVerified: emailConfirmed,
+              telegramLinked: Boolean(ecoProfile?.telegram_id),
+            }).catch(() => {});
+          }
         } catch (profileErr: any) {
-          console.warn("[OAuth Callback] Failed to auto-provision profile in cxrner_cabinet_users:", profileErr.message);
+          console.warn("[OAuth Callback] Failed to auto-provision profile:", profileErr.message);
         }
       }
 
       // Safe redirect to target page
       const cleanNext = next.startsWith("/") ? next : `/${next}`;
-      return NextResponse.redirect(new URL(cleanNext, redirectBase));
+      const res = NextResponse.redirect(new URL(cleanNext, redirectBase));
+      if (referralSettled) {
+        res.cookies.delete("cxrner_ref_code");
+      }
+      return res;
     } catch (err: any) {
       console.error("[OAuth Callback] Unexpected exception during code exchange:", err.message);
       const targetUrl = new URL("/auth/login", redirectBase);

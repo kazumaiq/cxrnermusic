@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, type ChangeEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Container from "../../components/Container";
+import AdminNav from "../../components/admin/AdminNav";
 import GlowButton from "../../components/GlowButton";
 import { stats } from "../../data/site";
 import type { FeaturedRelease } from "../../lib/featured";
@@ -429,100 +430,102 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="section-padding pt-24 md:pt-32 pb-20 min-h-screen">
-      <Container>
-        {/* Top Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-8 border-b border-white/10">
-          <div className="flex items-start gap-4">
-            <div className="relative w-14 h-14 rounded-2xl bg-black/80 border border-purple-500/40 p-1.5 shadow-[0_0_25px_rgba(168,85,247,0.3)] flex-shrink-0">
-              <Image
-                src="/logo.png"
-                alt="CXRNER MUSIC"
-                width={56}
-                height={56}
-                className="object-contain w-full h-full"
-                priority
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <p className="font-mono text-xs uppercase tracking-[0.25em] text-purple-400 font-semibold">
-                  // CXRNER CONTROL CENTER · V2.4 PRO
+    <div className="min-h-screen bg-[#050407] text-white pt-16 sm:pt-[72px] pb-20 selection:bg-[#8737FF] selection:text-white">
+      <AdminNav />
+      <main className="pt-8">
+        <Container>
+          {/* Top Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-8 border-b border-white/10">
+            <div className="flex items-start gap-4">
+              <div className="relative w-14 h-14 rounded-2xl bg-[#09080E] border border-white/15 p-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.6)] flex-shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="CXRNER MUSIC"
+                  width={56}
+                  height={56}
+                  className="object-contain w-full h-full"
+                  priority
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#00F0FF] font-semibold">
+                    // CXRNER CONTROL CENTER · V2.4 STUDIO
+                  </p>
+                </div>
+                <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase tracking-tight">
+                  Панель управления лейблом
+                </h1>
+                <p className="mt-1 text-xs sm:text-sm text-[#D9D9E2]/65 font-sans">
+                  Модерация заявок, назначение кодов UPC, управление артистами и витриной сайта.
                 </p>
               </div>
-              <h1 className="font-gothic text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase tracking-tight">
-                Панель управления лейблом
-              </h1>
-              <p className="mt-1 text-xs sm:text-sm text-neutral-400 font-sans">
-                Модерация заявок, назначение кодов UPC, управление артистами и витриной сайта.
-              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Link
+                href="/admin/distribution"
+                className="btn-void-primary inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full font-mono text-[11px] uppercase tracking-wider font-bold transition"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>CMS // DISTRIBUTION</span>
+              </Link>
+              <button
+                onClick={loadAdminData}
+                disabled={loading}
+                className="btn-void-ghost inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-mono text-[11px] uppercase tracking-wider transition disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#B46BFF]" : ""}`} />
+                <span>Обновить</span>
+              </button>
+              <a
+                href="https://t.me/moder_cxrner_bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-void-ghost inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border-[#8737FF]/35 text-[#B46BFF] font-mono text-[11px] uppercase tracking-wider hover:border-[#B46BFF] transition"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Бот модерации</span>
+              </a>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-300 font-mono text-[11px] uppercase tracking-wider hover:bg-red-500/20 transition"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Выйти</span>
+              </button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/admin/distribution"
-              className="btn-energy inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(135,55,255,0.4)] text-white transition"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>CXRNER CMS // DISTRIBUTION</span>
-            </Link>
-            <button
-              onClick={loadAdminData}
-              disabled={loading}
-              className="btn-void-ghost inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/15 font-mono text-xs uppercase tracking-wider text-neutral-300 hover:text-white transition disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-purple-400" : ""}`} />
-              <span>Обновить</span>
-            </button>
-            <a
-              href="https://t.me/moder_cxrner_bot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-void-ghost inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-purple-500/30 text-purple-300 font-mono text-xs uppercase tracking-wider hover:border-purple-400 transition"
-            >
-              <Send className="w-3.5 h-3.5 text-purple-400" />
-              <span>Бот модерации</span>
-            </a>
-            <button
-              onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-300 font-mono text-xs uppercase tracking-wider hover:bg-red-500/20 transition"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Выйти</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Global Stats Overview */}
-        <div className="mt-8 grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-          <div className="glass-panel p-4 rounded-2xl border border-white/10">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-neutral-400">Всего заявок</p>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-white mt-1">
-              {moderationStats.total}
-            </p>
-          </div>
-          <div className="glass-panel p-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/5">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-yellow-300">На модерации</p>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-yellow-400 mt-1">
-              {moderationStats.pending}
-            </p>
-          </div>
-          <div className="glass-panel p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-emerald-300">Одобрено</p>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-emerald-400 mt-1">
-              {moderationStats.approved}
-            </p>
-          </div>
-          <div className="glass-panel p-4 rounded-2xl border border-purple-500/30 bg-purple-500/5">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-purple-300">В релизе / UPC</p>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-purple-400 mt-1">
-              {moderationStats.uploaded}
-            </p>
-          </div>
-          <div className="glass-panel p-4 rounded-2xl border border-white/10">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-neutral-400">Артистов в базе</p>
+          {/* Global Stats Overview */}
+          <div className="mt-8 grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+            <div className="cxr-panel p-4 rounded-2xl">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/55">Всего заявок</p>
+              <p className="font-display text-2xl sm:text-3xl font-black text-white mt-1 tabular-nums">
+                {moderationStats.total}
+              </p>
+            </div>
+            <div className="cxr-panel p-4 rounded-2xl border-amber-400/25 bg-amber-500/[0.04]">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-amber-300">На модерации</p>
+              <p className="font-display text-2xl sm:text-3xl font-black text-amber-300 mt-1 tabular-nums">
+                {moderationStats.pending}
+              </p>
+            </div>
+            <div className="cxr-panel p-4 rounded-2xl border-emerald-400/25 bg-emerald-500/[0.04]">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-emerald-300">Одобрено</p>
+              <p className="font-display text-2xl sm:text-3xl font-black text-emerald-400 mt-1 tabular-nums">
+                {moderationStats.approved}
+              </p>
+            </div>
+            <div className="cxr-panel p-4 rounded-2xl border-[#8737FF]/30 bg-[#8737FF]/[0.06]">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-[#B46BFF]">В релизе / UPC</p>
+              <p className="font-display text-2xl sm:text-3xl font-black text-[#B46BFF] mt-1 tabular-nums">
+                {moderationStats.uploaded}
+              </p>
+            </div>
+            <div className="cxr-panel p-4 rounded-2xl">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/55">Артистов в базе</p>
             <p className="font-display text-2xl sm:text-3xl font-bold text-white mt-1">
               {cabinetUsers.length}
             </p>
@@ -1364,5 +1367,6 @@ export default function AdminPage() {
         </div>
       )}
     </main>
+  </div>
   );
 }

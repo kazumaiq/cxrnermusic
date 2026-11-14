@@ -29,7 +29,7 @@ export default async function CabinetInventoryPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#050407] text-[#D9D9E2]">
+    <div className="min-h-screen bg-[#050407] text-[#D9D9E2] pt-16 sm:pt-[72px]">
       <CabinetNav />
       <DropGameArena
         initialItems={items}

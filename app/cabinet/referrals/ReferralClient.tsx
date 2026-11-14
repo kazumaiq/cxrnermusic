@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Users,
   Copy,
@@ -29,6 +30,7 @@ interface ReferralStats {
   qualifiedCount: number;
   totalEarnedCxp: number;
   referralsList: any[];
+  referredByCode?: string | null;
 }
 
 interface LeaderboardEntry {
@@ -52,8 +54,49 @@ export default function ReferralClient({
   leaderboard,
   userOptedIn,
 }: ReferralClientProps) {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "leaderboard" | "invited">("overview");
+  const [referredByCode, setReferredByCode] = useState<string | null>(stats.referredByCode || null);
+  const [inviteCodeInput, setInviteCodeInput] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
+  const [redeemFeedback, setRedeemFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleRedeemCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = inviteCodeInput.trim();
+    if (!clean) return;
+    setRedeeming(true);
+    setRedeemFeedback(null);
+    try {
+      const res = await fetch("/api/referral/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referralCode: clean }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setRedeemFeedback({
+          type: "error",
+          text: data.message || data.error || "Не удалось привязать код",
+        });
+        return;
+      }
+      setReferredByCode(clean.toUpperCase());
+      setInviteCodeInput("");
+      setRedeemFeedback({ type: "success", text: "Код приглашения успешно активирован!" });
+      try {
+        localStorage.removeItem("cxrner_ref_code");
+      } catch {
+        // ignore
+      }
+      router.refresh();
+    } catch {
+      setRedeemFeedback({ type: "error", text: "Ошибка сети при активации кода" });
+    } finally {
+      setRedeeming(false);
+    }
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(stats.shareUrl);
@@ -120,6 +163,42 @@ export default function ReferralClient({
             <Copy className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Optional referral code activation if user wasn't attributed via link yet */}
+        {!referredByCode ? (
+          <form onSubmit={handleRedeemCode} className="pt-3 border-t border-white/10 space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <input
+                type="text"
+                value={inviteCodeInput}
+                onChange={(e) => setInviteCodeInput(e.target.value)}
+                placeholder="Есть код приглашения друга? Например: ARTIST-A1B2C3"
+                className="flex-1 bg-black/50 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs font-mono text-white focus:border-[#00F0FF] outline-none"
+              />
+              <button
+                type="submit"
+                disabled={redeeming || !inviteCodeInput.trim()}
+                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-mono font-bold uppercase tracking-wider text-white transition disabled:opacity-50 shrink-0"
+              >
+                {redeeming ? "Проверка..." : "Активировать код"}
+              </button>
+            </div>
+            {redeemFeedback && (
+              <p
+                className={`text-[11px] font-mono ${
+                  redeemFeedback.type === "success" ? "text-emerald-400" : "text-red-400"
+                }`}
+              >
+                {redeemFeedback.text}
+              </p>
+            )}
+          </form>
+        ) : (
+          <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-emerald-300">
+            <span>Вы привязаны по приглашению (код: <strong className="text-white">{referredByCode}</strong>)</span>
+            {redeemFeedback?.type === "success" && <span>{redeemFeedback.text}</span>}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -338,13 +417,32 @@ export default function ReferralClient({
               {stats.referralsList.map((ref, idx) => (
                 <div
                   key={ref.id || idx}
-                  className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between font-mono text-xs"
+                  className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex flex-wrap items-center justify-between gap-2 font-mono text-xs"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-[#D9D9E2]/40">#{idx + 1}</span>
-                    <span className="text-white font-bold">Пользователь {ref.referred_user_id.slice(0, 8)}...</span>
+                    {ref.referred_username ? (
+                      <Link
+                        href={`/profile/${ref.referred_username}`}
+                        className="text-white font-bold hover:text-[#00F0FF] transition"
+                      >
+                        {ref.referred_display_name || `@${ref.referred_username}`}
+                        <span className="ml-1.5 text-[10px] text-[#D9D9E2]/50 font-normal">
+                          @{ref.referred_username}
+                        </span>
+                      </Link>
+                    ) : (
+                      <span className="text-white font-bold">
+                        {ref.referred_display_name || `Пользователь ${ref.referred_user_id.slice(0, 8)}...`}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {Array.isArray(ref.milestones) && ref.milestones.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[10px]">
+                        Этапов: {ref.milestones.length}
+                      </span>
+                    )}
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold ${
                         ref.is_qualified

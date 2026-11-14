@@ -4,15 +4,22 @@ import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 function getRouteLabel(href: string): string {
+  if (href.startsWith("/drop") || href.startsWith("/cabinet/drop")) return "CXRNER DROP // ARCHIVE";
+  if (href.startsWith("/profile")) return "CXRNER ID // ПРОФИЛЬ";
+  if (href.startsWith("/cabinet/profile")) return "РЕДАКТОР ПРОФИЛЯ";
+  if (href.startsWith("/cabinet/verification")) return "ВЕРИФИКАЦИЯ АРТИСТА";
+  if (href.startsWith("/cabinet/referrals")) return "РЕФЕРАЛЬНАЯ СЕТЬ";
   if (href.startsWith("/dashboard/links/new")) return "СОЗДАНИЕ SMART LINK";
-  if (href.startsWith("/dashboard/links")) return "МОИ СМАРТ-ССЫЛКИ";
-  if (href.startsWith("/dashboard")) return "ЛИЧНЫЙ КАБИНЕТ";
+  if (href.startsWith("/dashboard/links")) return "CXRNER LINK // ССЫЛКИ";
+  if (href.startsWith("/dashboard")) return "КАБИНЕТ АРТИСТА";
   if (href.startsWith("/link")) return "CXRNER LINK";
-  if (href.startsWith("/submit-release")) return "ОТПРАВКА РЕЛИЗА";
-  if (href.startsWith("/artists")) return "ПРОФИЛЬ АРТИСТА";
+  if (href.startsWith("/admin/drop")) return "ADMIN // DROP ARCHIVE";
+  if (href.startsWith("/admin")) return "ADMIN CONTROL CENTER";
+  if (href.startsWith("/submit-release")) return "ПОДАЧА РЕЛИЗА";
+  if (href.startsWith("/artists")) return "РОСТЕР АРТИСТОВ";
   if (href.startsWith("/contact")) return "КОНТАКТЫ";
-  if (href.startsWith("/auth")) return "АВТОРИЗАЦИЯ";
-  return "ЗАГРУЗКА СТРАНИЦЫ";
+  if (href.startsWith("/auth")) return "CXRNER ID // ВХОД";
+  return "СИНХРОНИЗАЦИЯ";
 }
 
 function NavigationProgressInner() {

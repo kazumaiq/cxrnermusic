@@ -141,64 +141,143 @@ export default function LinkAnalyticsClient({
         <>
           {/* Main KPI Stat Cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
-            <div className="p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
+            <div className="cxr-panel p-5 rounded-2xl">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/60">
                   Просмотры
                 </span>
                 <Eye className="w-3.5 h-3.5 text-[#B46BFF]" />
               </div>
-              <p className="font-heavy text-3xl text-white">
+              <p className="font-display font-black text-3xl text-white tabular-nums">
                 {data.totalViews.toLocaleString("ru-RU")}
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
+            <div className="cxr-panel p-5 rounded-2xl">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/60">
                   Уникальные
                 </span>
                 <Users className="w-3.5 h-3.5 text-[#00F0FF]" />
               </div>
-              <p className="font-heavy text-3xl text-[#00F0FF]">
+              <p className="font-display font-black text-3xl text-[#00F0FF] tabular-nums">
                 {data.uniqueVisitors.toLocaleString("ru-RU")}
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
+            <div className="cxr-panel p-5 rounded-2xl">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/60">
-                  Клики по площадкам
+                  Клики
                 </span>
                 <MousePointerClick className="w-3.5 h-3.5 text-[#8737FF]" />
               </div>
-              <p className="font-heavy text-3xl text-[#B46BFF]">
+              <p className="font-display font-black text-3xl text-[#B46BFF] tabular-nums">
                 {data.totalClicks.toLocaleString("ru-RU")}
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
+            <div className="cxr-panel p-5 rounded-2xl">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/60">
-                  Pre-save подписки
+                  Pre-save
                 </span>
                 <Sparkles className="w-3.5 h-3.5 text-[#FF2E93]" />
               </div>
-              <p className="font-heavy text-3xl text-white">
+              <p className="font-display font-black text-3xl text-white tabular-nums">
                 {data.totalPresaves.toLocaleString("ru-RU")}
               </p>
             </div>
 
-            <div className="col-span-2 md:col-span-1 p-5 rounded-2xl border border-[#00F0FF]/30 bg-[#00F0FF]/10 backdrop-blur-md">
+            <div className="col-span-2 md:col-span-1 cxr-panel-chrome p-5 rounded-2xl border-[#00F0FF]/40">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-[#00F0FF]">
-                  Конверсия (CTR)
+                  CTR
                 </span>
                 <TrendingUp className="w-3.5 h-3.5 text-[#00F0FF]" />
               </div>
-              <p className="font-heavy text-3xl text-white">{data.conversionRate}%</p>
+              <p className="font-display font-black text-3xl text-white tabular-nums">
+                {data.conversionRate}%
+              </p>
             </div>
           </div>
+
+          {/* Interactive SVG Timeline Telemetry Chart */}
+          {data.dailyTimeline && data.dailyTimeline.length > 0 && (() => {
+            const pts = data.dailyTimeline.slice(-14);
+            const maxVal = Math.max(
+              1,
+              ...pts.map((p) => Math.max(p.views || 0, p.clicks || 0))
+            );
+            const w = 680;
+            const h = 150;
+            const viewPoints = pts
+              .map((p, i) => {
+                const x = pts.length === 1 ? w / 2 : (i / (pts.length - 1)) * w;
+                const y = h - ((p.views || 0) / maxVal) * (h - 24) - 12;
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+              })
+              .join(" ");
+            const clickPoints = pts
+              .map((p, i) => {
+                const x = pts.length === 1 ? w / 2 : (i / (pts.length - 1)) * w;
+                const y = h - ((p.clicks || 0) / maxVal) * (h - 24) - 12;
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+              })
+              .join(" ");
+
+            return (
+              <div className="cxr-panel rounded-3xl p-5 sm:p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#00F0FF]">
+                      // TELEMETRY TIMELINE
+                    </span>
+                    <h3 className="font-display font-bold text-lg text-white uppercase">
+                      Динамика просмотров и кликов
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-4 font-mono text-[10px] uppercase">
+                    <span className="inline-flex items-center gap-1.5 text-white/80">
+                      <span className="w-2.5 h-0.5 bg-[#00F0FF] inline-block" />
+                      Просмотры
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[#D9B8FF]">
+                      <span className="w-2.5 h-0.5 bg-[#B46BFF] inline-block" />
+                      Клики
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-full overflow-hidden">
+                  <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-36 overflow-visible">
+                    <line x1="0" y1={h / 2} x2={w} y2={h / 2} stroke="rgba(255,255,255,0.06)" strokeDasharray="4 4" />
+                    <polyline
+                      fill="none"
+                      stroke="#00F0FF"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      points={viewPoints}
+                    />
+                    <polyline
+                      fill="none"
+                      stroke="#B46BFF"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      points={clickPoints}
+                    />
+                  </svg>
+                </div>
+
+                <div className="flex items-center justify-between font-mono text-[10px] text-white/45">
+                  <span>{pts[0]?.date}</span>
+                  <span>{pts[pts.length - 1]?.date}</span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Breakdown Rows: Platforms & Devices */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

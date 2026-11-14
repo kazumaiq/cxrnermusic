@@ -1,27 +1,25 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Share2,
   QrCode,
-  Check,
-  Copy,
-  Clock,
-  Sparkles,
-  ExternalLink,
-  ShieldCheck,
-  Send,
-  Mail,
-  Disc3,
-  Volume2,
-  VolumeX,
   Play,
   Pause,
+  Check,
   X,
+  ArrowUpRight,
+  Clock,
+  Sparkles,
+  CheckCircle2,
+  ExternalLink,
+  Copy,
+  Mail,
+  Bell,
 } from "lucide-react";
 import { getSmartLinkTheme } from "@/lib/smartLinkThemes";
+import { getSmartLinkUrl } from "@/lib/slug";
 import { ThemeAmbientBackground } from "./ThemeAmbientBackground";
 import { PlatformLogo, getPlatformVisualMeta } from "./PlatformLogo";
 
@@ -32,6 +30,19 @@ export interface PlatformItem {
   url: string;
   button_text: string;
   is_enabled: boolean;
+}
+
+export interface SmartLinkDesignConfig {
+  accent_color?: string;
+  cover_blur?: number;
+  button_radius?: "none" | "lg" | "full" | string;
+  button_style?: string;
+  font_family?: "sans" | "mono" | string;
+  show_countdown?: boolean;
+  show_audio_preview?: boolean;
+  show_socials?: boolean;
+  background_type?: string;
+  background_color?: string;
 }
 
 export interface SmartLinkData {
@@ -47,38 +58,69 @@ export interface SmartLinkData {
   label_name?: string;
   description?: string | null;
   is_out_now: boolean;
-  template: "MINIMAL" | "CYBER" | "CINEMATIC" | "BRUTAL" | string;
-  design_config?: any;
-  social_links?: Array<{ platform: string; url: string }>;
-  extra_content?: { audio_preview_url?: string; bio_text?: string; video_embed_url?: string };
   is_verified_artist?: boolean;
+  template: string;
+  preview_audio_url?: string | null;
+  presaves_count?: number;
+  social_links?: Array<{ platform: string; url: string }>;
+  design_config?: SmartLinkDesignConfig;
 }
 
 interface PublicSmartLinkProps {
   link: SmartLinkData;
   platforms: PlatformItem[];
+  isPreview?: boolean;
 }
 
-export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProps) {
-  const [copied, setCopied] = useState(false);
+export default function PublicSmartLink({
+  link,
+  platforms,
+  isPreview = false,
+}: PublicSmartLinkProps) {
+  const theme = getSmartLinkTheme(link.template);
+  const cfg = link.design_config || {};
+
+  const accentColor = cfg.accent_color || theme.accentHex || "#00F0FF";
+  const coverBlur = typeof cfg.cover_blur === "number" ? cfg.cover_blur : 64;
+  const radiusCls =
+    cfg.button_radius === "none"
+      ? "rounded-none"
+      : cfg.button_radius === "full"
+      ? "rounded-full"
+      : "rounded-2xl";
+  const fontCls = cfg.font_family === "mono" ? "font-mono" : "font-sans";
+  const showCountdown = cfg.show_countdown !== false;
+  const showAudio = cfg.show_audio_preview !== false;
+  const showSocials = cfg.show_socials !== false;
+
+  const enabledPlatforms = (platforms || []).filter(
+    (p) => p && p.is_enabled !== false && p.url && p.url.trim().length > 0
+  );
+
+  // Audio Preview Player State
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Live Release Countdown
+  const [countdown, setCountdown] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  } | null>(null);
+
+  // Modals: Share / QR & Pre-Save
   const [showQrModal, setShowQrModal] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [showPresaveModal, setShowPresaveModal] = useState(false);
   const [presaveEmail, setPresaveEmail] = useState("");
-  const [presaveSuccess, setPresaveSuccess] = useState(false);
-  const [presaveLoading, setPresaveLoading] = useState(false);
+  const [presaveStatus, setPresaveStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [presaveError, setPresaveError] = useState("");
+  const [presaveCount, setPresaveCount] = useState(link.presaves_count || 0);
 
-  // Audio Preview State
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Countdown State
-  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
-
-  const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  // 1. Record Page View on Mount
+  // Track Page View once per mount on real public pages
   useEffect(() => {
+    if (isPreview || !link.id || link.id.startsWith("preview")) return;
     fetch("/api/link/analytics-event", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -88,488 +130,521 @@ export default function PublicSmartLink({ link, platforms }: PublicSmartLinkProp
         referrer: typeof document !== "undefined" ? document.referrer : "",
       }),
     }).catch(() => {});
-  }, [link.id]);
+  }, [link.id, isPreview]);
 
-  // 2. Countdown Timer
+  // Countdown tick if pre-release date is in future
   useEffect(() => {
-    if (link.is_out_now || !link.release_date) return;
+    if (link.is_out_now || !link.release_date || !showCountdown) {
+      setCountdown(null);
+      return;
+    }
 
-    const targetDate = new Date(link.release_date).getTime();
+    const target = new Date(link.release_date).getTime();
+    if (Number.isNaN(target)) return;
 
-    const updateCountdown = () => {
-      const now = Date.now();
-      const diff = targetDate - now;
-
+    const update = () => {
+      const diff = target - Date.now();
       if (diff <= 0) {
-        setTimeLeft(null);
+        setCountdown(null);
         return;
       }
-
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      setTimeLeft({ days, hours, minutes, seconds });
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      setCountdown({ days, hours, minutes, seconds });
     };
 
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
-  }, [link.is_out_now, link.release_date]);
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [link.is_out_now, link.release_date, showCountdown]);
 
-  // 3. Track Platform Clicks
-  const handlePlatformClick = (platform: PlatformItem) => {
-    fetch("/api/link/analytics-event", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        smart_link_id: link.id,
-        event_type: "click",
-        platform_key: platform.platform_key,
-      }),
-    }).catch(() => {});
+  const handlePlatformClick = (plat: PlatformItem) => {
+    if (!isPreview && link.id && !link.id.startsWith("preview")) {
+      try {
+        fetch("/api/link/analytics-event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+          body: JSON.stringify({
+            smart_link_id: link.id,
+            event_type: "click",
+            platform_key: plat.platform_key,
+          }),
+        }).catch(() => {});
+      } catch {}
+    }
   };
 
-  // 4. Copy Link to Clipboard
-  const handleCopyLink = () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+  const toggleAudio = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().catch(() => {});
+      setIsPlaying(true);
+    }
   };
 
-  // 5. Pre-save Submission
+  const publicUrl =
+    typeof window !== "undefined"
+      ? window.location.href
+      : getSmartLinkUrl(link.slug);
+
+  const handleCopyUrl = () => {
+    navigator.clipboard?.writeText(publicUrl);
+    setCopiedUrl(true);
+    window.setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
   const handlePresaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!presaveEmail) return;
-
-    setPresaveLoading(true);
+    if (!presaveEmail.trim() || !presaveEmail.includes("@")) {
+      setPresaveError("Введите корректный e-mail");
+      return;
+    }
+    setPresaveStatus("loading");
     setPresaveError("");
-
     try {
       const res = await fetch("/api/link/presave", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           smart_link_id: link.id,
-          email: presaveEmail,
+          email: presaveEmail.trim(),
         }),
       });
-
-      const data = await res.json();
-      if (!data.success) {
-        setPresaveError(data.error || "Ошибка сохранения");
-      } else {
-        setPresaveSuccess(true);
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        setPresaveStatus("error");
+        setPresaveError(json.error || "Ошибка сохранения Pre-save");
+        return;
       }
+      setPresaveStatus("done");
+      setPresaveCount((c) => c + 1);
     } catch {
+      setPresaveStatus("error");
       setPresaveError("Сбой сети. Попробуйте снова.");
-    } finally {
-      setPresaveLoading(false);
     }
   };
 
-  // 6. Draw QR Code on Canvas
-  useEffect(() => {
-    if (!showQrModal || !qrCanvasRef.current) return;
-    const canvas = qrCanvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-
-    // Procedural Stylized QR Mock with center CXRNER logo
-    ctx.fillStyle = "#090611";
-    const size = 10;
-    const grid = 24;
-    const pad = (width - grid * size) / 2;
-
-    for (let r = 0; r < grid; r++) {
-      for (let c = 0; c < grid; c++) {
-        // Draw position markers at corners
-        const isCorner1 = r < 7 && c < 7;
-        const isCorner2 = r < 7 && c >= grid - 7;
-        const isCorner3 = r >= grid - 7 && c < 7;
-        const isCenter = r >= 10 && r <= 13 && c >= 10 && c <= 13;
-
-        if (isCorner1 || isCorner2 || isCorner3) {
-          const border = r === 0 || r === 6 || c === 0 || c === 6 ||
-                         (r === 0 && c >= grid - 7) || (r === 6 && c >= grid - 7) || (c === grid - 1) || (c === grid - 7) ||
-                         (r >= grid - 7 && (c === 0 || c === 6 || r === grid - 1 || r === grid - 7));
-          const inner = (r >= 2 && r <= 4 && c >= 2 && c <= 4) ||
-                        (r >= 2 && r <= 4 && c >= grid - 5 && c <= grid - 3) ||
-                        (r >= grid - 5 && r <= grid - 3 && c >= 2 && c <= 4);
-          if (border || inner) {
-            ctx.fillRect(pad + c * size, pad + r * size, size, size);
-          }
-        } else if (!isCenter) {
-          // Semi-random data points derived from slug characters
-          const hash = (r * 37 + c * 59 + link.slug.charCodeAt((r + c) % link.slug.length)) % 10;
-          if (hash > 4) {
-            ctx.fillRect(pad + c * size, pad + r * size, size, size);
-          }
-        }
-      }
-    }
-
-    // Draw violet center badge
-    ctx.fillStyle = "#8737FF";
-    ctx.beginPath();
-    ctx.arc(width / 2, height / 2, 22, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 14px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("CXR", width / 2, height / 2);
-  }, [showQrModal, link.slug]);
-
-  // Visual Theme Specs
-  const theme = getSmartLinkTheme(link.template);
-  const enabledPlatforms = platforms.filter((p) => p.is_enabled !== false);
-
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center pt-8 pb-16 sm:py-14 px-4 overflow-x-clip bg-[#050407] selection:bg-[#8737FF] selection:text-white">
-      {/* 0. Full viewport opaque mask to guarantee zero bleedthrough from main site */}
-      <div className="fixed inset-0 bg-[#050407] -z-10 pointer-events-none" aria-hidden="true" />
-
-      {/* 1. Immersive Animated Theme Backdrop */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#050407]">
-        <ThemeAmbientBackground theme={theme} coverUrl={link.cover_url} />
+    <div
+      className={`relative min-h-[100svh] w-full bg-[#040307] text-white overflow-x-hidden flex flex-col items-center justify-between py-8 sm:py-12 px-4 ${fontCls}`}
+      style={{
+        backgroundColor: cfg.background_color || "#040307",
+      }}
+    >
+      {/* Subtle Template Particles / FX Layer */}
+      <div className="pointer-events-none fixed inset-0 z-0 opacity-90">
+        <ThemeAmbientBackground
+          theme={theme}
+          coverUrl={cfg.background_type === "solid" ? undefined : link.cover_url}
+        />
       </div>
 
-      {/* 2. Top Navigation Bar */}
-      <header className="relative z-10 w-full max-w-md flex items-center justify-between pb-5">
-        <Link
-          href="/"
-          className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.22em] text-[#D9D9E2]/70 hover:text-white transition"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#8737FF] group-hover:scale-125 transition shadow-[0_0_8px_#8737FF]" />
-          <span>CXRNER LINK</span>
-        </Link>
+      {/* Full-bleed Atmospheric Cover Backdrop controlled by design_config.cover_blur */}
+      {link.cover_url && cfg.background_type !== "solid" && (
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+          <img
+            src={link.cover_url}
+            alt=""
+            className="w-full h-full object-cover scale-125 opacity-35 transition-all duration-700"
+            style={{
+              filter: `blur(${Math.max(8, coverBlur)}px) saturate(1.35)`,
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(circle at 50% 22%, ${accentColor}26 0%, rgba(4,3,7,0.78) 55%, rgba(4,3,7,0.96) 100%)`,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Top Subtle Action Header */}
+      <div className="relative z-10 w-full max-w-md flex items-center justify-between gap-2 pb-4">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/55 border border-white/15 backdrop-blur-md font-mono text-[9px] uppercase tracking-[0.2em] text-white/75">
+          <span
+            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ backgroundColor: accentColor }}
+          />
+          <span>{link.is_out_now ? "OUT NOW" : "PRE-SAVE MODE"}</span>
+        </div>
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowQrModal(true)}
-            title="Показать QR-код"
-            className="w-8 h-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/15 flex items-center justify-center text-[#D9D9E2] transition"
+            className="p-2 rounded-full bg-black/55 hover:bg-black/80 border border-white/15 backdrop-blur-md text-white/80 hover:text-white transition cursor-pointer"
+            title="QR-код и ссылка"
           >
-            <QrCode className="w-3.5 h-3.5" />
+            <QrCode className="w-4 h-4" />
           </button>
           <button
-            onClick={handleCopyLink}
-            title="Скопировать ссылку"
-            className="w-8 h-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/15 flex items-center justify-center text-[#D9D9E2] transition"
+            type="button"
+            onClick={handleCopyUrl}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/55 hover:bg-black/80 border border-white/15 backdrop-blur-md font-mono text-[10px] uppercase tracking-wider text-white/85 transition cursor-pointer"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-[#00F0FF]" /> : <Share2 className="w-3.5 h-3.5" />}
+            {copiedUrl ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Скопировано</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Поделиться</span>
+              </>
+            )}
           </button>
         </div>
-      </header>
+      </div>
 
-      {/* 3. Main Smart Link Card Container */}
-      <main className={`relative z-10 w-full max-w-md rounded-3xl p-4 sm:p-8 ${theme.cardClass} space-y-5 sm:space-y-6`}>
-        {/* Cover Art Presentation */}
-        <div className={`relative group/cover w-full aspect-square overflow-hidden bg-black/40 select-none ${theme.coverFrameClass}`}>
-          <img
-            src={link.cover_url}
-            alt={`${link.artist} — ${link.title}`}
-            className="w-full h-full object-cover group-hover/cover:scale-105 transition-transform duration-700 ease-out"
-          />
-
-          {/* Out Now or Pre-save Badge */}
-          <div className="absolute top-3 left-3 flex items-center gap-2">
-            {link.is_out_now ? (
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border font-mono text-[10px] font-bold uppercase tracking-widest shadow-lg"
-                style={{ borderColor: `${theme.accentHex}70`, color: theme.secondaryHex }}
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full animate-pulse"
-                  style={{ backgroundColor: theme.secondaryHex }}
-                />
-                OUT NOW
-              </span>
-            ) : (
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border font-mono text-[10px] font-bold uppercase tracking-widest shadow-lg"
-                style={{ borderColor: `${theme.accentHex}70`, color: theme.accentHex }}
-              >
-                <Clock className="w-3 h-3" style={{ color: theme.accentHex }} />
-                PRE-SAVE
-              </span>
-            )}
-          </div>
-
-          {/* Audio Preview Pill (if audio exists) */}
-          {link.extra_content?.audio_preview_url && (
-            <button
-              onClick={() => {
-                if (!audioRef.current) return;
-                if (isPlayingAudio) {
-                  audioRef.current.pause();
-                  setIsPlayingAudio(false);
-                } else {
-                  audioRef.current.play();
-                  setIsPlayingAudio(true);
-                }
-              }}
-              className="absolute bottom-3 right-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white font-sans text-xs font-semibold hover:bg-[#8737FF] transition shadow-lg"
+      {/* Central Music Release Card */}
+      <main className="relative z-10 w-full max-w-md my-auto space-y-6">
+        {/* Artwork Frame (Uncropped 1:1 with Studio Lighting Rim) */}
+        <div className="flex flex-col items-center text-center space-y-4">
+          <div className="relative group">
+            <div
+              className="pointer-events-none absolute -inset-4 rounded-3xl blur-2xl opacity-45 group-hover:opacity-65 transition-opacity duration-500"
+              style={{ backgroundColor: accentColor }}
+            />
+            <div
+              className={`relative w-56 h-56 sm:w-64 sm:h-64 overflow-hidden border border-white/25 bg-[#08060D] shadow-[0_28px_70px_rgba(0,0,0,0.85)] ${
+                cfg.button_radius === "none" ? "rounded-none" : "rounded-2xl"
+              }`}
             >
-              {isPlayingAudio ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
-              <span>{isPlayingAudio ? "Пауза" : "Превью"}</span>
-              <audio
-                ref={audioRef}
-                src={link.extra_content.audio_preview_url}
-                onEnded={() => setIsPlayingAudio(false)}
+              <img
+                src={link.cover_url || "/logo.png"}
+                alt={`${link.artist} — ${link.title}`}
+                className="w-full h-full object-contain bg-black"
               />
-            </button>
-          )}
-        </div>
-
-        {/* Release Metadata */}
-        <div className="text-center space-y-1.5 pt-1">
-          <h1 className={`text-2xl sm:text-3xl leading-tight ${theme.titleClass}`}>
-            {link.title}
-          </h1>
-
-          <div className={`flex items-center justify-center gap-1.5 text-xs sm:text-sm ${theme.artistClass}`}>
-            <span>{link.artist}</span>
-            {link.is_verified_artist && (
-              <span title="Verified Artist" className="inline-flex items-center">
-                <ShieldCheck className="w-4 h-4" style={{ color: theme.accentHex }} />
-              </span>
-            )}
+            </div>
           </div>
 
-          {link.label_name && (
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#D9D9E2]/50 pt-0.5">
-              {link.label_name}
-            </p>
-          )}
-
-          {link.description && (
-            <p className="text-xs text-[#D9D9E2]/75 pt-2 leading-relaxed max-w-sm mx-auto font-sans">
-              {link.description}
-            </p>
-          )}
-        </div>
-
-        {/* Pre-save Live Countdown (if not out now) */}
-        {!link.is_out_now && timeLeft && (
-          <div className={`p-3.5 rounded-2xl border backdrop-blur-md text-center space-y-2.5 ${theme.countdownCardClass}`}>
-            <span className="font-sans text-[11px] font-semibold tracking-wider block" style={{ color: theme.accentHex }}>
-              ДО ОФИЦИАЛЬНОГО РЕЛИЗА
-            </span>
-            <div className="grid grid-cols-4 gap-2 text-center font-sans">
-              <div className="p-2 rounded-xl bg-black/40 border border-white/10">
-                <p className="text-xl sm:text-2xl font-bold text-white leading-tight">{timeLeft.days}</p>
-                <p className="text-[10px] uppercase font-medium text-[#D9D9E2]/60 pt-0.5">Дней</p>
-              </div>
-              <div className="p-2 rounded-xl bg-black/40 border border-white/10">
-                <p className="text-xl sm:text-2xl font-bold text-white leading-tight">{timeLeft.hours}</p>
-                <p className="text-[10px] uppercase font-medium text-[#D9D9E2]/60 pt-0.5">Часов</p>
-              </div>
-              <div className="p-2 rounded-xl bg-black/40 border border-white/10">
-                <p className="text-xl sm:text-2xl font-bold text-white leading-tight">{timeLeft.minutes}</p>
-                <p className="text-[10px] uppercase font-medium text-[#D9D9E2]/60 pt-0.5">Мин</p>
-              </div>
-              <div className="p-2 rounded-xl bg-black/40 border border-white/10">
-                <p className="text-xl sm:text-2xl font-bold text-white leading-tight">{timeLeft.seconds}</p>
-                <p className="text-[10px] uppercase font-medium text-[#D9D9E2]/60 pt-0.5">Сек</p>
-              </div>
+          {/* Release Metadata */}
+          <div className="space-y-1.5 px-2">
+            <div className="inline-flex items-center justify-center gap-1.5 text-xs sm:text-sm font-mono uppercase tracking-[0.16em] text-white/80">
+              <span>{link.artist}</span>
+              {link.is_verified_artist && (
+                <CheckCircle2
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: accentColor }}
+                />
+              )}
             </div>
 
+            <h1 className="font-display font-black text-2xl sm:text-3xl text-white uppercase tracking-tight leading-tight">
+              {link.title}
+            </h1>
+
+            <div className="flex flex-wrap items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
+              <span>{link.release_type || "SINGLE"}</span>
+              {link.genre && (
+                <>
+                  <span>·</span>
+                  <span>{link.genre}</span>
+                </>
+              )}
+              {link.label_name && (
+                <>
+                  <span>·</span>
+                  <span>{link.label_name}</span>
+                </>
+              )}
+            </div>
+
+            {link.description && (
+              <p className="text-xs text-[#D9D9E2]/75 max-w-sm mx-auto pt-1 leading-relaxed">
+                {link.description}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Optional Audio Snippet Player */}
+        {showAudio && link.preview_audio_url && (
+          <div
+            className={`p-3.5 bg-white/[0.06] border border-white/15 backdrop-blur-xl flex items-center justify-between gap-3 ${radiusCls}`}
+          >
+            <audio
+              ref={audioRef}
+              src={link.preview_audio_url}
+              onEnded={() => setIsPlaying(false)}
+              preload="metadata"
+            />
             <button
-              onClick={() => setShowPresaveModal(true)}
-              className={`w-full mt-2 py-3 px-4 rounded-xl font-sans text-xs font-semibold uppercase tracking-wider transition flex items-center justify-center gap-2 ${theme.presaveBtnClass}`}
+              type="button"
+              onClick={toggleAudio}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-[#050407] shrink-0 transition hover:scale-105 cursor-pointer"
+              style={{ backgroundColor: accentColor }}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Оформить Pre-save</span>
+              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+            </button>
+            <div className="flex-1 min-w-0">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-white/85 truncate">
+                {isPlaying ? "ВОСПРОИЗВЕДЕНИЕ ПРЕВЬЮ" : "АУДИО-ФРАГМЕНТ РЕЛИЗА"}
+              </div>
+              <div className="flex items-end gap-1 h-3.5 mt-1">
+                {Array.from({ length: 18 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`flex-1 rounded-full transition-all duration-300 ${
+                      isPlaying ? "animate-pulse" : ""
+                    }`}
+                    style={{
+                      height: `${isPlaying ? 35 + ((i * 29) % 65) : 25 + ((i * 17) % 45)}%`,
+                      backgroundColor: i % 3 === 0 ? accentColor : "rgba(255,255,255,0.35)",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pre-save Countdown Engine */}
+        {countdown && (
+          <div className="cxr-panel rounded-2xl p-4 space-y-3 text-center">
+            <div className="flex items-center justify-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white/65">
+              <Clock className="w-3.5 h-3.5" style={{ color: accentColor }} />
+              <span>ДО ПРЕМЬЕРЫ РЕЛИЗА</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { val: countdown.days, label: "ДНЕЙ" },
+                { val: countdown.hours, label: "ЧАС" },
+                { val: countdown.minutes, label: "МИН" },
+                { val: countdown.seconds, label: "СЕК" },
+              ].map((cell) => (
+                <div
+                  key={cell.label}
+                  className="py-2 rounded-xl bg-white/[0.04] border border-white/10"
+                >
+                  <div className="font-display font-black text-xl text-white tabular-nums">
+                    {String(cell.val).padStart(2, "0")}
+                  </div>
+                  <div className="font-mono text-[8px] tracking-widest text-white/50">
+                    {cell.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPresaveModal(true)}
+              className={`w-full py-3 px-5 font-mono text-xs font-extrabold uppercase tracking-wider text-[#050407] flex items-center justify-center gap-2 transition hover:brightness-110 cursor-pointer ${radiusCls}`}
+              style={{ backgroundColor: accentColor }}
+            >
+              <Bell className="w-4 h-4" />
+              <span>Сделать Pre-save ({presaveCount})</span>
             </button>
           </div>
         )}
 
-        {/* Music Platforms Streaming List */}
-        <div className="space-y-2.5 pt-1">
+        {/* Streaming Platforms Stack */}
+        <div className="space-y-2.5">
           {enabledPlatforms.length === 0 ? (
-            <div className="p-6 text-center border border-white/10 rounded-2xl bg-white/5 font-sans text-xs sm:text-sm text-[#D9D9E2]/70 font-medium">
-              Ссылки на стриминги появятся в день выхода релиза
+            <div className="p-6 text-center rounded-2xl bg-white/[0.04] border border-white/10 font-mono text-xs text-white/60">
+              Ссылки на стриминговые площадки готовятся к публикации.
             </div>
           ) : (
-            enabledPlatforms.map((platform) => {
-              const meta = getPlatformVisualMeta(platform.platform_key);
-              const actionLabel = platform.button_text || (link.is_out_now ? "Слушать" : "Pre-save");
-
+            enabledPlatforms.map((plat) => {
+              const meta = getPlatformVisualMeta(plat.platform_key);
               return (
                 <a
-                  key={platform.platform_key}
-                  href={platform.url}
+                  key={plat.platform_key + plat.platform_name}
+                  href={plat.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => handlePlatformClick(platform)}
-                  className={`group flex items-center justify-between gap-2 p-2.5 sm:p-3.5 transition-all duration-200 select-none cursor-pointer ${theme.buttonClass}`}
+                  onClick={() => handlePlatformClick(plat)}
+                  className={`group flex items-center justify-between gap-3 p-3.5 sm:p-4 border transition-all duration-200 backdrop-blur-xl hover:-translate-y-0.5 ${radiusCls} ${
+                    cfg.button_style === "outline"
+                      ? "bg-black/40 border-white/25 hover:border-white/60"
+                      : "bg-[#0C0915]/82 border-white/14 hover:bg-[#151123]/95 hover:border-white/35 shadow-[0_10px_28px_rgba(0,0,0,0.45)]"
+                  }`}
                 >
-                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                  <div className="flex items-center gap-3.5 min-w-0">
                     <div
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md"
                       style={{
                         background: meta.bgGradient,
                         color: meta.fgColor,
-                        boxShadow: `0 4px 18px ${meta.glowColor}`,
                       }}
                     >
-                      <PlatformLogo platformKey={platform.platform_key} className="w-5 h-5 sm:w-[22px] sm:h-[22px]" />
+                      <PlatformLogo platformKey={plat.platform_key} className="w-5 h-5" />
                     </div>
-                    <span className="font-sans text-xs sm:text-sm tracking-tight text-white font-semibold truncate">
-                      {meta.name}
-                    </span>
+                    <div className="min-w-0">
+                      <div className="font-display font-bold text-sm text-white truncate">
+                        {plat.platform_name || meta.name}
+                      </div>
+                      <div className="font-mono text-[10px] text-white/45 uppercase">
+                        OFFICIAL DSP
+                      </div>
+                    </div>
                   </div>
 
-                  <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-sans text-[11px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-200 shadow-sm flex-shrink-0 ${theme.actionPillClass}`}>
-                    <span>{actionLabel}</span>
-                    <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-                  </div>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider shrink-0 transition"
+                    style={{
+                      backgroundColor: `${accentColor}22`,
+                      color: accentColor,
+                      border: `1px solid ${accentColor}55`,
+                    }}
+                  >
+                    <span>{plat.button_text || (link.is_out_now ? "Слушать" : "Pre-save")}</span>
+                    <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </span>
                 </a>
               );
             })
           )}
         </div>
 
-        {/* Social Media Links Row */}
-        {link.social_links && link.social_links.length > 0 && (
-          <div className="pt-2 flex items-center justify-center gap-3">
+        {/* Social Links Row */}
+        {showSocials && link.social_links && link.social_links.length > 0 && (
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             {link.social_links.map((s, idx) => (
               <a
-                key={idx}
+                key={`${s.platform}-${idx}`}
                 href={s.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-8 h-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/20 flex items-center justify-center text-[#D9D9E2] hover:text-white transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/15 border border-white/12 font-mono text-[10px] uppercase tracking-wider text-white/80 hover:text-white transition"
               >
-                <span className="font-mono text-[10px] uppercase font-bold">{s.platform.slice(0, 2)}</span>
+                <span>{s.platform}</span>
+                <ExternalLink className="w-2.5 h-2.5 opacity-60" />
               </a>
             ))}
           </div>
         )}
       </main>
 
-      {/* 4. Footer Branding */}
-      <footer className="relative z-10 w-full max-w-md pt-6 text-center space-y-1">
+      {/* Footer Attribution */}
+      <footer className="relative z-10 pt-10 pb-2 text-center">
         <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.24em] text-[#D9D9E2]/50 hover:text-white transition"
+          href="/link"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 border border-white/10 hover:border-white/25 font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 hover:text-white transition"
         >
-          <span>POWERED BY</span>
-          <span className="text-[#B46BFF] font-bold">CXRNER MUSIC</span>
+          <Sparkles className="w-3 h-3" style={{ color: accentColor }} />
+          <span>POWERED BY CXRNER LINK</span>
         </Link>
       </footer>
 
-      {/* Pre-save Modal */}
-      {showPresaveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="relative w-full max-w-sm rounded-3xl border border-[#B46BFF]/40 bg-[#090611] p-6 sm:p-7 space-y-4 shadow-2xl">
-            <button
-              onClick={() => {
-                setShowPresaveModal(false);
-                setPresaveSuccess(false);
-                setPresaveError("");
-              }}
-              className="absolute top-4 right-4 text-[#D9D9E2]/60 hover:text-white"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="space-y-1">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#B46BFF]">
-                Pre-save уведомление
+      {/* QR & Share Modal */}
+      {showQrModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4"
+          onClick={() => setShowQrModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm cxr-panel-chrome rounded-3xl p-6 text-center space-y-5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs uppercase tracking-widest text-white/75">
+                QR-КОД РЕЛИЗА
               </span>
-              <h3 className="text-xl font-bold tracking-tight text-white">
-                Не пропустите релиз
-              </h3>
-              <p className="text-xs sm:text-sm text-[#9B95AD]">
-                Мы пришлём ссылку на прослушивание сразу после полуночи в день премьеры.
-              </p>
+              <button
+                type="button"
+                onClick={() => setShowQrModal(false)}
+                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            {presaveSuccess ? (
-              <div className="p-4 rounded-2xl border border-[#00F0FF]/40 bg-[#00F0FF]/10 text-center space-y-2">
-                <Sparkles className="w-6 h-6 text-[#00F0FF] mx-auto animate-bounce" />
-                <p className="text-sm font-bold text-white">
-                  Pre-save подтверждён!
-                </p>
-                <p className="text-xs text-[#D9D9E2]/80">
-                  Вы первыми услышите трек «{link.title}».
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handlePresaveSubmit} className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-white/70 block mb-1.5">
-                    Ваш Email:
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 w-4 h-4 text-white/40" />
-                    <input
-                      type="email"
-                      required
-                      placeholder="artist@fan.com"
-                      value={presaveEmail}
-                      onChange={(e) => setPresaveEmail(e.target.value)}
-                      className="w-full bg-white/5 border border-white/15 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-white/30 focus:border-[#B46BFF] focus:outline-none"
-                    />
-                  </div>
-                </div>
+            <div className="p-4 rounded-2xl bg-white inline-block mx-auto">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                  publicUrl
+                )}`}
+                alt="QR Code"
+                className="w-44 h-44"
+              />
+            </div>
 
-                {presaveError && (
-                  <p className="text-xs text-[#FF2E93]">{presaveError}</p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={presaveLoading}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#8737FF] to-[#6d25dc] hover:from-[#9d57ff] hover:to-[#7f32f2] text-white text-xs sm:text-sm font-semibold uppercase tracking-wider transition shadow-lg disabled:opacity-50"
-                >
-                  {presaveLoading ? "Сохранение..." : "Подтвердить Pre-save"}
-                </button>
-              </form>
-            )}
+            <div className="space-y-2">
+              <p className="font-mono text-[11px] text-white/70 truncate px-2">
+                {publicUrl}
+              </p>
+              <button
+                type="button"
+                onClick={handleCopyUrl}
+                className="w-full btn-void-primary py-3 text-xs"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copiedUrl ? "Ссылка скопирована" : "Скопировать ссылку"}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* QR Code Modal */}
-      {showQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="relative w-full max-w-xs rounded-3xl border border-white/20 bg-[#090611] p-6 text-center space-y-4 shadow-2xl">
-            <button
-              onClick={() => setShowQrModal(false)}
-              className="absolute top-4 right-4 text-[#D9D9E2]/60 hover:text-white"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="space-y-1">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#B46BFF]">
-                [SCAN TO LISTEN]
+      {/* Pre-save Email Capture Modal */}
+      {showPresaveModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4"
+          onClick={() => setShowPresaveModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm cxr-panel-chrome rounded-3xl p-6 space-y-5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs uppercase tracking-widest text-white/75">
+                PRE-SAVE // УВЕДОМЛЕНИЕ
               </span>
-              <h3 className="font-heavy text-lg uppercase tracking-tight text-white">
-                {link.title}
-              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPresaveModal(false)}
+                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="p-3 bg-white rounded-2xl mx-auto inline-block shadow-xl">
-              <canvas ref={qrCanvasRef} width={220} height={220} className="rounded-lg" />
-            </div>
-
-            <p className="font-mono text-[10px] text-[#D9D9E2]/60">
-              Наведите камеру смартфона для быстрого перехода
-            </p>
+            {presaveStatus === "done" ? (
+              <div className="text-center space-y-3 py-4">
+                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
+                <h3 className="font-display font-bold text-lg text-white">Pre-save оформлен!</h3>
+                <p className="text-xs text-[#D9D9E2]/70">
+                  Вы получите моментальное уведомление в момент выхода релиза.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handlePresaveSubmit} className="space-y-4">
+                <p className="text-xs text-[#D9D9E2]/75 leading-relaxed">
+                  Оставьте свой email, чтобы не пропустить премьеру «{link.title}» от {link.artist}.
+                </p>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    value={presaveEmail}
+                    onChange={(e) => setPresaveEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.06] border border-white/15 focus:border-[#00F0FF] text-white text-xs font-mono outline-none"
+                  />
+                </div>
+                {presaveError && (
+                  <p className="text-xs text-rose-400 font-mono">{presaveError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={presaveStatus === "loading"}
+                  className="w-full py-3 rounded-full bg-white text-[#050407] font-mono text-xs font-extrabold uppercase tracking-wider hover:brightness-95 transition disabled:opacity-50"
+                >
+                  {presaveStatus === "loading" ? "Сохранение..." : "Подтвердить Pre-save"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

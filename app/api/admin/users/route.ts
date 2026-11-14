@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyAdminRequest } from "@/lib/admin";
+import { getSupabaseAdminClient, getResolvedSupabaseUrl } from "@/lib/supabaseServer";
+import { calculateProfileCompletion } from "@/lib/ecosystemTypes";
 
 function getServiceSupabase() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const admin = getSupabaseAdminClient();
+  if (admin) return admin;
+  const url = getResolvedSupabaseUrl();
   const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
@@ -92,28 +96,50 @@ export async function GET(request: Request) {
       }
     });
 
-    // Merge and enrich user records
+    // Merge and enrich user records (using both 004 tables and cxrner_cabinet_users vault fallback)
     let enriched = (cabinetUsers || []).map((row) => {
       const p = (row.profile as Record<string, any>) || {};
-      const tgId = p.telegram_id ? String(p.telegram_id) : null;
+      const vaultCid = p.cxrner_id || {};
+      const vaultArt = p.ecosystem_artist_profile || {};
+      const vaultWallet = p.ecosystem_wallet;
+      const vaultInventory = Array.isArray(p.ecosystem_inventory) ? p.ecosystem_inventory : null;
+
+      const tgId = p.telegram_id ? String(p.telegram_id) : vaultCid.telegram_id ? String(vaultCid.telegram_id) : null;
       const count = (formsByUid[row.user_id] || 0) + (tgId ? (formsByUid[tgId] || 0) : 0);
-      const prof = profilesMap[row.user_id] || {};
-      const art = artistMap[row.user_id] || {};
+      const prof = profilesMap[row.user_id] || vaultCid;
+      const art = artistMap[row.user_id] || vaultArt;
 
       const username = prof.username || p.username || `user_${row.user_id.slice(0, 6)}`;
       const displayName = prof.display_name || p.artist_name || art.stage_name || "—";
       const isVerified = Boolean(prof.is_artist_verified || art.verification_status === "verified");
-      const completion = prof.completion_percentage !== undefined ? prof.completion_percentage : (tgId ? 30 : 15);
-      const cxpBalance = walletMap[row.user_id] || 0;
-      const itemsCount = inventoryMap[row.user_id] || (prof.pinned_items?.length || 0);
-      const isBanned = Boolean(prof.is_banned);
+      const completion =
+        prof.completion_percentage !== undefined
+          ? prof.completion_percentage
+          : prof.id
+          ? calculateProfileCompletion({ ...prof, telegram_id: tgId }).total
+          : tgId
+          ? 30
+          : 15;
+      const cxpBalance =
+        walletMap[row.user_id] !== undefined
+          ? walletMap[row.user_id]
+          : vaultWallet && typeof vaultWallet.balance === "number"
+          ? vaultWallet.balance
+          : 0;
+      const itemsCount =
+        inventoryMap[row.user_id] !== undefined
+          ? inventoryMap[row.user_id]
+          : vaultInventory
+          ? vaultInventory.length
+          : prof.pinned_items?.length || 0;
+      const isBanned = Boolean(prof.is_banned || p.is_banned);
 
       return {
         user_id: row.user_id,
         username,
         display_name: displayName,
         email: p.email || null,
-        avatar_url: prof.avatar_url || null,
+        avatar_url: prof.avatar_url || p.avatar_url || null,
         telegram_id: tgId,
         telegram_username: p.telegram_username || prof.telegram_username || null,
         telegram_linked: Boolean(tgId),

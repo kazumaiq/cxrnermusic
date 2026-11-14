@@ -1,4 +1,5 @@
 "use client";
+import AdminNav from "@/components/admin/AdminNav";
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -339,10 +340,11 @@ export default function DistributionCmsClient({
   };
 
   return (
-    <div className="min-h-screen bg-[#050407] text-white flex flex-col font-sans selection:bg-[#8737FF] selection:text-white">
+    <div className="min-h-screen bg-[#050407] text-white flex flex-col font-sans pt-16 sm:pt-[72px] selection:bg-[#8737FF] selection:text-white">
+      <AdminNav />
       {/* Toast Notification */}
       {notification && (
-        <div className="fixed top-5 right-5 z-50 animate-fade-in max-w-sm">
+        <div className="fixed top-20 right-5 z-50 animate-fade-in max-w-sm">
           <div
             className={`p-4 rounded-2xl border shadow-2xl flex items-center gap-3 backdrop-blur-xl ${
               notification.type === "success"
@@ -361,7 +363,7 @@ export default function DistributionCmsClient({
       )}
 
       {/* Top Header Bar */}
-      <header className="h-16 border-b border-white/[0.08] bg-[#090611]/85 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+      <header className="min-h-16 border-b border-white/[0.08] bg-[#090611]/70 backdrop-blur-xl px-4 sm:px-6 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3.5">
           <Link href="/" className="flex items-center gap-2 group">
             <span className="w-2.5 h-2.5 rounded-full bg-[#8737FF] group-hover:scale-125 transition shadow-[0_0_10px_#8737FF]" />

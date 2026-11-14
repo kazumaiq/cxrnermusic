@@ -1,145 +1,176 @@
-import Image from "next/image";
-import Link from "next/link";
-import { getSupabaseServerClient } from "../lib/supabaseServer";
-import MobileMenu from "./MobileMenu";
-import SfxToggle from "./visual/SfxToggle";
-import { User, ArrowUpRight, Radio } from "lucide-react";
+"use client";
 
-const navItems = [
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { Radio, Box, User, ArrowUpRight, Sparkles } from "lucide-react";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
+import SfxToggle from "./visual/SfxToggle";
+import MobileMenu from "./MobileMenu";
+import { playClickSound } from "@/lib/soundFX";
+
+const NAV_ITEMS = [
   { label: "Главная", href: "/" },
-  { label: "CXRNER LINK", href: "/link" },
-  { label: "DROP", href: "/drop" },
-  { label: "О лейбле", href: "/#about" },
   { label: "Релизы", href: "/#releases" },
   { label: "Артисты", href: "/#artists" },
   { label: "Дистрибуция", href: "/#distribution" },
-  { label: "FAQ", href: "/#faq" },
-  { label: "Контакты", href: "/contact" },
+  { label: "CXRNER LINK", href: "/link" },
+  { label: "CXRNER DROP", href: "/drop" },
 ];
 
-export default async function Header() {
-  let isLoggedIn = false;
-  try {
-    const supabase = await getSupabaseServerClient();
-    const sessionResult = await Promise.race([
-      supabase.auth.getSession(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200)),
-    ]);
-    isLoggedIn = Boolean(sessionResult && "data" in sessionResult && sessionResult.data?.session);
-  } catch {
-    isLoggedIn = false;
-  }
+export default function Header() {
+  const pathname = usePathname() || "";
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    let mounted = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted && data?.user) {
+        setIsLoggedIn(true);
+      }
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_ev, session) => {
+      if (mounted) {
+        setIsLoggedIn(Boolean(session?.user));
+      }
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 18);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    if (href.startsWith("/#")) return false;
+    return pathname.startsWith(href);
+  };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
-      {/* On mobile: sits flush with top border-b. On sm+: elegant floating pill */}
-      <div className="w-full sm:mx-auto sm:max-w-7xl sm:px-6 lg:px-8 sm:pt-4">
-        <div className="w-full px-4 py-3 sm:px-6 sm:py-2.5 flex items-center justify-between border-b sm:border border-white/10 sm:border-[#D9D9E2]/15 sm:rounded-full shadow-[0_8px_32px_rgba(5,4,7,0.9)] backdrop-blur-2xl bg-[#050407]/92 sm:bg-[#050407]/85">
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0" data-cursor="HOME">
-            <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#090611] border border-[#D9D9E2]/20 group-hover:border-[#B46BFF] overflow-hidden shadow-[0_0_18px_rgba(135,55,255,0.28)] transition duration-300">
-              <Image
-                src="/logo.png"
-                alt="CXRNER MUSIC"
-                width={36}
-                height={36}
-                className="object-contain w-full h-full p-0.5 group-hover:scale-110 transition duration-300"
-                priority
-              />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-display font-black text-sm sm:text-base tracking-wider text-white group-hover:text-[#B46BFF] transition">
-                CXRNER
-              </span>
-              <span className="font-sans text-[8px] tracking-[0.2em] font-semibold uppercase text-[#D9D9E2]/60 -mt-0.5 hidden sm:block">
-                MUSIC UNIVERSE
-              </span>
-            </div>
-          </Link>
+    <header
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-[#040307]/85 backdrop-blur-2xl border-b border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.65)]"
+          : "bg-gradient-to-b from-[#040307]/85 via-[#040307]/45 to-transparent backdrop-blur-md border-b border-white/[0.04]"
+      }`}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-3">
+        {/* Brand Identity */}
+        <Link
+          href="/"
+          onClick={() => playClickSound()}
+          className="inline-flex items-center gap-3 group shrink-0"
+        >
+          <div className="relative w-9 h-9 rounded-xl bg-[#0C0914] border border-white/18 group-hover:border-[#B46BFF]/70 overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-300">
+            <Image
+              src="/logo.png"
+              alt="CXRNER MUSIC"
+              width={36}
+              height={36}
+              className="object-contain w-full h-full p-1"
+              priority
+            />
+          </div>
+          <div className="flex flex-col leading-none">
+            <span className="font-display font-black text-sm sm:text-base tracking-[0.06em] text-white uppercase">
+              CXRNER
+            </span>
+            <span className="font-mono text-[8px] sm:text-[9px] tracking-[0.26em] text-[#D9D9E2]/55 uppercase mt-0.5">
+              MUSIC ECOSYSTEM
+            </span>
+          </div>
+        </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-xs font-sans font-medium text-[#D9D9E2]/80">
-            {navItems.map((item) => {
-              const isLink = item.href === "/link";
-              const isDrop = item.href === "/drop";
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`transition duration-200 py-1 relative group whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-                    isLink || isDrop ? "text-white font-semibold" : "hover:text-white"
-                  }`}
-                >
-                  {isLink && <Radio className="w-3 h-3 text-[#B46BFF] animate-pulse" />}
-                  {isDrop && <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />}
-                  <span>{item.label}</span>
-                  {isLink && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-gradient-to-r from-[#8737FF] to-[#00F0FF] text-white text-[8px] font-bold tracking-wider shadow-[0_0_8px_#8737FF]">
-                      NEW
-                    </span>
-                  )}
-                  {isDrop && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-[#8737FF] text-white text-[8px] font-bold tracking-wider shadow-[0_0_8px_#8737FF]">
-                      GAME
-                    </span>
-                  )}
-                  <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-gradient-to-r from-[#8737FF] to-white transition-all duration-300 group-hover:w-full" />
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-3">
-            <SfxToggle />
-            {isLoggedIn ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#B46BFF]/35 bg-[#8737FF]/12 text-[11px] font-mono uppercase tracking-wider text-white hover:bg-[#8737FF]/25 transition"
-                >
-                  <User className="w-3.5 h-3.5 text-[#B46BFF]" />
-                  <span>Кабинет</span>
-                </Link>
-                <form action="/auth/logout" method="post">
-                  <button
-                    type="submit"
-                    className="px-2.5 py-2 font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/50 hover:text-red-400 transition"
-                  >
-                    Выйти
-                  </button>
-                </form>
-              </>
-            ) : (
+        {/* Desktop Navigation Rail */}
+        <nav
+          aria-label="Основная навигация"
+          className="hidden lg:flex items-center gap-1 px-1.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.09] backdrop-blur-xl"
+        >
+          {NAV_ITEMS.map((item) => {
+            const active = isActive(item.href);
+            const isDrop = item.href === "/drop";
+            const isLink = item.href === "/link";
+            return (
               <Link
-                href="/auth/login"
-                className="px-3.5 py-2 font-mono text-[11px] uppercase tracking-wider text-[#D9D9E2]/75 hover:text-white transition"
+                key={item.href}
+                href={item.href}
+                onClick={() => playClickSound()}
+                className={`relative inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-mono text-[11px] font-bold uppercase tracking-wider transition-all duration-200 whitespace-nowrap ${
+                  active
+                    ? "bg-white text-[#050407] shadow-[0_4px_16px_rgba(255,255,255,0.2)]"
+                    : isDrop
+                    ? "text-[#D9B8FF] hover:text-white hover:bg-[#8737FF]/20"
+                    : isLink
+                    ? "text-[#79F7FF] hover:text-white hover:bg-[#00F0FF]/12"
+                    : "text-[#D9D9E2]/70 hover:text-white hover:bg-white/[0.06]"
+                }`}
               >
-                Вход
+                {isLink && <Radio className="w-3 h-3" />}
+                {isDrop && <Box className="w-3 h-3" />}
+                <span>{item.label}</span>
               </Link>
-            )}
+            );
+          })}
+        </nav>
 
-            <Link
-              href="/submit-release"
-              data-cursor="SUBMIT"
-              className="btn-energy px-5 py-2 rounded-full font-mono text-[11px] uppercase tracking-wider font-bold whitespace-nowrap shrink-0"
-            >
-              <span>Отправить релиз</span>
-              <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
-            </Link>
+        {/* Right Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="hidden sm:block">
+            <SfxToggle />
           </div>
 
-          {/* Mobile Right Controls: Prominent CXRNER LINK Pill + Drawer */}
-          <div className="flex md:hidden items-center gap-2">
-            <Link
-              href="/link"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#B46BFF]/50 bg-gradient-to-r from-[#8737FF]/35 to-[#160B28] font-sans text-xs uppercase font-bold text-white tracking-wider shadow-[0_0_15px_rgba(135,55,255,0.4)] active:scale-95 transition"
-            >
-              <Radio className="w-3 h-3 text-[#00F0FF] animate-pulse" />
-              <span>LINK</span>
-              <span className="px-1 py-0.2 rounded bg-[#8737FF] text-[8px] font-black">NEW</span>
-            </Link>
-            <MobileMenu isLoggedIn={isLoggedIn} navItems={navItems} />
+          <Link
+            href="/drop"
+            onClick={() => playClickSound()}
+            className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#8737FF]/20 border border-[#B46BFF]/45 font-mono text-[10px] font-bold uppercase tracking-wider text-white hover:bg-[#8737FF]/35 transition"
+          >
+            <Box className="w-3 h-3 text-[#B46BFF]" />
+            <span>DROP</span>
+          </Link>
+
+          <Link
+            href="/link"
+            onClick={() => playClickSound()}
+            className="hidden sm:inline-flex lg:hidden items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00F0FF]/12 border border-[#00F0FF]/40 font-mono text-[10px] font-bold uppercase tracking-wider text-[#79F7FF]"
+          >
+            <Radio className="w-3 h-3" />
+            <span>LINK</span>
+          </Link>
+
+          <Link
+            href={isLoggedIn ? "/dashboard" : "/auth/login"}
+            onClick={() => playClickSound()}
+            className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-[#050407] font-mono text-[11px] font-extrabold uppercase tracking-wider shadow-[0_6px_22px_rgba(255,255,255,0.16)] hover:shadow-[0_8px_28px_rgba(180,107,255,0.35)] hover:-translate-y-0.5 transition-all"
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>{isLoggedIn ? "Кабинет" : "Войти"}</span>
+          </Link>
+
+          <Link
+            href="/submit-release"
+            onClick={() => playClickSound()}
+            className="hidden xl:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 font-mono text-[11px] font-bold uppercase tracking-wider text-white transition"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#B46BFF]" />
+            <span>Релиз</span>
+            <ArrowUpRight className="w-3.5 h-3.5 opacity-60" />
+          </Link>
+
+          <div className="lg:hidden">
+            <MobileMenu isLoggedIn={isLoggedIn} navItems={NAV_ITEMS} />
           </div>
         </div>
       </div>

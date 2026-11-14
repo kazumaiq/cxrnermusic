@@ -369,3 +369,230 @@ input[type="button"] {
     font-size: 16px !important;
   }
 }
+
+
+/* ============================================================================
+   CXRNER MUSIC — TOTAL VISUAL REVOLUTION DESIGN SYSTEM (STUDIO EDITION)
+   ============================================================================ */
+:root {
+  --cxr-obsidian: #040307;
+  --cxr-void: #08060e;
+  --cxr-graphite: #0e0b16;
+  --cxr-chrome: #d9d9e2;
+  --cxr-chrome-bright: #f4f4f8;
+  --cxr-violet: #8737ff;
+  --cxr-ultraviolet: #b46bff;
+  --cxr-cyan: #00f0ff;
+  --cxr-border: rgba(255, 255, 255, 0.1);
+  --cxr-border-bright: rgba(255, 255, 255, 0.22);
+}
+
+html {
+  scroll-padding-top: 88px;
+  background-color: var(--cxr-obsidian);
+}
+
+/* Precision Architectural Surfaces */
+.glass-panel {
+  background: linear-gradient(160deg, rgba(16, 13, 24, 0.88) 0%, rgba(7, 5, 11, 0.94) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 20px 50px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.cxr-panel {
+  position: relative;
+  background: linear-gradient(168deg, rgba(17, 14, 25, 0.9) 0%, rgba(6, 5, 10, 0.96) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 24px 60px rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.cxr-panel-chrome {
+  position: relative;
+  background:
+    radial-gradient(120% 80% at 10% 0%, rgba(255, 255, 255, 0.06) 0%, transparent 55%),
+    linear-gradient(170deg, rgba(22, 19, 32, 0.92) 0%, rgba(7, 6, 12, 0.98) 100%);
+  border: 1px solid rgba(217, 217, 226, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(135, 55, 255, 0.16),
+    0 24px 64px rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.cxr-panel-obsidian {
+  position: relative;
+  background: linear-gradient(180deg, rgba(9, 8, 14, 0.95) 0%, rgba(4, 3, 7, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* Precision Metallic Hairlines */
+.cxr-hairline-h {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(217, 217, 226, 0.22) 25%, rgba(180, 107, 255, 0.35) 50%, rgba(217, 217, 226, 0.22) 75%, transparent 100%);
+}
+
+/* Refined Action Buttons */
+.btn-void-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #ffffff 0%, #dcdce6 100%);
+  color: #050407;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 12px 32px rgba(255, 255, 255, 0.14);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, background 0.22s ease;
+}
+
+.btn-void-primary:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 16px 38px rgba(180, 107, 255, 0.3);
+}
+
+.btn-void-primary:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.btn-void-ghost {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: rgba(14, 11, 22, 0.72);
+  color: #f4f4f8;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-void-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.34);
+  transform: translateY(-1px);
+}
+
+.btn-void-ghost:active {
+  transform: scale(0.985);
+}
+
+.btn-energy {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #8737ff 0%, #6421d9 50%, #9f59ff 100%);
+  color: #ffffff;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(180, 107, 255, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 12px 34px rgba(135, 55, 255, 0.36);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, filter 0.22s ease;
+}
+
+.btn-energy:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 16px 42px rgba(135, 55, 255, 0.52);
+}
+
+.btn-energy:active {
+  transform: scale(0.985);
+}
+
+/* Industrial Specimen Foil & Animation Keyframes */
+@keyframes dropChromeSheen {
+  0% { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
+  35% { opacity: 0.55; }
+  100% { transform: translateX(180%) skewX(-18deg); opacity: 0; }
+}
+
+@keyframes dropSpecimenFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(0.6deg); }
+}
+
+@keyframes dropShockwaveRing {
+  0% { transform: scale(0.4); opacity: 0.95; }
+  100% { transform: scale(2.35); opacity: 0; }
+}
+
+@keyframes dropGlitchSlice {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+  20% { clip-path: inset(12% 0 65% 0); transform: translateX(-5px); }
+  40% { clip-path: inset(58% 0 16% 0); transform: translateX(5px); }
+  60% { clip-path: inset(30% 0 42% 0); transform: translateX(-3px); }
+  80% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+}
+
+@keyframes dropLaserSweep {
+  0% { top: 4%; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 96%; opacity: 0; }
+}
+
+.animate-chrome-sheen {
+  animation: dropChromeSheen 3.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.animate-specimen-float {
+  animation: dropSpecimenFloat 4.8s ease-in-out infinite;
+}
+
+.animate-shockwave-ring {
+  animation: dropShockwaveRing 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-laser-sweep {
+  animation: dropLaserSweep 1.8s ease-in-out infinite;
+}
+
+.animate-glitch-slice {
+  animation: dropGlitchSlice 0.55s steps(2, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-chrome-sheen,
+  .animate-specimen-float,
+  .animate-shockwave-ring,
+  .animate-laser-sweep,
+  .animate-glitch-slice,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
+}

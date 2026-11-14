@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import {
   getProfileByUserId,
@@ -6,6 +7,9 @@ import {
   calculateProfileCompletion,
   sanitizeUsername,
   getProfileByUsername,
+  recordReferralAttribution,
+  evaluateReferralMilestones,
+  getReferralStatsForUser,
 } from "@/lib/ecosystemDb";
 
 export async function GET() {
@@ -36,6 +40,30 @@ export async function GET() {
         avatarUrl: rawMeta.avatar_url || rawMeta.picture || null,
       });
       profile = created.profile;
+    }
+
+    // Reconcile pending referral attribution from cookie or auth metadata
+    const cookieStore = await cookies();
+    const refCookie = cookieStore.get("cxrner_ref_code")?.value;
+    const rawMeta = (user.user_metadata as any) || {};
+    const pendingRef = (refCookie || rawMeta.referred_by_code || "").trim();
+    if (pendingRef) {
+      const refStats = await getReferralStatsForUser(user.id).catch(() => null);
+      if (!refStats?.referredByCode) {
+        await recordReferralAttribution({
+          referrerCode: pendingRef,
+          newUserId: user.id,
+          emailVerified: Boolean(user.email_confirmed_at || user.confirmed_at),
+        }).catch(() => {});
+      }
+    }
+
+    const emailConfirmed = Boolean(user.email_confirmed_at || user.confirmed_at);
+    if (emailConfirmed || profile.telegram_id) {
+      await evaluateReferralMilestones(user.id, {
+        emailVerified: emailConfirmed,
+        telegramLinked: Boolean(profile.telegram_id),
+      }).catch(() => {});
     }
 
     const completion = calculateProfileCompletion(profile);
@@ -84,35 +112,54 @@ export async function PATCH(request: Request) {
 
     // Sanitize bio to prevent XSS / malicious HTML
     let sanitizedBio = body.bio;
-    if (sanitizedBio) {
+    if (sanitizedBio !== undefined && sanitizedBio !== null) {
       sanitizedBio = String(sanitizedBio)
         .replace(/<[^>]*>?/gm, "")
         .slice(0, 500);
     }
 
+    const cleanUsernameInput = body.username !== undefined ? sanitizeUsername(body.username) : undefined;
+    const rawDisplayName = body.displayName !== undefined ? body.displayName : body.display_name;
+    const rawAvatarUrl = body.avatarUrl !== undefined ? body.avatarUrl : body.avatar_url;
+    const rawBannerUrl = body.bannerUrl !== undefined ? body.bannerUrl : body.banner_url;
+    const rawMusicRoles = body.musicRoles !== undefined ? body.musicRoles : body.music_roles;
+    const rawSocialLinks = body.socialLinks !== undefined ? body.socialLinks : body.social_links;
+    const rawMusicLinks = body.musicLinks !== undefined ? body.musicLinks : body.music_links;
+    const rawPrivacy = body.privacySettings !== undefined ? body.privacySettings : body.privacy_settings;
+    const rawPinnedAch = body.pinnedAchievements !== undefined ? body.pinnedAchievements : body.pinned_achievements;
+    const rawPinnedItems = body.pinnedItems !== undefined ? body.pinnedItems : body.pinned_items;
+
     const { profile, rewardsAwarded } = await upsertUserProfile({
       userId: user.id,
-      username: body.username,
-      displayName: body.displayName || body.display_name,
-      avatarUrl: body.avatarUrl || body.avatar_url,
-      bannerUrl: body.bannerUrl || body.banner_url,
+      username: cleanUsernameInput,
+      displayName: rawDisplayName,
+      avatarUrl: rawAvatarUrl,
+      bannerUrl: rawBannerUrl,
       bio: sanitizedBio,
       country: body.country,
       city: body.city,
       genres: body.genres,
-      musicRoles: body.musicRoles || body.music_roles,
-      socialLinks: body.socialLinks || body.social_links,
-      musicLinks: body.musicLinks || body.music_links,
-      privacySettings: body.privacySettings || body.privacy_settings,
+      musicRoles: rawMusicRoles,
+      socialLinks: rawSocialLinks,
+      musicLinks: rawMusicLinks,
+      privacySettings: rawPrivacy,
       equippedFrame: body.equippedFrame !== undefined ? body.equippedFrame : undefined,
       equippedEffect: body.equippedEffect !== undefined ? body.equippedEffect : undefined,
       equippedTitle: body.equippedTitle !== undefined ? body.equippedTitle : undefined,
       equippedBadge: body.equippedBadge !== undefined ? body.equippedBadge : undefined,
       equippedShowcaseItem: body.equippedShowcaseItem !== undefined ? body.equippedShowcaseItem : undefined,
       equippedBackground: body.equippedBackground !== undefined ? body.equippedBackground : undefined,
-      pinnedAchievements: body.pinnedAchievements || body.pinned_achievements,
-      pinnedItems: body.pinnedItems || body.pinned_items,
+      pinnedAchievements: rawPinnedAch,
+      pinnedItems: rawPinnedItems,
     });
+
+    const emailConfirmed = Boolean(user.email_confirmed_at || user.confirmed_at);
+    if (emailConfirmed || profile.telegram_id) {
+      await evaluateReferralMilestones(user.id, {
+        emailVerified: emailConfirmed,
+        telegramLinked: Boolean(profile.telegram_id),
+      }).catch(() => {});
+    }
 
     const completion = calculateProfileCompletion(profile);
 

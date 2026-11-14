@@ -1,19 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { verifyAdminRequest, getAdminUser } from "@/lib/admin";
-import { processVerificationReview, recordAdminAudit } from "@/lib/ecosystemDb";
-
-function getServiceSupabase() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) {
-    throw new Error("Supabase credentials are not configured");
-  }
-  return createClient(url, key);
-}
+import {
+  getAllVerifications,
+  processVerificationReview,
+  recordAdminAudit,
+} from "@/lib/ecosystemDb";
 
 export async function GET(request: Request) {
   try {
@@ -25,24 +16,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get("status") || "all";
 
-    const supabase = getServiceSupabase();
-
-    let query = supabase
-      .from("cxrner_artist_verifications")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (statusFilter !== "all") {
-      query = query.eq("status", statusFilter);
-    }
-
-    let applications: any[] = [];
-    try {
-      const { data } = await query;
-      applications = data || [];
-    } catch {
-      // ignore
-    }
+    const applications = await getAllVerifications(statusFilter);
 
     return NextResponse.json({ ok: true, applications });
   } catch (err: any) {

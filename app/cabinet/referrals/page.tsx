@@ -21,7 +21,7 @@ export default async function CabinetReferralsPage() {
   const leaderboard = await getReferralLeaderboard();
 
   return (
-    <div className="min-h-screen bg-[#050407] text-[#D9D9E2] pt-16 pb-28 selection:bg-[#8737FF] selection:text-white">
+    <div className="min-h-screen bg-[#050407] text-[#D9D9E2] pt-16 sm:pt-[72px] pb-28 selection:bg-[#8737FF] selection:text-white">
       <CabinetNav />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <ReferralClient

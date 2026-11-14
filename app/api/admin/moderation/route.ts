@@ -8,6 +8,11 @@ import {
 } from "@/lib/telegramReleases";
 import { isTestRelease } from "@/lib/testReleases";
 import { DossierRelease } from "@/components/admin/ReleaseDossierModal";
+import {
+  resolveUserIdByTelegramOrUuid,
+  unlockAchievement,
+  evaluateReferralReleaseMilestone,
+} from "@/lib/ecosystemDb";
 
 export function getServiceSupabase() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "https://wjhqtrfsuudiogpwwzgx.supabase.co";
@@ -392,12 +397,29 @@ export async function PATCH(request: Request) {
       }
     }
 
-    if (action === "approve" || status === "approved") {
-      await sendTelegramTextMessage(
-        modChat,
-        `✅ <b>Релиз одобрен модератором</b> (${moderatorName})`,
-        activeMsgId
-      ).catch(() => null);
+    if (action === "approve" || status === "approved" || targetStatus === "published") {
+      if (action === "approve" || status === "approved") {
+        await sendTelegramTextMessage(
+          modChat,
+          `✅ <b>Релиз одобрен модератором</b> (${moderatorName})`,
+          activeMsgId
+        ).catch(() => null);
+      }
+
+      try {
+        const cabinetUserId = await resolveUserIdByTelegramOrUuid(
+          String(currentForm.telegram_id || "")
+        );
+        if (cabinetUserId) {
+          await unlockAchievement({
+            userId: cabinetUserId,
+            achievementKey: "FIRST_RELEASE",
+          }).catch(() => {});
+          await evaluateReferralReleaseMilestone(cabinetUserId).catch(() => {});
+        }
+      } catch {
+        // ignore ecosystem hook errors
+      }
     } else if (action === "reject" || status === "rejected") {
       await sendTelegramTextMessage(
         modChat,

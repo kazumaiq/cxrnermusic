@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminClient, getResolvedSupabaseUrl } from "@/lib/supabaseServer";
+import { evaluateReferralMilestones } from "@/lib/ecosystemDb";
 
 function getServiceSupabase() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const admin = getSupabaseAdminClient();
+  if (admin) return admin;
+  const url = getResolvedSupabaseUrl();
+  const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) {
     throw new Error("Supabase credentials are not configured");
   }
@@ -71,6 +75,10 @@ export async function POST(request: Request) {
     }
 
     // Update cabinet profile with linked Telegram data and clear link token
+    const existingEcoId = currentProfile.cxrner_id && typeof currentProfile.cxrner_id === "object"
+      ? currentProfile.cxrner_id
+      : null;
+
     const updatedProfile: Record<string, any> = {
       ...currentProfile,
       telegram_id: telegramId,
@@ -80,6 +88,17 @@ export async function POST(request: Request) {
       link_code: null,
       link_token: null,
       link_created_at: null,
+      ...(existingEcoId
+        ? {
+            cxrner_id: {
+              ...existingEcoId,
+              telegram_id: telegramId,
+              telegram_username: username || existingEcoId.telegram_username || null,
+              telegram_linked: true,
+              updated_at: now,
+            },
+          }
+        : {}),
     };
 
     const { error: updateError } = await supabase
@@ -93,6 +112,25 @@ export async function POST(request: Request) {
     if (updateError) {
       return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
     }
+
+    // Also mirror telegram status into cxrner_profiles & evaluate referral milestones
+    try {
+      await supabase
+        .from("cxrner_profiles")
+        .update({
+          telegram_id: telegramId,
+          telegram_username: username || null,
+          telegram_linked: true,
+          updated_at: now,
+        })
+        .eq("id", matchedUser.user_id);
+    } catch {
+      // ignore if 004 schema not applied
+    }
+
+    await evaluateReferralMilestones(matchedUser.user_id, {
+      telegramLinked: true,
+    }).catch(() => {});
 
     // Bidirectional sync: link all previous forms submitted via this telegram_id
     // to the cabinet user_id

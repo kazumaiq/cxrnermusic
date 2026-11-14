@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   User,
   ShieldCheck,
@@ -56,6 +57,7 @@ export default function ProfileEditorClient({
   initialCompletion,
   userEmail,
 }: ProfileEditorClientProps) {
+  const router = useRouter();
   const [profile, setProfile] = useState<CxrnerProfile>(initialProfile);
   const [completion, setCompletion] = useState<ProfileCompletionResult>(initialCompletion);
   const [saving, setSaving] = useState(false);
@@ -106,7 +108,14 @@ export default function ProfileEditorClient({
   const [equippedTitle, setEquippedTitle] = useState(profile.equipped_title || "");
 
   // Privacy
-  const [privacy, setPrivacy] = useState(profile.privacy_settings);
+  const [privacy, setPrivacy] = useState(
+    profile.privacy_settings || {
+      is_public: true,
+      show_inventory: true,
+      show_music: true,
+      show_in_leaderboard: true,
+    }
+  );
 
   const toggleRole = (role: MusicRole) => {
     if (selectedRoles.includes(role)) {
@@ -180,6 +189,14 @@ export default function ProfileEditorClient({
 
       setProfile(data.profile);
       setCompletion(data.completion);
+      if (data.profile) {
+        setUsername(data.profile.username || username);
+        setDisplayName(data.profile.display_name || "");
+        if (data.profile.privacy_settings) {
+          setPrivacy(data.profile.privacy_settings);
+        }
+      }
+      router.refresh();
 
       if (data.rewardsAwarded && data.rewardsAwarded.length > 0) {
         setMessage({
@@ -740,8 +757,8 @@ export default function ProfileEditorClient({
                 <span>Публичный профиль</span>
                 <input
                   type="checkbox"
-                  checked={privacy.is_public}
-                  onChange={(e) => setPrivacy({ ...privacy, is_public: e.target.checked })}
+                  checked={privacy?.is_public ?? true}
+                  onChange={(e) => setPrivacy({ ...(privacy || { is_public: true, show_inventory: true, show_music: true, show_in_leaderboard: true }), is_public: e.target.checked })}
                   className="rounded bg-white/10 border-white/20 text-[#8737FF] focus:ring-0"
                 />
               </label>
@@ -750,8 +767,8 @@ export default function ProfileEditorClient({
                 <span>Показывать инвентарь DROP</span>
                 <input
                   type="checkbox"
-                  checked={privacy.show_inventory}
-                  onChange={(e) => setPrivacy({ ...privacy, show_inventory: e.target.checked })}
+                  checked={privacy?.show_inventory ?? true}
+                  onChange={(e) => setPrivacy({ ...(privacy || { is_public: true, show_inventory: true, show_music: true, show_in_leaderboard: true }), show_inventory: e.target.checked })}
                   className="rounded bg-white/10 border-white/20 text-[#8737FF] focus:ring-0"
                 />
               </label>
@@ -760,8 +777,8 @@ export default function ProfileEditorClient({
                 <span>Показывать музыкальные ссылки</span>
                 <input
                   type="checkbox"
-                  checked={privacy.show_music}
-                  onChange={(e) => setPrivacy({ ...privacy, show_music: e.target.checked })}
+                  checked={privacy?.show_music ?? true}
+                  onChange={(e) => setPrivacy({ ...(privacy || { is_public: true, show_inventory: true, show_music: true, show_in_leaderboard: true }), show_music: e.target.checked })}
                   className="rounded bg-white/10 border-white/20 text-[#8737FF] focus:ring-0"
                 />
               </label>
@@ -770,13 +787,24 @@ export default function ProfileEditorClient({
                 <span>Участие в рейтинге рефералов</span>
                 <input
                   type="checkbox"
-                  checked={privacy.show_in_leaderboard}
-                  onChange={(e) => setPrivacy({ ...privacy, show_in_leaderboard: e.target.checked })}
+                  checked={privacy?.show_in_leaderboard ?? true}
+                  onChange={(e) => setPrivacy({ ...(privacy || { is_public: true, show_inventory: true, show_music: true, show_in_leaderboard: true }), show_in_leaderboard: e.target.checked })}
                   className="rounded bg-white/10 border-white/20 text-[#8737FF] focus:ring-0"
                 />
               </label>
             </div>
           </div>
+
+          {/* Bottom Save Action */}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full btn-energy inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-mono text-xs uppercase tracking-wider font-bold shadow-lg"
+          >
+            <Save className="w-4 h-4" />
+            <span>{saving ? "Сохранение изменений..." : "Сохранить все изменения"}</span>
+          </button>
         </div>
       </div>
     </div>

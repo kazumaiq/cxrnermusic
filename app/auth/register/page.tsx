@@ -15,6 +15,7 @@ function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [artistName, setArtistName] = useState("");
+  const [refCode, setRefCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -23,6 +24,27 @@ function RegisterForm() {
   const [googleConfigStatus, setGoogleConfigStatus] = useState<any>(null);
 
   useEffect(() => {
+    // Capture referral code from query, localStorage, or cookie
+    const urlRef = searchParams.get("ref")?.trim();
+    if (urlRef) {
+      setRefCode(urlRef);
+      try {
+        localStorage.setItem("cxrner_ref_code", urlRef);
+        document.cookie = `cxrner_ref_code=${encodeURIComponent(urlRef)}; path=/; max-age=2592000; SameSite=Lax`;
+      } catch {
+        // ignore
+      }
+    } else {
+      try {
+        const stored = localStorage.getItem("cxrner_ref_code");
+        const cookieMatch = document.cookie.match(/(?:^|; )cxrner_ref_code=([^;]+)/);
+        const resolved = stored || (cookieMatch ? decodeURIComponent(cookieMatch[1]) : "");
+        if (resolved) setRefCode(resolved);
+      } catch {
+        // ignore
+      }
+    }
+
     const errorParam = searchParams.get("error");
     const descParam = searchParams.get("description");
 
@@ -40,6 +62,11 @@ function RegisterForm() {
     setError(null);
 
     try {
+      const activeRef = refCode.trim() || localStorage.getItem("cxrner_ref_code") || "";
+      if (activeRef) {
+        document.cookie = `cxrner_ref_code=${encodeURIComponent(activeRef)}; path=/; max-age=2592000; SameSite=Lax`;
+      }
+
       // 1. Proactively probe Google Provider status to avoid raw 400 Bad Request page
       const checkRes = await fetch("/api/auth/check-google").catch(() => null);
       const checkData = checkRes ? await checkRes.json().catch(() => null) : null;
@@ -103,8 +130,13 @@ function RegisterForm() {
         );
       }
 
+      const activeRefCode =
+        refCode.trim() ||
+        (typeof window !== "undefined" ? localStorage.getItem("cxrner_ref_code") || "" : "").trim();
+
       const profile = {
         artist_name: artistName.trim() || undefined,
+        ...(activeRefCode ? { referred_by_code: activeRefCode } : {}),
       };
 
       const { data, error: signUpError } = await supabaseClient.auth.signUp({
@@ -118,13 +150,38 @@ function RegisterForm() {
       if (!user) throw new Error("Не удалось создать пользователя.");
 
       if (data.session) {
+        const { data: existingRow } = await supabaseClient
+          .from("cxrner_cabinet_users")
+          .select("profile")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
         await supabaseClient.from("cxrner_cabinet_users").upsert(
-          { user_id: user.id, profile, updated_at: new Date().toISOString() },
+          {
+            user_id: user.id,
+            profile: { ...((existingRow?.profile as Record<string, any>) || {}), ...profile },
+            updated_at: new Date().toISOString(),
+          },
           { onConflict: "user_id" }
         );
+
+        if (activeRefCode) {
+          const trackRes = await fetch("/api/referral/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ referralCode: activeRefCode }),
+          }).catch(() => null);
+          if (trackRes?.ok) {
+            try {
+              localStorage.removeItem("cxrner_ref_code");
+            } catch {
+              // ignore
+            }
+          }
+        }
         router.push("/dashboard");
       } else {
-        router.push("/auth/login?registered=1");
+        router.push(activeRefCode ? `/auth/login?registered=1&ref=${encodeURIComponent(activeRefCode)}` : "/auth/login?registered=1");
       }
     } catch (err: any) {
       setError(err.message ?? "Ошибка регистрации");
@@ -175,6 +232,13 @@ function RegisterForm() {
                 Создайте профиль артиста для доступа к дистрибуции и смарт-ссылкам.
               </p>
             </div>
+
+            {refCode && (
+              <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-200 font-mono text-xs flex items-center justify-between gap-2">
+                <span>Пригласительный код активирован:</span>
+                <strong className="text-white tracking-wider">{refCode}</strong>
+              </div>
+            )}
 
             {error && (
               <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 font-mono text-xs flex items-start gap-2">

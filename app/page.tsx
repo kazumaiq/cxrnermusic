@@ -1,566 +1,381 @@
+import Link from "next/link";
+import { ArrowRight, ArrowUpRight, Radio, Send, Sparkles, ShieldCheck, Globe, Disc3 } from "lucide-react";
 import Container from "../components/Container";
-import Counter from "../components/Counter";
+import IntroSequence from "../components/visual/IntroSequence";
+import ScrollChoreographer from "../components/visual/ScrollChoreographer";
 import InteractiveAudioPreview from "../components/InteractiveAudioPreview";
+import HeroHudControls from "../components/visual/HeroHudControls";
+import CxrnerDropHeroCard from "../components/drop/CxrnerDropHeroCard";
+import CxrnerDropShowcaseSection from "../components/drop/CxrnerDropShowcaseSection";
+import BeatLaunchpad from "../components/visual/BeatLaunchpad";
+import CxrnerLinkSection from "../components/CxrnerLinkSection";
 import ReleasesCatalog from "../components/ReleasesCatalog";
 import ArtistsShowcase from "../components/ArtistsShowcase";
 import DistributionSection from "../components/DistributionSection";
 import WhyCxrnerSection from "../components/WhyCxrnerSection";
 import FaqAccordion from "../components/FaqAccordion";
-import IntroSequence from "../components/visual/IntroSequence";
-import ScrollChoreographer from "../components/visual/ScrollChoreographer";
-import MagneticButton from "../components/visual/MagneticButton";
-import HeroHudControls from "../components/visual/HeroHudControls";
-import BeatLaunchpad from "../components/visual/BeatLaunchpad";
-import Link from "next/link";
-import CxrnerLinkSection from "../components/CxrnerLinkSection";
-import CxrnerDropHeroCard from "../components/drop/CxrnerDropHeroCard";
-import { faqItems, stats } from "../data/site";
-import { getArtists } from "../lib/artists";
-import { getFeaturedRelease } from "../lib/featured";
 import { getReleases } from "../lib/releases";
-import { ArrowDown, ArrowRight, ArrowUpRight, Disc3, Send, Radio, Boxes } from "lucide-react";
+import { getArtists } from "../lib/artists";
+import { faqItems } from "../data/site";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+
+const HERO_TRACK = {
+  title: "The Sadness of Reality",
+  artist: "Neimeks",
+  cover: "/covers/the-sadness-of-reality.jpg",
+  audioSrc: "/audio/the-sadness-of-reality.mp3",
+  genre: "Electronic / Atmospheric",
+  yandexUrl: "https://music.yandex.ru/album/44422385",
+  artistUrl: "https://music.yandex.ru/artist/25572730",
+};
+
+const LABEL_METRICS = [
+  { code: "01", value: "900K+", label: "СТРИМОВ", sub: "Глобальные прослушивания" },
+  { code: "02", value: "280+", label: "АРТИСТОВ", sub: "Независимые резиденты" },
+  { code: "03", value: "350+", label: "РЕЛИЗОВ", sub: "Активный каталог лейбла" },
+  { code: "04", value: "150+", label: "ПЛАТФОРМ", sub: "Яндекс, VK, Spotify, Apple" },
+];
 
 export default async function HomePage() {
-  const [featured, releases, artists] = await Promise.all([
-    getFeaturedRelease(),
-    getReleases(),
-    getArtists(),
-  ]);
-
-  const activeFeaturedTitle =
-    featured.title && !featured.title.toLowerCase().includes("breakthroug")
-      ? featured.title
-      : "The Sadness of Reality";
-  const activeFeaturedArtist =
-    featured.title && !featured.title.toLowerCase().includes("breakthroug")
-      ? featured.artist
-      : "Neimeks";
-  const activeFeaturedCover =
-    featured.title && !featured.title.toLowerCase().includes("breakthroug") && featured.cover
-      ? featured.cover
-      : "/covers/the-sadness-of-reality.jpg";
+  const [releases, artists] = await Promise.all([getReleases(), getArtists()]);
 
   return (
-    <div className="relative text-white overflow-x-clip">
-      {/* Skippable Cinematic Intro & GSAP Scroll Choreography */}
+    <div className="relative min-h-[100svh] text-white selection:bg-[#8737FF] selection:text-white">
       <IntroSequence />
       <ScrollChoreographer />
 
-      {/* =====================================================================
-          SECTION 01 — HERO / COSMIC CORE STAGE
-          ===================================================================== */}
+      {/* =================================================================
+          01 // HERO STAGE (Uncluttered Monumental Composition + 3D Core)
+          ================================================================= */}
       <section
         id="hero"
-        className="relative min-h-[100svh] flex flex-col justify-between pt-20 sm:pt-24 lg:pt-28 pb-6 sm:pb-10"
+        className="relative min-h-[100svh] flex items-center pt-24 sm:pt-28 pb-16 sm:pb-20 overflow-hidden"
       >
-        <Container className="relative z-10 flex-1 flex flex-col justify-between gap-4">
-          {/* Desktop Top Micro-Line Only (Avoids duplicate logo peeking under mobile header) */}
-          <div className="hidden lg:flex items-center justify-between gap-4 border-b border-white/10 pb-3.5 font-mono text-[10px] uppercase tracking-[0.26em] text-[#D9D9E2]/65">
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#8737FF] shadow-[0_0_10px_#8737FF]" />
-              <span>INDEPENDENT RECORD LABEL &amp; DISTRIBUTION</span>
-            </div>
-            <div className="flex items-center gap-6">
-              <span>70/30 РОЯЛТИ</span>
-              <span>150+ ПЛАТФОРМ</span>
-              <span>24–72Ч МОДЕРАЦИЯ</span>
-            </div>
-          </div>
-
-          {/* Center Monumental Composition (Leaves right side / top mobile stage open for 3D Core) */}
-          <div className="my-auto py-2 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-end">
-            <div className="lg:col-span-7 space-y-3.5 sm:space-y-5">
-              <div className="overflow-hidden py-0.5">
-                <div
-                  data-reveal="mask-line"
-                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#B46BFF]/40 bg-[#090611]/75 backdrop-blur-md font-mono text-[10px] sm:text-xs uppercase tracking-[0.18em] text-[#D9D9E2] whitespace-nowrap"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#B46BFF]" />
-                  <span>Лейбл и дистрибуция • 70/30</span>
-                </div>
-              </div>
-
-              <h1 className="font-display font-black uppercase tracking-tight leading-[0.92] select-none">
-                <span className="block overflow-hidden py-1">
-                  <span
-                    data-reveal="mask-line"
-                    className="block text-[12vw] sm:text-[10vw] lg:text-[7.2rem] text-chrome-gradient"
-                  >
-                    CXRNER
-                  </span>
-                </span>
-                <span className="block overflow-hidden py-1">
-                  <span
-                    data-reveal="mask-line"
-                    className="block text-[12vw] sm:text-[10vw] lg:text-[7.2rem] text-violet-energy"
-                  >
-                    MUSIC
-                  </span>
-                </span>
-              </h1>
-
-              <p className="max-w-xl text-sm sm:text-base md:text-lg text-[#D9D9E2]/85 leading-relaxed font-sans">
-                Независимый лейбл и глобальная цифровая дистрибуция на 150+ музыкальных витрин. Прозрачные роялти 70/30, редакторский питчинг и личный кабинет артиста.
-              </p>
-
-              {/* Dual Ecosystem Spotlights: CXRNER LINK & CXRNER DROP */}
-              <div className="space-y-3.5 pt-1">
-                {/* High-Impact CXRNER LINK Spotlight Card */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#8737FF]/20 via-[#160B28]/85 to-[#090611] border border-[#B46BFF]/45 shadow-[0_0_30px_rgba(135,55,255,0.25)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
-                  <div className="space-y-1">
-                    <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#00F0FF] font-bold">
-                      <Radio className="w-3 h-3 text-[#00F0FF] animate-pulse" />
-                      <span>НОВЫЙ СЕРВИС · CXRNER LINK</span>
-                      <span className="px-1.5 py-0.2 rounded bg-[#8737FF] text-white text-[8px] font-bold">NEW</span>
-                    </div>
-                    <h3 className="font-heavy text-base sm:text-lg uppercase text-white tracking-wide">
-                      Музыкальные смарт-ссылки и Pre-save
-                    </h3>
-                    <p className="font-sans text-xs text-[#D9D9E2]/80 max-w-md leading-relaxed">
-                      Создавайте умные страницы релизов за 30 секунд по UPC штрихкоду, собирайте пресейвы фанатов и объединяйте 150+ площадок в одну красивую ссылку.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                    <Link
-                      href="/dashboard/links/new"
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[#8737FF] to-[#B46BFF] text-white font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(135,55,255,0.35)] active:scale-95 transition"
-                    >
-                      <span>Создать ссылку</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                    <Link
-                      href="/link"
-                      className="hidden sm:inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/20 hover:border-white/40 text-white font-mono text-xs uppercase tracking-wider transition"
-                    >
-                      Обзор
-                    </Link>
-                  </div>
-                </div>
-
-                {/* High-Impact CXRNER DROP Hero Card */}
-                <CxrnerDropHeroCard />
-              </div>
-
-              {/* Key Highlights Bar */}
-              <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 font-sans text-xs sm:text-sm font-semibold text-[#D9D9E2]/90 pt-1">
-                <span className="px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-white flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                  70/30 Роялти
-                </span>
-                <span className="px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-white flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF]" />
-                  150+ Платформ
-                </span>
-                <span className="px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-white flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#B46BFF]" />
-                  Модерация 24–72ч
+        <Container className="relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+            {/* Left Architectural Column */}
+            <div className="lg:col-span-7 space-y-6 sm:space-y-8">
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/15 backdrop-blur-xl">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF] animate-pulse" />
+                <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.24em] text-[#D9D9E2]">
+                  INDEPENDENT RECORD LABEL · 70/30 ROYALTY
                 </span>
               </div>
 
-              {/* High-Impact Actions */}
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 flex-wrap">
-                <MagneticButton
+              <div className="space-y-3">
+                <h1 className="font-display font-black text-[13vw] sm:text-7xl xl:text-[86px] uppercase tracking-[-0.03em] leading-[0.88] text-white">
+                  <span className="block text-chrome-gradient">CXRNER</span>
+                  <span className="block text-white">MUSIC</span>
+                </h1>
+                <p className="text-sm sm:text-base lg:text-lg text-[#D9D9E2]/75 max-w-xl leading-relaxed font-sans pt-1">
+                  Дистрибуция на 150+ площадок мира, прямой питчинг плейлистов и
+                  собственная цифровая экосистема инструментов для артистов.
+                </p>
+              </div>
+
+              {/* Primary CTAs */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
                   href="/submit-release"
-                  cursorLabel="SUBMIT"
-                  className="btn-energy px-8 py-4 sm:px-9 sm:py-4.5 rounded-full font-sans text-xs sm:text-sm uppercase tracking-wider font-bold shadow-[0_0_30px_rgba(135,55,255,0.4)]"
+                  className="btn-void-primary px-6 sm:px-8 py-3.5 sm:py-4 text-[11px] sm:text-xs"
                 >
                   <span>Отправить релиз</span>
                   <ArrowRight className="w-4 h-4" />
-                </MagneticButton>
+                </Link>
 
-                <MagneticButton
-                  href="/drop"
-                  cursorLabel="DROP"
-                  className="btn-void-ghost px-7 py-4 sm:px-8 sm:py-4.5 font-sans text-xs sm:text-sm uppercase tracking-wider border border-[#B46BFF]/50 bg-[#8737FF]/15 hover:bg-[#8737FF]/30 text-white font-bold flex items-center gap-2.5 shadow-[0_0_24px_rgba(135,55,255,0.25)]"
+                <Link
+                  href="/dashboard"
+                  className="btn-void-ghost px-6 sm:px-7 py-3.5 sm:py-4 text-[11px] sm:text-xs"
                 >
-                  <Boxes className="w-4 h-4 text-[#00F0FF] animate-pulse" />
-                  <span>CXRNER DROP</span>
-                  <span className="px-2 py-0.5 rounded-full text-[9px] bg-gradient-to-r from-[#8737FF] to-[#00F0FF] text-white font-black tracking-wider shadow-[0_0_10px_#8737FF]">
-                    GAME
-                  </span>
-                </MagneticButton>
-
-                <MagneticButton
-                  href="#releases"
-                  cursorLabel="CATALOG"
-                  className="btn-void-ghost px-6 py-4 font-sans text-xs sm:text-sm uppercase tracking-wider text-[#D9D9E2]/70 hover:text-white"
-                >
-                  <Disc3 className="w-4 h-4 text-[#B46BFF]" />
-                  <span>Слушать релизы</span>
-                </MagneticButton>
+                  <span>Личный кабинет</span>
+                  <ArrowUpRight className="w-4 h-4 opacity-70" />
+                </Link>
               </div>
 
-              {/* Interactive Cyber-HUD Controls & Telemetry */}
+              {/* Dual Ecosystem Service Dock (LINK + DROP) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 max-w-2xl">
+                <Link
+                  href="/link"
+                  className="group relative flex items-center justify-between gap-3.5 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#0B111A]/95 to-[#06040A]/95 border border-[#00F0FF]/30 hover:border-[#00F0FF]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_40px_rgba(0,0,0,0.65)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                >
+                  <div className="pointer-events-none absolute -right-8 -top-8 w-28 h-28 rounded-full bg-[#00F0FF]/12 blur-2xl group-hover:bg-[#00F0FF]/25 transition-colors" />
+                  <div className="relative z-10 flex items-center gap-3.5 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/35 flex items-center justify-center text-[#00F0FF] shrink-0">
+                      <Radio className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display font-black text-sm text-white uppercase tracking-wide">
+                          CXRNER LINK
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-[#00F0FF] text-[8px] font-mono font-bold text-[#040307] uppercase">
+                          UPC
+                        </span>
+                      </div>
+                      <p className="font-mono text-[10px] text-[#D9D9E2]/60 truncate">
+                        Смарт-ссылки · Pre-save · Статистика
+                      </p>
+                    </div>
+                  </div>
+                  <div className="relative z-10 w-8 h-8 rounded-full bg-white/[0.06] border border-white/15 flex items-center justify-center text-white group-hover:bg-[#00F0FF] group-hover:text-[#040307] transition-all shrink-0">
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </div>
+                </Link>
+
+                <CxrnerDropHeroCard />
+              </div>
+
               <HeroHudControls />
             </div>
 
-            {/* Right Column: Spacer for 3D Core + Audio-Reactive Track Dock */}
-            <div className="lg:col-span-5 flex flex-col justify-end items-end gap-4 pt-2 lg:pt-0">
-              <div className="w-full max-w-[440px]">
-                <InteractiveAudioPreview
-                  track={{
-                    title: activeFeaturedTitle,
-                    artist: activeFeaturedArtist,
-                    cover: activeFeaturedCover,
-                    audioSrc: "/audio/the-sadness-of-reality.mp3",
-                    yandexUrl:
-                      "https://music.yandex.ru/album/44422385?utm_source=web&utm_medium=copy_link",
-                    artistUrl: "https://music.yandex.ru/artist/25572730",
-                    genre: "Phonk / Electronic",
-                  }}
-                />
+            {/* Right Studio Stage: Balanced space around 3D Core + Studio Audio Unit */}
+            <div className="lg:col-span-5 flex flex-col justify-end lg:pt-24">
+              <div className="cxr-panel-chrome rounded-3xl p-4 sm:p-5">
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+                  <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#D9D9E2]/65">
+                    <Disc3 className="w-3.5 h-3.5 text-[#B46BFF]" />
+                    <span>FEATURED MASTER // 24-BIT</span>
+                  </div>
+                  <span className="font-mono text-[10px] text-[#00F0FF]">LIVE PLAYBACK</span>
+                </div>
+                <InteractiveAudioPreview track={HERO_TRACK} />
               </div>
             </div>
-          </div>
-
-          {/* Bottom Scroll Prompt */}
-          <div className="hidden sm:flex items-center justify-between pt-3 border-t border-white/10 font-mono text-[10px] uppercase tracking-[0.26em] text-[#D9D9E2]/55">
-            <span>SCROLL TO EXPLORE UNIVERSE</span>
-            <a
-              href="#about"
-              className="inline-flex items-center gap-2 hover:text-white transition"
-            >
-              <span>02 / О ЛЕЙБЛЕ</span>
-              <ArrowDown className="w-3.5 h-3.5 text-[#B46BFF] animate-bounce" />
-            </a>
           </div>
         </Container>
       </section>
 
-      {/* Kinetic Scrubbed Divider Marquee */}
-      <div className="relative py-6 border-y border-white/10 overflow-hidden bg-[#090611]/35 backdrop-blur-sm select-none">
-        <div
-          data-scrub-x="1"
-          className="whitespace-nowrap font-heavy text-4xl sm:text-6xl uppercase tracking-[0.12em] text-outline-chrome opacity-55"
-        >
-          CXRNER MUSIC — 150+ STREAMING PLATFORMS — 70/30 ROYALTY — GLOBAL DISTRIBUTION —
-          MUSIC WITHOUT BOUNDARIES — CXRNER MUSIC —
+      {/* Architectural Ticker Band */}
+      <div className="relative z-10 border-y border-white/10 bg-[#040307]/85 backdrop-blur-xl py-3.5 overflow-hidden select-none">
+        <div className="flex items-center gap-10 whitespace-nowrap animate-marquee font-mono text-[11px] uppercase tracking-[0.26em] text-[#D9D9E2]/60">
+          <span>CXRNER MUSIC ECOSYSTEM</span>
+          <span className="text-[#00F0FF]">◆</span>
+          <span>70 / 30 TRANSPARENT ROYALTY</span>
+          <span className="text-[#B46BFF]">◆</span>
+          <span>150+ STREAMING DSPs</span>
+          <span className="text-[#00F0FF]">◆</span>
+          <span>CXRNER LINK SMART ROUTING</span>
+          <span className="text-[#B46BFF]">◆</span>
+          <span>CXRNER DROP SPECIMEN ARCHIVE</span>
+          <span className="text-[#00F0FF]">◆</span>
+          <span>CXRNER ID ARTISTS NETWORK</span>
+          <span className="text-[#B46BFF]">◆</span>
+          <span>24–72H MODERATION PIPELINE</span>
         </div>
       </div>
 
-      {/* =====================================================================
-          SECTION 01.B — INTERACTIVE CXRNER BEAT ENGINE / SOUNDPAD
-          ===================================================================== */}
-      <section id="beatpad" className="relative py-12 sm:py-20">
-        <Container className="relative z-10">
-          <BeatLaunchpad />
-        </Container>
-      </section>
-
-      {/* =====================================================================
-          SECTION 02 — ABOUT CXRNER (MUSIC WITHOUT BOUNDARIES)
-          ===================================================================== */}
-      <section id="about" className="relative py-24 sm:py-36">
-        <Container className="relative z-10 space-y-16">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-            {/* Left Side: Open for 3D Core & Sweeping Chrome Ring */}
-            <div className="lg:col-span-5 space-y-4">
-              <span className="font-sans text-xs uppercase tracking-[0.2em] font-semibold text-[#B46BFF] block">
-                О лейбле CXRNER MUSIC
+      {/* =================================================================
+          02 // ABOUT & TELEMETRY
+          ================================================================= */}
+      <section id="about" className="relative z-10 py-20 sm:py-28">
+        <Container className="space-y-14">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#B46BFF]">
+                // 01 ECOSYSTEM TELEMETRY
               </span>
-              <div className="p-6 rounded-3xl border border-white/10 bg-[#090611]/55 backdrop-blur-xl space-y-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-[#D9D9E2]/55">
-                  ФИЛОСОФИЯ ЛЕЙБЛА
-                </p>
-                <p className="text-sm sm:text-base text-[#D9D9E2]/85 leading-relaxed">
-                  CXRNER MUSIC — это не потоковый агрегатор, а цифровая экосистема
-                  вокруг артиста. Мы объединяем мгновенную глобальную дистрибуцию,
-                  редакционный питчинг и честную экономику без кабальных контрактов.
-                </p>
-              </div>
-            </div>
-
-            {/* Right Side: Monumental Kinetic Headline + Editorial Blocks */}
-            <div className="lg:col-span-7 space-y-10">
-              <h2 className="font-heavy text-5xl sm:text-7xl md:text-8xl uppercase tracking-tight leading-[0.88]">
-                <span className="block overflow-hidden">
-                  <span data-reveal="mask-line" className="block text-white">
-                    MUSIC
-                  </span>
-                </span>
-                <span className="block overflow-hidden">
-                  <span data-reveal="mask-line" className="block text-outline-violet">
-                    WITHOUT
-                  </span>
-                </span>
-                <span className="block overflow-hidden">
-                  <span data-reveal="mask-line" className="block text-violet-energy">
-                    BOUNDARIES.
-                  </span>
-                </span>
+              <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
+                Масштаб <span className="text-chrome-gradient">Лейбла</span>
               </h2>
-
-              <div
-                data-reveal="stagger-group"
-                className="grid grid-cols-1 sm:grid-cols-2 gap-6"
-              >
-                <div
-                  data-stagger-item
-                  className="p-6 rounded-2xl border border-white/10 bg-[#090611]/50 backdrop-blur-md"
-                >
-                  <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#B46BFF] mb-2">
-                    АКТУАЛЬНЫЙ ЗВУК
-                  </p>
-                  <p className="text-sm text-[#D9D9E2]/80 leading-relaxed">
-                    Работаем со всеми актуальными жанрами — от фонка, трэпа и
-                    электроники до альтернативы и поп-сцены.
-                  </p>
-                </div>
-
-                <div
-                  data-stagger-item
-                  className="p-6 rounded-2xl border border-white/10 bg-[#090611]/50 backdrop-blur-md"
-                >
-                  <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#B46BFF] mb-2">
-                    ПОЛНЫЙ КОНТРОЛЬ
-                  </p>
-                  <p className="text-sm text-[#D9D9E2]/80 leading-relaxed">
-                    Отслеживайте статус модерации, коды UPC/ISRC и синхронизацию с
-                    Telegram-ботом в личном кабинете артиста.
-                  </p>
-                </div>
-              </div>
             </div>
+            <p className="text-xs sm:text-sm text-[#D9D9E2]/65 max-w-md leading-relaxed">
+              Независимая инфраструктура нового поколения: дистрибуция без скрытых
+              комиссий, техническая автоматизация и единый кабинет артиста.
+            </p>
           </div>
 
-          {/* Animated Telemetry Stats Row */}
-          <div
-            data-reveal="stagger-group"
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-8 border-t border-white/15"
-          >
-            {stats.map((stat, idx) => (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+            {LABEL_METRICS.map((m) => (
               <div
-                key={stat.label}
-                data-stagger-item
-                className="p-5 sm:p-6 rounded-2xl border border-white/10 bg-[#090611]/60 backdrop-blur-md hover:border-[#B46BFF]/45 transition duration-300"
+                key={m.code}
+                className="cxr-panel rounded-2xl p-5 sm:p-7 space-y-3 hover:border-white/25 transition"
               >
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#B46BFF] shadow-[0_0_8px_#B46BFF]" />
-                  <span className="font-mono text-[10px] text-[#B46BFF] tracking-widest uppercase">0{idx + 1}</span>
+                <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-[#D9D9E2]/45">
+                  <span>// {m.code}</span>
+                  <Globe className="w-3.5 h-3.5 text-[#00F0FF]/70" />
                 </div>
-                <p className="font-heavy text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-none">
-                  {stat.display ?? <Counter to={stat.value} suffix={stat.suffix} />}
-                </p>
-                <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.22em] text-[#D9D9E2]/65">
-                  {stat.label}
-                </p>
+                <div className="font-display font-black text-3xl sm:text-5xl text-white tracking-tight">
+                  {m.value}
+                </div>
+                <div>
+                  <div className="font-mono text-xs font-bold uppercase tracking-wider text-[#B46BFF]">
+                    {m.label}
+                  </div>
+                  <div className="text-[11px] text-[#D9D9E2]/55 mt-0.5">{m.sub}</div>
+                </div>
               </div>
             ))}
           </div>
+
+          {/* Embedded Beat Studio Launchpad */}
+          <div id="beatpad" className="pt-2">
+            <BeatLaunchpad />
+          </div>
         </Container>
       </section>
 
-      <div className="cosmic-hairline" />
+      <div className="cxr-hairline-h opacity-50" />
 
-      {/* =====================================================================
-          SECTION 03 — CXRNER LINK (SMART PRE-SAVES & MUSIC LINKS)
-          ===================================================================== */}
-      <CxrnerLinkSection />
+      {/* =================================================================
+          03 // CXRNER LINK SHOWCASE
+          ================================================================= */}
+      <section id="cxrner-link" className="relative z-10 py-20 sm:py-28">
+        <Container>
+          <CxrnerLinkSection />
+        </Container>
+      </section>
 
-      <div className="cosmic-hairline" />
+      <div className="cxr-hairline-h opacity-50" />
 
-      {/* =====================================================================
-          SECTION 04 — RELEASES SHOWCASE
-          ===================================================================== */}
-      <section id="releases" className="relative py-24 sm:py-36">
-        <Container className="relative z-10">
-          <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      {/* =================================================================
+          04 // CXRNER DROP ARCHIVE SHOWCASE (REAL ZIP SPECIMENS)
+          ================================================================= */}
+      <section id="cxrner-drop" className="relative z-10 py-20 sm:py-28">
+        <Container>
+          <CxrnerDropShowcaseSection />
+        </Container>
+      </section>
+
+      <div className="cxr-hairline-h opacity-50" />
+
+      {/* =================================================================
+          05 // RELEASES CATALOG
+          ================================================================= */}
+      <section id="releases" className="relative z-10 py-20 sm:py-28">
+        <Container className="space-y-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-3">
-              <span className="font-mono text-xs uppercase tracking-[0.28em] text-[#B46BFF] block">
-                [03] RELEASE CATALOG
+              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#00F0FF]">
+                // 04 OFFICIAL CATALOG
               </span>
-              <h2 className="font-heavy text-5xl sm:text-7xl uppercase tracking-tight leading-[0.9] text-white">
-                <span className="block overflow-hidden">
-                  <span data-reveal="mask-line" className="block">
-                    Свежие релизы
-                  </span>
-                </span>
+              <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
+                Последние <span className="text-chrome-gradient">Релизы</span>
               </h2>
             </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <MagneticButton
-                href="/submit-release"
-                cursorLabel="UPLOAD"
-                className="btn-void-primary px-6 py-3 text-[11px]"
-              >
-                <span>Выпустить трек</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </MagneticButton>
-            </div>
+            <Link
+              href="/submit-release"
+              className="btn-void-ghost px-5 py-2.5 text-[11px] self-start md:self-auto"
+            >
+              <span>Выпустить релиз</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-
           <ReleasesCatalog initialReleases={releases} />
         </Container>
       </section>
 
-      <div className="cosmic-hairline" />
+      <div className="cxr-hairline-h opacity-50" />
 
-      {/* =====================================================================
-          SECTION 04 — ARTISTS ROSTER
-          ===================================================================== */}
-      <section id="artists" className="relative py-24 sm:py-36">
-        <Container className="relative z-10">
-          <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-3">
-              <span className="font-mono text-xs uppercase tracking-[0.28em] text-[#B46BFF] block">
-                [04] LABEL ROSTER
-              </span>
-              <h2 className="font-heavy text-5xl sm:text-7xl uppercase tracking-tight leading-[0.9] text-white">
-                <span className="block overflow-hidden">
-                  <span data-reveal="mask-line" className="block">
-                    Резиденты CXRNER
-                  </span>
-                </span>
-              </h2>
-              <p className="text-sm sm:text-base text-[#D9D9E2]/75 max-w-xl">
-                Артисты, чьи треки выходят на лейбле и набирают сотни тысяч
-                ежемесячных слушателей на мировых витринах.
-              </p>
-            </div>
-
-            <MagneticButton
-              href="https://t.me/moder_cxrner_bot"
-              external
-              cursorLabel="JOIN"
-              className="btn-void-ghost px-6 py-3 text-[11px]"
-            >
-              <Send className="w-3.5 h-3.5 text-[#B46BFF]" />
-              <span>Стать резидентом</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </MagneticButton>
+      {/* =================================================================
+          06 // ARTISTS ROSTER
+          ================================================================= */}
+      <section id="artists" className="relative z-10 py-20 sm:py-28">
+        <Container className="space-y-10">
+          <div className="space-y-3">
+            <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#B46BFF]">
+              // 05 ARTISTS ROSTER
+            </span>
+            <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
+              Резиденты <span className="text-violet-energy">CXRNER</span>
+            </h2>
           </div>
-
           <ArtistsShowcase artists={artists} />
         </Container>
       </section>
 
-      <div className="cosmic-hairline" />
+      <div className="cxr-hairline-h opacity-50" />
 
-      {/* =====================================================================
-          SECTION 05 — DISTRIBUTION NETWORK
-          ===================================================================== */}
-      <section id="distribution" className="relative py-24 sm:py-36">
-        <Container className="relative z-10">
-          <div className="mb-14 max-w-3xl space-y-3">
-            <span className="font-mono text-xs uppercase tracking-[0.28em] text-[#B46BFF] block">
-              [05] GLOBAL DISTRIBUTION NETWORK
+      {/* =================================================================
+          07 // DISTRIBUTION PIPELINE
+          ================================================================= */}
+      <section id="distribution" className="relative z-10 py-20 sm:py-28">
+        <Container className="space-y-10">
+          <div className="space-y-3">
+            <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#00F0FF]">
+              // 06 GLOBAL PIPELINE
             </span>
-            <h2 className="font-heavy text-5xl sm:text-7xl uppercase tracking-tight leading-[0.9] text-white">
-              <span className="block overflow-hidden">
-                <span data-reveal="mask-line" className="block">
-                  От студии до всех витрин мира
-                </span>
-              </span>
+            <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
+              Дистрибуция <span className="text-chrome-gradient">150+ DSP</span>
             </h2>
-            <p className="text-sm sm:text-base text-[#D9D9E2]/75 max-w-2xl">
-              Сквозная архитектура доставки релизов: от A&R-модерации и присвоения
-              UPC/ISRC до попадания в редакционные плейлисты и квартальных выплат.
-            </p>
           </div>
-
           <DistributionSection />
-
-
         </Container>
       </section>
 
-      <div className="cosmic-hairline" />
+      <div className="cxr-hairline-h opacity-50" />
 
-
-
-      {/* =====================================================================
-          SECTION 07 — WHY CXRNER & FAQ
-          ===================================================================== */}
-      <section id="why-cxrner" className="relative py-24 sm:py-36">
-        <Container className="relative z-10 space-y-24">
+      {/* =================================================================
+          08 // WHY CXRNER & FAQ
+          ================================================================= */}
+      <section id="why-cxrner" className="relative z-10 py-20 sm:py-28">
+        <Container className="space-y-20">
           <div className="space-y-10">
-            <div className="max-w-3xl space-y-3">
-              <span className="font-mono text-xs uppercase tracking-[0.28em] text-[#B46BFF] block">
-                [07] WHY CXRNER MUSIC
+            <div className="space-y-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#B46BFF]">
+                // 07 ARCHITECTURE ADVANTAGE
               </span>
-              <h2 className="font-heavy text-5xl sm:text-7xl uppercase tracking-tight leading-[0.9] text-white">
-                <span className="block overflow-hidden">
-                  <span data-reveal="mask-line" className="block">
-                    Архитектура преимуществ
-                  </span>
-                </span>
+              <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
+                Условия <span className="text-chrome-gradient">Работы</span>
               </h2>
             </div>
-
             <WhyCxrnerSection />
           </div>
 
-          {/* FAQ Subsection */}
-          <div id="faq" className="space-y-10 pt-8">
-            <div className="text-center max-w-2xl mx-auto space-y-3">
-              <span className="font-mono text-xs uppercase tracking-[0.28em] text-[#B46BFF] block">
+          <div id="faq" className="space-y-8 pt-6">
+            <div className="text-center space-y-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#00F0FF]">
                 // KNOWLEDGE BASE
               </span>
-              <h3 className="font-heavy text-4xl sm:text-6xl uppercase tracking-tight text-white">
+              <h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tight text-white">
                 Частые вопросы
-              </h3>
-              <p className="text-sm text-[#D9D9E2]/70">
-                Всё, что нужно знать о роялти, сроках модерации, питчинге и личном кабинете.
-              </p>
+              </h2>
             </div>
-
             <FaqAccordion items={faqItems} />
           </div>
         </Container>
       </section>
 
-      {/* =====================================================================
-          SECTION 08 — SEND YOUR RELEASE (ENERGY PORTAL)
-          ===================================================================== */}
-      <section id="send-release" className="relative py-28 sm:py-40">
-        <Container className="relative z-10">
-          <div className="max-w-4xl mx-auto text-center space-y-8 rounded-3xl p-8 sm:p-14 lg:p-20 border border-[#B46BFF]/35 bg-[#090611]/65 backdrop-blur-2xl shadow-[0_0_90px_rgba(135,55,255,0.22)]">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 font-mono text-[10px] uppercase tracking-[0.28em] text-[#D9D9E2]">
-              <span className="w-2 h-2 rounded-full bg-[#B46BFF] animate-ping" />
-              [08] RELEASE SUBMISSION PORTAL
-            </span>
+      {/* =================================================================
+          09 // FINAL PORTAL CTA
+          ================================================================= */}
+      <section id="send-release" className="relative z-10 py-16 sm:py-24">
+        <Container>
+          <div className="cxr-panel-chrome rounded-3xl p-8 sm:p-14 text-center space-y-7 relative overflow-hidden">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/15 font-mono text-[10px] uppercase tracking-[0.24em] text-[#D9D9E2]">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#00F0FF]" />
+              <span>A&amp;R SUBMISSION PORTAL // OPEN</span>
+            </div>
 
-            <h2 className="font-heavy text-5xl sm:text-7xl md:text-8xl uppercase tracking-tight leading-[0.88] text-white">
-              <span className="block overflow-hidden">
-                <span data-reveal="mask-line" className="block">
-                  ГОТОВ ВЫПУСТИТЬ
-                </span>
-              </span>
-              <span className="block overflow-hidden">
-                <span data-reveal="mask-line" className="block text-violet-energy">
-                  СЛЕДУЮЩИЙ РЕЛИЗ?
-                </span>
-              </span>
+            <h2 className="font-display font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-tight text-white leading-[0.95] max-w-3xl mx-auto">
+              Готов выпустить релиз с <span className="text-violet-energy">CXRNER</span>?
             </h2>
 
-            <p className="max-w-xl mx-auto text-sm sm:text-base text-[#D9D9E2]/80 leading-relaxed">
-              Отправьте трек через официальную форму сайта с прямой интеграцией в
-              личный кабинет и модерацию — ответ команды придёт в течение 24–72 часов.
+            <p className="text-xs sm:text-base text-[#D9D9E2]/70 max-w-xl mx-auto leading-relaxed">
+              Загрузите аудио и обложку за 2 минуты. Модерация до 72 часов,
+              присвоение UPC/ISRC и полный контроль в личном кабинете.
             </p>
 
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <MagneticButton
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Link
                 href="/submit-release"
-                cursorLabel="LAUNCH"
-                className="btn-energy w-full sm:w-auto px-10 py-4 rounded-full font-mono text-xs sm:text-sm uppercase tracking-[0.2em] font-bold"
+                className="btn-void-primary px-8 py-4 text-xs"
               >
-                <span>Отправить релиз</span>
+                <Sparkles className="w-4 h-4" />
+                <span>Отправить заявку онлайн</span>
                 <ArrowRight className="w-4 h-4" />
-              </MagneticButton>
+              </Link>
 
-              <MagneticButton
+              <a
                 href="https://t.me/moder_cxrner_bot"
-                external
-                cursorLabel="BOT"
-                className="btn-void-ghost w-full sm:w-auto px-8 py-4 font-mono text-xs sm:text-sm uppercase tracking-[0.18em]"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-void-ghost px-7 py-4 text-xs"
               >
                 <Send className="w-4 h-4 text-[#B46BFF]" />
-                <span>Telegram-бот</span>
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </MagneticButton>
+                <span>Telegram-бот модерации</span>
+              </a>
             </div>
           </div>
         </Container>

@@ -1,17 +1,26 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyAdminRequest, getAdminUser } from "@/lib/admin";
+import { getSupabaseAdminClient, getResolvedSupabaseUrl } from "@/lib/supabaseServer";
 import {
   getProfileByUserId,
   getArtistProfileByUserId,
   getUserInventory,
   getReferralStatsForUser,
+  getCxpWallet,
+  getCxpTransactions,
+  getVerificationByUserId,
+  getUserNotifications,
+  adminToggleUserBan,
+  adminSetUserVerification,
   awardCxp,
   recordAdminAudit,
 } from "@/lib/ecosystemDb";
 
 function getServiceSupabase() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const admin = getSupabaseAdminClient();
+  if (admin) return admin;
+  const url = getResolvedSupabaseUrl();
   const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
@@ -53,25 +62,8 @@ export async function GET(
     const referralStats = await getReferralStatsForUser(targetUserId);
 
     // Fetch CXP Wallet & Transactions
-    let wallet = { balance: 0, total_earned: 0, total_spent: 0 };
-    let transactions: any[] = [];
-    try {
-      const { data: w } = await supabase
-        .from("cxrner_cxp_wallet")
-        .select("*")
-        .eq("user_id", targetUserId)
-        .maybeSingle();
-      if (w) wallet = w;
-
-      const { data: txs } = await supabase
-        .from("cxrner_cxp_transactions")
-        .select("*")
-        .eq("user_id", targetUserId)
-        .order("created_at", { ascending: false });
-      transactions = txs || [];
-    } catch {
-      // ignore
-    }
+    const wallet = await getCxpWallet(targetUserId);
+    const transactions = await getCxpTransactions(targetUserId);
 
     // Fetch Releases / Forms submitted by this user
     let releases: any[] = [];
@@ -89,34 +81,9 @@ export async function GET(
       // ignore
     }
 
-    // Fetch Verification record if any
-    let verificationRecord = null;
-    try {
-      const { data: ver } = await supabase
-        .from("cxrner_artist_verifications")
-        .select("*")
-        .eq("user_id", targetUserId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      verificationRecord = ver;
-    } catch {
-      // ignore
-    }
-
-    // Fetch user notifications / activity
-    let notifications: any[] = [];
-    try {
-      const { data: notifs } = await supabase
-        .from("cxrner_notifications")
-        .select("*")
-        .eq("user_id", targetUserId)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      notifications = notifs || [];
-    } catch {
-      // ignore
-    }
+    // Fetch Verification record & Notifications via persistent helpers
+    const verificationRecord = await getVerificationByUserId(targetUserId);
+    const notifications = await getUserNotifications(targetUserId);
 
     return NextResponse.json({
       ok: true,
@@ -213,17 +180,7 @@ export async function PATCH(
     }
 
     if (action === "toggle_ban") {
-      try {
-        await supabase
-          .from("cxrner_profiles")
-          .update({
-            is_banned: Boolean(isBanned),
-            ban_reason: banReason || null,
-          })
-          .eq("id", targetUserId);
-      } catch {
-        // ignore
-      }
+      await adminToggleUserBan(targetUserId, Boolean(isBanned), banReason);
 
       await recordAdminAudit({
         adminEmail,
@@ -236,24 +193,7 @@ export async function PATCH(
     }
 
     if (action === "set_verification_status") {
-      try {
-        await supabase
-          .from("cxrner_profiles")
-          .update({
-            is_artist_verified: verificationStatus === "verified",
-          })
-          .eq("id", targetUserId);
-
-        await supabase
-          .from("cxrner_artist_profiles")
-          .update({
-            verification_status: verificationStatus,
-            verified_at: verificationStatus === "verified" ? new Date().toISOString() : null,
-          })
-          .eq("user_id", targetUserId);
-      } catch {
-        // ignore
-      }
+      await adminSetUserVerification(targetUserId, verificationStatus);
 
       await recordAdminAudit({
         adminEmail,

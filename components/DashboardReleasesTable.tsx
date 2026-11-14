@@ -212,7 +212,7 @@ export default function DashboardReleasesTable({
   return (
     <div className="space-y-6">
       {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 glass-panel rounded-2xl p-4 border border-white/10">
+      <div className="cxr-panel flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-2xl p-4">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
           <input
@@ -220,11 +220,11 @@ export default function DashboardReleasesTable({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Поиск по названию, артисту или UPC..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs sm:text-sm text-white placeholder:text-white/30 focus:border-neon focus:outline-none transition"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/10 text-xs sm:text-sm text-white placeholder:text-white/35 focus:border-[#B46BFF] focus:outline-none transition"
           />
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
           {[
             { id: "all", label: "Все" },
             { id: "pending", label: "Модерация" },
@@ -234,10 +234,10 @@ export default function DashboardReleasesTable({
               key={tab.id}
               type="button"
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+              className={`px-3.5 py-2 rounded-full font-mono text-[11px] uppercase tracking-wider whitespace-nowrap transition ${
                 statusFilter === tab.id
-                  ? "bg-neon text-night font-bold shadow-glow"
-                  : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
+                  ? "bg-white text-[#050407] font-bold shadow-[0_4px_16px_rgba(255,255,255,0.2)]"
+                  : "bg-white/[0.04] border border-white/10 text-white/65 hover:text-white hover:bg-white/[0.09]"
               }`}
             >
               {tab.label}
@@ -248,10 +248,10 @@ export default function DashboardReleasesTable({
 
       {/* Empty State */}
       {filteredForms.length === 0 ? (
-        <div className="glass-panel rounded-3xl p-12 text-center border border-white/10">
+        <div className="cxr-panel rounded-3xl p-12 text-center">
           <Disc className="w-12 h-12 text-white/20 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-white">Релизы не найдены</h3>
-          <p className="text-xs sm:text-sm text-white/50 mt-1 max-w-sm mx-auto">
+          <h3 className="font-display text-lg font-bold text-white uppercase tracking-tight">Релизы не найдены</h3>
+          <p className="text-xs sm:text-sm text-[#D9D9E2]/60 mt-1 max-w-sm mx-auto">
             {forms.length === 0
               ? "У вас пока нет отправленных релизов. Отправьте первый трек для дистрибуции!"
               : "Нет релизов, соответствующих критериям поиска."}
@@ -259,7 +259,7 @@ export default function DashboardReleasesTable({
           {forms.length === 0 && (
             <Link
               href="/submit-release"
-              className="mt-6 btn-void-primary inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(255,255,255,0.15)] transition"
+              className="mt-6 btn-void-primary inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono text-xs uppercase tracking-wider font-bold transition"
             >
               Отправить релиз
             </Link>
@@ -272,7 +272,7 @@ export default function DashboardReleasesTable({
             {filteredForms.map((item) => (
               <div
                 key={item.id}
-                className="glass-panel rounded-2xl p-5 border border-white/10 flex flex-col justify-between space-y-4"
+                className="cxr-panel rounded-2xl p-5 flex flex-col justify-between space-y-4"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-2">
@@ -339,7 +339,7 @@ export default function DashboardReleasesTable({
 
                   <Link
                     href={`/dashboard/release/${item.id}`}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-neon/15 hover:bg-neon/25 text-neonSoft text-xs font-semibold transition border border-neon/30"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-[#8737FF]/20 text-white border border-white/15 hover:border-[#B46BFF]/45 text-xs font-semibold transition"
                   >
                     Подробнее <ArrowRight className="w-3 h-3" />
                   </Link>
@@ -349,10 +349,10 @@ export default function DashboardReleasesTable({
           </div>
 
           {/* Desktop Table View (hidden on mobile/tablet) */}
-          <div className="hidden lg:block glass-panel rounded-3xl border border-white/10 overflow-hidden">
+          <div className="hidden lg:block cxr-panel rounded-3xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-white/5 border-b border-white/10 text-xs uppercase tracking-wider text-white/50">
+                <thead className="bg-white/[0.03] border-b border-white/10 font-mono text-[10px] uppercase tracking-wider text-white/50">
                   <tr>
                     <th className="py-4 px-6">Трек / Релиз</th>
                     <th className="py-4 px-6">Артист</th>
@@ -392,7 +392,7 @@ export default function DashboardReleasesTable({
                       <td className="py-4 px-6 text-right">
                         <Link
                           href={`/dashboard/release/${item.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-neon/15 hover:border-neon/40 border border-white/10 text-xs font-semibold text-white transition"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-[#8737FF]/20 hover:border-[#B46BFF]/45 border border-white/10 text-xs font-semibold text-white transition"
                         >
                           Детали <ArrowRight className="w-3 h-3 text-neon" />
                         </Link>

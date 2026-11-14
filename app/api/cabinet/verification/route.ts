@@ -4,6 +4,7 @@ import {
   generateVerificationCode,
   submitVerificationApplication,
   getArtistProfileByUserId,
+  getVerificationByUserId,
 } from "@/lib/ecosystemDb";
 
 export async function GET(request: Request) {
@@ -27,21 +28,7 @@ export async function GET(request: Request) {
     }
 
     const artistProfile = await getArtistProfileByUserId(user.id);
-
-    // Fetch existing verification record
-    let verData = null;
-    try {
-      const { data } = await supabase
-        .from("cxrner_artist_verifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      verData = data;
-    } catch {
-      // ignore
-    }
+    const verData = await getVerificationByUserId(user.id);
 
     return NextResponse.json({
       ok: true,

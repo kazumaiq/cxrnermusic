@@ -133,7 +133,7 @@ export default async function DashboardPage() {
   const userSmartLinks = await getUserSmartLinks(user.id);
 
   return (
-    <div className="min-h-screen pt-16 pb-24">
+    <div className="min-h-screen pt-16 sm:pt-[72px] pb-24">
       <CabinetNav />
       <div className="pt-8">
         <Container>

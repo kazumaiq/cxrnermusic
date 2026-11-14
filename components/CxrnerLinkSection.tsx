@@ -1,215 +1,206 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import {
-  Link2,
-  Clock,
-  BarChart3,
-  Paintbrush,
-  Sparkles,
-  ArrowRight,
-  ExternalLink,
-  ShieldCheck,
-  Disc3,
-  Play,
-  Check,
-} from "lucide-react";
-import MagneticButton from "./visual/MagneticButton";
+import { ArrowRight, Radio, Barcode, Clock, BarChart3, Palette, ExternalLink } from "lucide-react";
+import { CxrSurface } from "./ui/CxrSurface";
+import { CxrButton } from "./ui/CxrButton";
+import { CxrBadge } from "./ui/CxrBadge";
+import { playClickSound, playHoverSound } from "@/lib/soundFX";
+
+const PREVIEW_THEMES = [
+  { id: "CYBER", name: "Cyber Grid", accent: "#00F0FF", bg: "from-[#060913] via-[#0B0617] to-[#040307]" },
+  { id: "CINEMATIC", name: "Cinematic", accent: "#B46BFF", bg: "from-[#12071F] via-[#07050C] to-[#040307]" },
+  { id: "BRUTAL", name: "Brutal Chrome", accent: "#FFFFFF", bg: "from-[#17171B] via-[#0A0A0D] to-[#040307]" },
+  { id: "SAKURA", name: "Sakura Night", accent: "#FF68B4", bg: "from-[#1C0A17] via-[#0A050B] to-[#040307]" },
+];
+
+const LINK_CAPABILITIES = [
+  {
+    code: "01",
+    icon: Barcode,
+    title: "UPC Автосборка за 30 сек",
+    desc: "Введите штрихкод — обложка, метаданные и ссылки соберутся автоматически.",
+  },
+  {
+    code: "02",
+    icon: Clock,
+    title: "Pre-save до премьеры",
+    desc: "Таймер обратного отсчёта и сбор фанатской базы до старта продаж.",
+  },
+  {
+    code: "03",
+    icon: Palette,
+    title: "7 авторских тем",
+    desc: "Тонкая настройка акцентов, кнопок, размытия и типографики.",
+  },
+  {
+    code: "04",
+    icon: BarChart3,
+    title: "Аналитика переходов",
+    desc: "Живая воронка просмотров, CTR и кликов по каждой DSP-витрине.",
+  },
+];
 
 export default function CxrnerLinkSection() {
-  return (
-    <section id="cxrner-link" className="relative py-24 sm:py-36 overflow-hidden">
-      {/* Background radial lighting */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(135,55,255,0.15),transparent_70%)] blur-3xl pointer-events-none" />
+  const [activeThemeIdx, setActiveThemeIdx] = useState(0);
+  const currentTheme = PREVIEW_THEMES[activeThemeIdx];
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="mb-14 max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#B46BFF]/40 bg-[#8737FF]/15 font-mono text-xs uppercase tracking-[0.24em] text-[#D9D9E2]">
-            <Sparkles className="w-3.5 h-3.5 text-[#B46BFF]" />
-            <span>СМАРТ-ССЫЛКИ · PRE-SAVE · 150+ ПЛОЩАДОК</span>
-            <span className="px-1.5 py-0.2 rounded bg-[#00F0FF] text-black text-[9px] font-bold">
-              NEW
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      {/* Left: Architectural Copy & Feature Grid */}
+      <div className="lg:col-span-7 space-y-8">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <CxrBadge tone="cyan" pulse>
+              SMART RELEASE ROUTING
+            </CxrBadge>
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#D9D9E2]/45">
+              // SERVICE MODULE 01
             </span>
           </div>
 
-          <h2 className="font-heavy text-5xl sm:text-7xl uppercase tracking-tight leading-[0.9] text-white">
-            <span className="block overflow-hidden">
-              <span className="block">CXRNER LINK</span>
-            </span>
-            <span className="block overflow-hidden">
-              <span className="block text-violet-energy">Умные смарт-страницы</span>
-            </span>
+          <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white leading-[0.98]">
+            CXRNER <span className="text-chrome-gradient">LINK</span>
           </h2>
 
-          <p className="text-sm sm:text-base text-[#D9D9E2]/75 max-w-2xl leading-relaxed">
-            Собственная платформа смарт-ссылок нового поколения внутри экосистемы CXRNER MUSIC. Создавайте персональные страницы релизов за 30 секунд по коду UPC, настраивайте дизайн в реальном времени, запускайте Pre-save кампании и отслеживайте переходы фанатов на 150+ музыкальных площадок.
+          <p className="text-sm sm:text-base text-[#D9D9E2]/75 max-w-xl leading-relaxed">
+            Персональная страница для каждого релиза. Объединяйте Яндекс Музыку, VK,
+            Spotify и Apple Music на одном экране с высокой конверсией и live-статистикой.
           </p>
         </div>
 
-        {/* Showcase Grid: Phone Interactive Simulation + Features */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Column: Interactive Visual Smart Link Phone Preview */}
-          <div className="lg:col-span-5 flex justify-center">
-            <div className="relative w-full max-w-[340px] rounded-[36px] p-3.5 bg-[#090611]/90 border border-[#B46BFF]/40 shadow-[0_0_60px_rgba(135,55,255,0.3)] backdrop-blur-2xl">
-              {/* Phone Notch / Speaker */}
-              <div className="w-24 h-4 bg-black/80 rounded-full mx-auto mb-3 flex items-center justify-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-              </div>
-
-              {/* Inside Smart Link Page Mockup */}
-              <div className="rounded-[26px] bg-[#050407] border border-white/10 p-4 space-y-4 text-center overflow-hidden relative">
-                {/* Background blurred cover glow */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(180,107,255,0.25),transparent_65%)] pointer-events-none" />
-
-                {/* Release Artwork */}
-                <div className="relative w-36 h-36 mx-auto rounded-2xl overflow-hidden border border-white/20 shadow-2xl">
-                  <img
-                    src="/covers/the-sadness-of-reality.jpg"
-                    alt="CXRNER Release"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/80 border border-[#00F0FF]/50 font-mono text-[8px] uppercase tracking-wider text-[#00F0FF] font-bold">
-                    OUT NOW
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {LINK_CAPABILITIES.map((cap) => {
+            const Icon = cap.icon;
+            return (
+              <CxrSurface
+                key={cap.code}
+                variant="obsidian"
+                accent="cyan"
+                interactive
+                className="p-4 sm:p-5 space-y-2.5"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-[#00F0FF]/10 border border-[#00F0FF]/25 flex items-center justify-center text-[#00F0FF]">
+                    <Icon className="w-4 h-4" />
                   </div>
+                  <span className="font-mono text-[10px] text-white/35 tracking-widest">
+                    /{cap.code}
+                  </span>
                 </div>
-
-                {/* Meta */}
-                <div className="space-y-1">
-                  <h4 className="font-heavy text-base uppercase text-white tracking-tight">
-                    The Sadness of Reality
-                  </h4>
-                  <div className="flex items-center justify-center gap-1 font-mono text-xs text-[#D9D9E2]/70">
-                    <span>Neimeks</span>
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#00F0FF]" />
-                  </div>
-                  <p className="font-mono text-[9px] uppercase tracking-widest text-[#B46BFF]">
-                    CXRNER MUSIC · 2026
-                  </p>
-                </div>
-
-                {/* Mockup Streaming Buttons */}
-                <div className="space-y-2 pt-1 text-left font-mono text-xs">
-                  {[
-                    { name: "Яндекс Музыка", key: "yandex", btn: "Слушать", color: "#FFCC00" },
-                    { name: "Spotify", key: "spotify", btn: "Play", color: "#1DB954" },
-                    { name: "Apple Music", key: "apple", btn: "Listen", color: "#FC3C44" },
-                    { name: "VK Музыка", key: "vk", btn: "Слушать", color: "#0077FF" },
-                  ].map((dsp) => (
-                    <div
-                      key={dsp.key}
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] transition"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: dsp.color }}
-                        />
-                        <span className="text-white font-medium text-[11px]">{dsp.name}</span>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-lg bg-[#8737FF]/25 border border-[#B46BFF]/40 text-[#B46BFF] text-[10px] font-bold uppercase tracking-wider">
-                        {dsp.btn}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Dynamic Address Pill */}
-                <div className="pt-2 border-t border-white/10">
-                  <p className="font-mono text-[9px] text-[#D9D9E2]/50">
-                    cxrnermusic.vercel.app/link/neimeks-reality
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Feature Cards Grid */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Card 1 */}
-              <div className="p-6 rounded-2xl border border-white/10 bg-[#090611]/60 backdrop-blur-md hover:border-[#B46BFF]/40 transition group space-y-2.5">
-                <div className="w-10 h-10 rounded-xl bg-[#8737FF]/20 border border-[#8737FF]/40 flex items-center justify-center text-[#B46BFF]">
-                  <Link2 className="w-5 h-5" />
-                </div>
-                <h3 className="font-heavy text-lg uppercase tracking-tight text-white">
-                  Автопоиск по UPC / EAN
+                <h3 className="font-display font-bold text-sm uppercase tracking-wide text-white">
+                  {cap.title}
                 </h3>
-                <p className="text-xs text-[#D9D9E2]/75 leading-relaxed font-sans">
-                  Вставьте UPC код релиза — официальная обложка, метаданные и ссылки на музыкальные площадки подтянутся автоматически за считанные секунды.
-                </p>
-              </div>
+                <p className="text-xs text-[#D9D9E2]/60 leading-relaxed">{cap.desc}</p>
+              </CxrSurface>
+            );
+          })}
+        </div>
 
-              {/* Card 2 */}
-              <div className="p-6 rounded-2xl border border-white/10 bg-[#090611]/60 backdrop-blur-md hover:border-[#00F0FF]/40 transition group space-y-2.5">
-                <div className="w-10 h-10 rounded-xl bg-[#00F0FF]/15 border border-[#00F0FF]/40 flex items-center justify-center text-[#00F0FF]">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <h3 className="font-heavy text-lg uppercase tracking-tight text-white">
-                  Pre-save &amp; Auto Out Now
-                </h3>
-                <p className="text-xs text-[#D9D9E2]/75 leading-relaxed font-sans">
-                  Таймер обратного отсчёта до даты релиза. Сбор подписок фанатов через Email и Telegram. В полночь релиз автоматически переключается в статус «Слушать сейчас».
-                </p>
-              </div>
-
-              {/* Card 3 */}
-              <div className="p-6 rounded-2xl border border-white/10 bg-[#090611]/60 backdrop-blur-md hover:border-[#FF2E93]/40 transition group space-y-2.5">
-                <div className="w-10 h-10 rounded-xl bg-[#FF2E93]/15 border border-[#FF2E93]/40 flex items-center justify-center text-[#FF2E93]">
-                  <Paintbrush className="w-5 h-5" />
-                </div>
-                <h3 className="font-heavy text-lg uppercase tracking-tight text-white">
-                  Живой Page Builder
-                </h3>
-                <p className="text-xs text-[#D9D9E2]/75 leading-relaxed font-sans">
-                  Визуальный конструктор с мгновенным мобильным предпросмотром: 5 эстетичных тем оформления, кастомизация обложки, фона и кнопок под стиль вашего релиза.
-                </p>
-              </div>
-
-              {/* Card 4 */}
-              <div className="p-6 rounded-2xl border border-white/10 bg-[#090611]/60 backdrop-blur-md hover:border-[#B46BFF]/40 transition group space-y-2.5">
-                <div className="w-10 h-10 rounded-xl bg-[#8737FF]/20 border border-[#8737FF]/40 flex items-center justify-center text-[#B46BFF]">
-                  <BarChart3 className="w-5 h-5" />
-                </div>
-                <h3 className="font-heavy text-lg uppercase tracking-tight text-white">
-                  Честная аналитика
-                </h3>
-                <p className="text-xs text-[#D9D9E2]/75 leading-relaxed font-sans">
-                  Умная фильтрация ботов, клики по каждой конкретной площадке (Яндекс, Spotify, Apple Music, VK), география слушателей и конверсия в прослушивания.
-                </p>
-              </div>
-            </div>
-
-            {/* Actions Bar */}
-            <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
-              <MagneticButton
-                href="/dashboard/links/new"
-                cursorLabel="CREATE"
-                className="btn-energy px-8 py-4 rounded-full font-mono text-xs uppercase tracking-[0.18em] font-bold shadow-[0_0_30px_rgba(135,55,255,0.4)]"
-              >
-                <span>Создать Smart Link</span>
-                <ArrowRight className="w-4 h-4" />
-              </MagneticButton>
-
-              <MagneticButton
-                href="/dashboard/links"
-                cursorLabel="LINKS"
-                className="btn-void-ghost px-7 py-4 font-mono text-xs uppercase tracking-[0.18em] border border-white/15 hover:border-white/30 text-white"
-              >
-                <span>Мои смарт-ссылки</span>
-              </MagneticButton>
-
-              <Link
-                href="/link"
-                className="inline-flex items-center justify-center gap-1.5 px-5 py-4 font-mono text-xs uppercase tracking-wider text-[#B46BFF] hover:text-white transition"
-              >
-                <span>Обзор сервиса</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <CxrButton href="/dashboard/links/new" variant="cyan" size="md">
+            <span>Создать Smart Link</span>
+            <ArrowRight className="w-4 h-4" />
+          </CxrButton>
+          <CxrButton href="/link" variant="ghost" size="md">
+            <span>Обзор сервиса</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </CxrButton>
         </div>
       </div>
-    </section>
+
+      {/* Right: Interactive Obsidian Studio Phone Mockup */}
+      <div className="lg:col-span-5 flex flex-col items-center">
+        <CxrSurface variant="chrome" className="w-full max-w-[360px] p-5 sm:p-6 space-y-5">
+          {/* Interactive Theme Switcher Bar */}
+          <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/10">
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#D9D9E2]/60 flex items-center gap-1.5">
+              <Radio className="w-3 h-3 text-[#00F0FF]" />
+              <span>PREVIEW</span>
+            </span>
+            <div className="flex items-center gap-1.5">
+              {PREVIEW_THEMES.map((t, idx) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    setActiveThemeIdx(idx);
+                  }}
+                  onMouseEnter={() => playHoverSound()}
+                  className={`px-2 py-1 rounded-md font-mono text-[9px] font-bold uppercase transition cursor-pointer ${
+                    activeThemeIdx === idx
+                      ? "bg-white text-[#050407]"
+                      : "bg-white/[0.06] text-white/60 hover:text-white"
+                  }`}
+                >
+                  {t.id}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Device Screen */}
+          <div
+            className={`relative rounded-2xl border border-white/15 bg-gradient-to-b ${currentTheme.bg} p-5 space-y-4 overflow-hidden shadow-inner`}
+          >
+            <div
+              className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-24 rounded-full blur-2xl opacity-35 transition-colors duration-500"
+              style={{ backgroundColor: currentTheme.accent }}
+            />
+
+            <div className="relative flex flex-col items-center text-center space-y-2.5">
+              <div className="relative w-28 h-28 rounded-xl overflow-hidden border border-white/20 shadow-[0_14px_34px_rgba(0,0,0,0.75)]">
+                <img
+                  src="/covers/the-sadness-of-reality.jpg"
+                  alt="Neimeks — The Sadness of Reality"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <p className="font-display font-black text-sm text-white uppercase tracking-tight">
+                  The Sadness of Reality
+                </p>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-white/60 mt-0.5">
+                  Neimeks · CXRNER MUSIC
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              {[
+                { name: "Яндекс Музыка", tag: "PLAY" },
+                { name: "VK Музыка", tag: "PLAY" },
+                { name: "Spotify", tag: "STREAM" },
+                { name: "Apple Music", tag: "LISTEN" },
+              ].map((plat) => (
+                <div
+                  key={plat.name}
+                  className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/10"
+                >
+                  <span className="font-sans text-xs font-bold text-white">
+                    {plat.name}
+                  </span>
+                  <span
+                    className="font-mono text-[9px] font-bold uppercase px-2 py-0.5 rounded-full text-[#050407]"
+                    style={{ backgroundColor: currentTheme.accent }}
+                  >
+                    {plat.tag}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between font-mono text-[10px] text-[#D9D9E2]/55">
+            <span>THEME: {currentTheme.name.toUpperCase()}</span>
+            <Link href="/link" className="text-[#00F0FF] hover:underline">
+              cxrnermusic.app/link/*
+            </Link>
+          </div>
+        </CxrSurface>
+      </div>
+    </div>
   );
 }

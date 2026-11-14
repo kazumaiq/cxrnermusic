@@ -112,14 +112,19 @@ export default function DropGameArena({
 
   const pinnedCount = items.filter((i) => i.is_pinned).length;
 
-  const handleCaseSuccess = (data: {
-    item: DropInventoryItem;
-    balanceAfter: number;
-    claimCode?: string;
-    isSpecialReward?: boolean;
-  }) => {
-    setBalance(data.balanceAfter);
-    setItems((prev) => [data.item, ...prev]);
+  const handleCaseSuccess = (
+    item: DropInventoryItem,
+    balanceAfter: number,
+    claimCode?: string,
+    isSpecialReward?: boolean
+  ) => {
+    const normalizedItem: DropInventoryItem = {
+      ...item,
+      ...(claimCode ? { claim_code: claimCode } : {}),
+      ...(isSpecialReward ? { is_special_reward: true } : {}),
+    };
+    setBalance(balanceAfter);
+    setItems((prev) => [normalizedItem, ...prev]);
 
     // Append to history
     const newEntry: DropHistoryEntry = {
@@ -127,10 +132,10 @@ export default function DropGameArena({
       user_id: username,
       case_id: selectedCase.id,
       case_name: selectedCase.name,
-      item_id: data.item.item_id,
-      item_name: data.item.item_name,
-      rarity: data.item.rarity,
-      serial_number: data.item.serial_number,
+      item_id: item.item_id,
+      item_name: item.item_name,
+      rarity: item.rarity,
+      serial_number: item.serial_number,
       cxp_spent: selectedCase.price_cxp,
       created_at: new Date().toISOString(),
     };
@@ -209,7 +214,7 @@ export default function DropGameArena({
   ];
 
   return (
-    <div className="min-h-screen bg-[#05030A] pt-14 sm:pt-20 text-white selection:bg-[#8737FF] selection:text-white relative">
+    <div className="min-h-screen bg-[#05030A] pt-16 sm:pt-[72px] text-white selection:bg-[#8737FF] selection:text-white relative">
       {/* Ambient Cosmic Atmosphere & Glow Layers */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute -top-32 left-1/4 w-[600px] h-[600px] bg-[#8737FF]/15 rounded-full blur-[140px] animate-drop-pulse" />
@@ -220,7 +225,7 @@ export default function DropGameArena({
       {/* =====================================================================
           TOP GAMING HUD BAR
           ===================================================================== */}
-      <header className="sticky top-14 sm:top-20 z-40 w-full border-b border-white/10 bg-[#07050D]/95 backdrop-blur-xl">
+      <header className="sticky top-16 sm:top-[72px] z-30 w-full border-b border-white/10 bg-[#07050D]/95 backdrop-blur-xl">
         {/* Desktop View: Single Spacious Row */}
         <div className="hidden sm:flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 items-center justify-between gap-4">
           {/* Left: Brand & Return */}
@@ -556,9 +561,15 @@ export default function DropGameArena({
             </div>
 
             {/* Case Selector Carousel */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
               {DROP_CASES.map((c) => {
                 const isSelected = c.id === selectedCase.id;
+                const cAccent =
+                  c.id === "case_002_black_specimen"
+                    ? "#A855F7"
+                    : c.id === "case_003_chrome_age"
+                    ? "#00F0FF"
+                    : "#8737FF";
                 return (
                   <button
                     key={c.id}
@@ -566,18 +577,29 @@ export default function DropGameArena({
                       playClickSound();
                       setSelectedCaseId(c.id);
                     }}
-                    className={`p-5 rounded-3xl text-left border transition-all duration-300 relative overflow-hidden group ${
+                    className={`p-5 rounded-2xl text-left border transition-all duration-300 relative overflow-hidden group cursor-pointer ${
                       isSelected
-                        ? "border-[#B46BFF] bg-gradient-to-b from-[#160B28] to-[#07050D] shadow-[0_0_40px_rgba(135,55,255,0.35)] scale-[1.02]"
-                        : "border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.05]"
+                        ? "border-white/40 bg-gradient-to-b from-[#130E20] to-[#06040A] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_20px_50px_rgba(0,0,0,0.75)] -translate-y-0.5"
+                        : "border-white/10 bg-[#08060D]/80 hover:border-white/25 hover:bg-[#0D0A15]"
                     }`}
                   >
+                    <div
+                      className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] transition-opacity duration-300"
+                      style={{
+                        background: `linear-gradient(90deg, transparent, ${cAccent}, transparent)`,
+                        opacity: isSelected ? 1 : 0.25,
+                      }}
+                    />
+
                     {/* Top Case Badge */}
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-mono text-[9px] uppercase tracking-widest text-[#00F0FF] font-bold">
+                      <span
+                        className="font-mono text-[9px] uppercase tracking-widest font-bold"
+                        style={{ color: cAccent }}
+                      >
                         {c.subtitle}
                       </span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-black/60 border border-white/15 font-mono text-[10px] text-white font-bold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-black/70 border border-white/15 font-mono text-[10px] text-white font-bold">
                         {c.price_cxp} CXP
                       </span>
                     </div>
@@ -586,7 +608,7 @@ export default function DropGameArena({
                       {c.name}
                     </h3>
 
-                    <p className="text-xs text-[#D9D9E2]/70 leading-relaxed mb-4 line-clamp-2 font-sans">
+                    <p className="text-xs text-[#D9D9E2]/65 leading-relaxed mb-4 line-clamp-2 font-sans">
                       {c.description}
                     </p>
 
@@ -595,14 +617,20 @@ export default function DropGameArena({
                       <img
                         src={c.cover_url}
                         alt={c.name}
-                        className="w-full h-full object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)] group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-contain filter drop-shadow-[0_10px_22px_rgba(0,0,0,0.75)] group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
 
                     {isSelected && (
-                      <div className="mt-4 pt-3 border-t border-[#B46BFF]/30 flex items-center justify-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[#00F0FF] font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
-                        <span>ВЫБРАННЫЙ КЕЙС</span>
+                      <div
+                        className="mt-4 pt-3 border-t border-white/10 flex items-center justify-center gap-1.5 font-mono text-[10px] uppercase tracking-wider font-bold"
+                        style={{ color: cAccent }}
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full animate-pulse"
+                          style={{ backgroundColor: cAccent }}
+                        />
+                        <span>АКТИВНЫЙ КОНТЕЙНЕР</span>
                       </div>
                     )}
                   </button>
@@ -611,20 +639,23 @@ export default function DropGameArena({
             </div>
 
             {/* Central Opening Arena Stage */}
-            <div className="relative rounded-3xl border border-[#B46BFF]/40 bg-gradient-to-b from-[#090611] via-[#05030A] to-black p-6 sm:p-10 shadow-[0_0_80px_rgba(135,55,255,0.25)] overflow-hidden">
+            <div className="cxr-panel-chrome rounded-3xl p-5 sm:p-10 overflow-hidden">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                 {/* Left 3D Viewport */}
                 <div className="lg:col-span-6 flex flex-col items-center justify-center">
-                  <div className="w-full max-w-sm">
+                  <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#050409] p-2">
                     <ZipPacket3DViewer
                       caseId={selectedCase.id}
                       themeColor={
                         selectedCase.id === "case_002_black_specimen"
-                          ? "#A21CAF"
+                          ? "#A855F7"
                           : selectedCase.id === "case_003_chrome_age"
                           ? "#00F0FF"
                           : "#8737FF"
                       }
+                      labelCode={selectedCase.subtitle}
+                      specimenName={selectedCase.name}
+                      heightClass="h-[290px] sm:h-[360px]"
                     />
                   </div>
                 </div>
@@ -632,13 +663,13 @@ export default function DropGameArena({
                 {/* Right Action Terminal */}
                 <div className="lg:col-span-6 space-y-6">
                   <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/10 font-mono text-[10px] uppercase tracking-widest text-[#00F0FF]">
-                      <span>АКТИВНЫЙ ОБРАЗЕЦ</span>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#00F0FF]/35 bg-[#00F0FF]/10 font-mono text-[10px] uppercase tracking-widest text-[#00F0FF]">
+                      <span>SPECIMEN CHAMBER // ONLINE</span>
                     </div>
                     <h2 className="font-display font-black text-2xl sm:text-4xl uppercase tracking-tight text-white">
                       {selectedCase.name}
                     </h2>
-                    <p className="text-xs sm:text-sm text-[#D9D9E2]/80 leading-relaxed font-sans">
+                    <p className="text-xs sm:text-sm text-[#D9D9E2]/75 leading-relaxed font-sans">
                       {selectedCase.description}
                     </p>
                   </div>
@@ -646,13 +677,13 @@ export default function DropGameArena({
                   {/* Pricing and Stats Bar */}
                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-4 font-mono text-xs">
                     <div>
-                      <span className="text-white/40 block text-[10px] mb-0.5">СТОИМОСТЬ</span>
+                      <span className="text-white/45 block text-[10px] mb-0.5">СТОИМОСТЬ</span>
                       <span className="font-display font-black text-lg text-white">
                         {selectedCase.price_cxp} CXP
                       </span>
                     </div>
                     <div>
-                      <span className="text-white/40 block text-[10px] mb-0.5">ВАШ БАЛАНС</span>
+                      <span className="text-white/45 block text-[10px] mb-0.5">ВАШ БАЛАНС</span>
                       <span
                         className={`font-display font-black text-lg ${
                           balance >= selectedCase.price_cxp
@@ -664,9 +695,9 @@ export default function DropGameArena({
                       </span>
                     </div>
                     <div className="col-span-2 sm:col-span-1">
-                      <span className="text-white/40 block text-[10px] mb-0.5">СПЕЦ-НАГРАДА</span>
-                      <span className="font-display font-black text-xs text-amber-300">
-                        VOUCHER (0.1%)
+                      <span className="text-white/45 block text-[10px] mb-0.5">СПЕЦПРИЗ</span>
+                      <span className="font-display font-black text-xs text-yellow-300">
+                        COVER VOUCHER (0.1%)
                       </span>
                     </div>
                   </div>
@@ -674,42 +705,58 @@ export default function DropGameArena({
                   {/* Main Action CTAs */}
                   <div className="space-y-3">
                     <button
-                      onClick={() => setIsOpeningModalOpen(true)}
-                      className="w-full btn-energy py-4 rounded-full font-sans text-sm uppercase font-bold tracking-wider text-white shadow-[0_0_35px_rgba(135,55,255,0.45)] hover:shadow-[0_0_55px_rgba(135,55,255,0.65)] flex items-center justify-center gap-2 active:scale-95 transition"
+                      onClick={() => {
+                        playClickSound();
+                        setIsOpeningModalOpen(true);
+                      }}
+                      className="w-full btn-energy py-4 rounded-full font-display text-sm uppercase font-black tracking-wider text-white flex items-center justify-center gap-2.5 cursor-pointer"
                     >
                       <Boxes className="w-5 h-5 text-[#00F0FF]" />
-                      <span>OPEN CASE ({selectedCase.price_cxp} CXP)</span>
+                      <span>ВСКРЫТЬ КЕЙС ({selectedCase.price_cxp} CXP)</span>
                     </button>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                       <button
-                        onClick={() => setIsRatesModalOpen(true)}
-                        className="py-3 px-4 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/10 font-mono text-xs uppercase tracking-wider text-[#D9D9E2] flex items-center justify-center gap-1.5 transition"
+                        onClick={() => {
+                          playClickSound();
+                          setIsRatesModalOpen(true);
+                        }}
+                        className="py-2.5 px-3 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/10 font-mono text-[10px] sm:text-xs uppercase tracking-wider text-[#D9D9E2] flex items-center justify-center gap-1.5 transition cursor-pointer"
                       >
                         <Percent className="w-3.5 h-3.5 text-[#00F0FF]" />
-                        <span>Вероятности (Drop Rates)</span>
+                        <span>Шансы</span>
                       </button>
+
                       <button
-                        onClick={() => setIsHelpModalOpen(true)}
-                        className="py-3 px-4 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/10 font-mono text-xs uppercase tracking-wider text-[#D9D9E2] flex items-center justify-center gap-1.5 transition"
+                        onClick={() => {
+                          playClickSound();
+                          setIsHelpModalOpen(true);
+                        }}
+                        className="py-2.5 px-3 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/10 font-mono text-[10px] sm:text-xs uppercase tracking-wider text-[#D9D9E2] flex items-center justify-center gap-1.5 transition cursor-pointer"
                       >
                         <HelpCircle className="w-3.5 h-3.5 text-[#B46BFF]" />
-              </button>
-              <button
-                onClick={() => {
-                  const next = !sfxOn;
-                  setSfxOn(next);
-                  setSfxEnabled(next);
-                }}
-                title={sfxOn ? "Звук: ВКЛ" : "Звук: ВЫКЛ"}
-                className={`p-1.5 rounded-lg border transition ${
-                  sfxOn
-                    ? "bg-[#8737FF]/25 border-[#B46BFF]/50 text-[#B46BFF]"
-                    : "bg-white/[0.04] border-white/10 text-white/40"
-                }`}
-              >
-                {sfxOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-                        <span>Как играть</span>
+                        <span>Правила</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          const next = !sfxOn;
+                          setSfxOn(next);
+                          setSfxEnabled(next);
+                        }}
+                        title={sfxOn ? "Звук: ВКЛ" : "Звук: ВЫКЛ"}
+                        className={`col-span-2 sm:col-span-1 py-2.5 px-3 rounded-full border font-mono text-[10px] sm:text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                          sfxOn
+                            ? "bg-[#8737FF]/20 border-[#B46BFF]/50 text-[#D9B8FF]"
+                            : "bg-white/[0.04] border-white/10 text-white/50"
+                        }`}
+                      >
+                        {sfxOn ? (
+                          <Volume2 className="w-3.5 h-3.5" />
+                        ) : (
+                          <VolumeX className="w-3.5 h-3.5" />
+                        )}
+                        <span>{sfxOn ? "SFX ON" : "SFX OFF"}</span>
                       </button>
                     </div>
                   </div>

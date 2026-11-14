@@ -134,39 +134,39 @@ export default function DashboardLinksClient({ initialLinks }: DashboardLinksCli
     <div className="space-y-8">
       {/* 1. Metric Overview Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
-        <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
-          <p className="font-sans text-xs font-medium text-[#D9D9E2]/70 mb-1">
+        <div className="cxr-panel p-4 sm:p-5 rounded-2xl">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/60 mb-1.5">
             Всего ссылок
           </p>
-          <p className="font-display font-black text-2xl sm:text-3xl text-white">{totalLinks}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-white tabular-nums">{totalLinks}</p>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
-          <p className="font-sans text-xs font-medium text-[#00F0FF] mb-1">
+        <div className="cxr-panel p-4 sm:p-5 rounded-2xl border-[#00F0FF]/25">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-[#00F0FF] mb-1.5">
             Активных
           </p>
-          <p className="font-display font-black text-2xl sm:text-3xl text-[#00F0FF]">{activeLinks}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-[#00F0FF] tabular-nums">{activeLinks}</p>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
-          <p className="font-sans text-xs font-medium text-[#B46BFF] mb-1">
+        <div className="cxr-panel p-4 sm:p-5 rounded-2xl">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-[#B46BFF] mb-1.5">
             Просмотров
           </p>
-          <p className="font-display font-black text-2xl sm:text-3xl text-white">{totalViews.toLocaleString("ru-RU")}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-white tabular-nums">{totalViews.toLocaleString("ru-RU")}</p>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#090611]/80 backdrop-blur-md">
-          <p className="font-sans text-xs font-medium text-[#8737FF] mb-1">
+        <div className="cxr-panel p-4 sm:p-5 rounded-2xl">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-[#8737FF] mb-1.5">
             Переходов
           </p>
-          <p className="font-display font-black text-2xl sm:text-3xl text-[#B46BFF]">{totalClicks.toLocaleString("ru-RU")}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-[#B46BFF] tabular-nums">{totalClicks.toLocaleString("ru-RU")}</p>
         </div>
 
-        <div className="col-span-2 md:col-span-1 p-4 sm:p-5 rounded-2xl border border-[#B46BFF]/30 bg-[#8737FF]/15 backdrop-blur-md">
-          <p className="font-sans text-xs font-medium text-[#D9D9E2] mb-1">
+        <div className="col-span-2 md:col-span-1 cxr-panel-chrome p-4 sm:p-5 rounded-2xl border-[#B46BFF]/35">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-[#D9D9E2]/75 mb-1.5">
             Pre-save заявок
           </p>
-          <p className="font-display font-black text-2xl sm:text-3xl text-white">{totalPresaves.toLocaleString("ru-RU")}</p>
+          <p className="font-display font-black text-2xl sm:text-3xl text-white tabular-nums">{totalPresaves.toLocaleString("ru-RU")}</p>
         </div>
       </div>
 

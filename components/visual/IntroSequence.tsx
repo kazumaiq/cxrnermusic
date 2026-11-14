@@ -66,33 +66,36 @@ export default function IntroSequence() {
 
   return (
     <div
-      className={`fixed inset-0 z-[9990] flex flex-col items-center justify-center bg-[#050407] transition-all duration-500 ease-out ${
-        phase === "exiting" ? "opacity-0 scale-105 pointer-events-none" : "opacity-100"
+      className={`fixed inset-0 z-[9990] flex flex-col items-center justify-center bg-[#040307] transition-all duration-500 ease-out ${
+        phase === "exiting" ? "opacity-0 scale-[1.03] pointer-events-none" : "opacity-100"
       }`}
       aria-label="CXRNER MUSIC Intro"
     >
-      {/* Subtle radial violet core glow */}
-      <div className="absolute w-[340px] h-[340px] rounded-full bg-[#8737FF]/25 blur-[110px] pointer-events-none animate-pulse" />
+      {/* Subtle architectural hairline crosshair */}
+      <div className="absolute inset-0 pointer-events-none opacity-25 flex items-center justify-center">
+        <div className="w-[min(78vw,520px)] h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+      </div>
 
       <div className="relative z-10 text-center px-6">
-        <p className="font-sans text-[11px] sm:text-xs uppercase tracking-[0.3em] font-semibold text-[#B46BFF] mb-4 animate-fadeIn">
-          CXRNER MUSIC UNIVERSE
-        </p>
+        <div className="inline-flex items-center gap-2 font-mono text-[10px] sm:text-xs uppercase tracking-[0.34em] text-[#D9D9E2]/65 mb-4 animate-fadeIn">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]" />
+          <span>DIGITAL RECORD ECOSYSTEM</span>
+        </div>
 
         <h2 className="font-display font-black text-5xl sm:text-7xl md:text-8xl tracking-tight uppercase text-white leading-none select-none">
-          <span className="inline-block animate-fadeIn">CXRNER</span>{" "}
-          <span className="inline-block text-violet-energy animate-fadeIn">MUSIC</span>
+          <span className="inline-block animate-fadeIn text-chrome-gradient">CXRNER</span>{" "}
+          <span className="inline-block text-[#B46BFF] animate-fadeIn">MUSIC</span>
         </h2>
 
-        <div className="mt-6 w-48 h-[1px] mx-auto bg-white/10 overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-transparent via-[#8737FF] to-white animate-[marquee_1.1s_ease-out_forwards]" />
+        <div className="mt-7 w-56 h-[2px] mx-auto bg-white/10 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-white via-[#B46BFF] to-[#00F0FF] animate-[marquee_1.05s_ease-out_forwards]" />
         </div>
       </div>
 
       <button
         type="button"
         onClick={dismiss}
-        className="absolute bottom-8 right-8 px-4 py-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 font-mono text-[10px] uppercase tracking-[0.25em] text-[#D9D9E2] hover:text-white transition"
+        className="absolute bottom-8 right-8 px-4 py-2 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/10 font-mono text-[10px] uppercase tracking-[0.25em] text-[#D9D9E2] hover:text-white transition"
       >
         Пропустить [ESC]
       </button>

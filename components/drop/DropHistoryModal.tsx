@@ -105,11 +105,21 @@ export default function DropHistoryModal({
                   className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-4 transition hover:border-white/25"
                 >
                   <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-black/60 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-10 h-12 rounded-xl bg-black/60 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden p-0.5">
                       <img
-                        src={`/drop/items/${item.item_id}.svg`}
+                        src={
+                          item.item_id === "custom_cover_voucher"
+                            ? "/drop/items/specimen_cover_voucher_25.svg"
+                            : `/drop/items/${item.item_id}.svg`
+                        }
                         alt={item.item_name}
-                        className="w-full h-full object-contain p-1"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.src.endsWith(".svg")) {
+                            target.src = `/drop/items/${item.item_id}.jpg`;
+                          }
+                        }}
                       />
                     </div>
                     <div>

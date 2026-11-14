@@ -24,6 +24,7 @@ export type VerificationStatus =
   | "suspended";
 
 export type ItemRarity = "common" | "rare" | "epic" | "legendary" | "mythic" | "special_reward";
+export type DropRarity = ItemRarity;
 
 export interface DropCaseConfig {
   id: string;
@@ -193,6 +194,8 @@ export interface DropInventoryItem {
   is_equipped: boolean;
   is_pinned: boolean;
   is_hidden: boolean;
+  is_special_reward?: boolean;
+  claim_code?: string;
   created_at: string;
 }
 
@@ -250,6 +253,9 @@ export interface ReferralAttribution {
   is_qualified: boolean;
   qualified_at?: string | null;
   fraud_reason?: string | null;
+  milestones?: string[];
+  referred_username?: string;
+  referred_display_name?: string;
   created_at: string;
   updated_at: string;
 }

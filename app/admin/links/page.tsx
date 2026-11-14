@@ -3,6 +3,7 @@ import Container from "../../../components/Container";
 import AdminLinksClient from "../../../components/link/AdminLinksClient";
 import { getSupabaseServerClient } from "../../../lib/supabaseServer";
 import { getAdminUser } from "../../../lib/admin";
+import AdminNav from "../../../components/admin/AdminNav";
 import Link from "next/link";
 import { ShieldCheck, ChevronLeft } from "lucide-react";
 
@@ -26,8 +27,9 @@ export default async function AdminLinksPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="relative min-h-[100svh] bg-[#050407] text-white pt-24 pb-20 overflow-x-hidden">
-      <Container className="relative z-10 space-y-8">
+    <div className="relative min-h-[100svh] bg-[#050407] text-white pt-16 sm:pt-[72px] pb-20 overflow-x-clip">
+      <AdminNav />
+      <Container className="relative z-10 pt-8 space-y-8">
         <div className="flex items-center gap-2 font-mono text-xs text-[#D9D9E2]/60">
           <Link href="/admin" className="hover:text-white transition flex items-center gap-1">
             <ChevronLeft className="w-3.5 h-3.5" />

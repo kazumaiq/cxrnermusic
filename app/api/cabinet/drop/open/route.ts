@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     // Deduct CXP atomically
     const eventId = `case_${targetCase.id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    await awardCxp({
+    const debitRes = await awardCxp({
       userId: user.id,
       amount: -dropCost,
       reason: `Открытие кейса ${targetCase.name}`,
@@ -46,10 +46,37 @@ export async function POST(req: NextRequest) {
       sourceEventId: eventId,
     });
 
-    const result = await openDropCase({
-      userId: user.id,
-      caseId: targetCase.id,
-    });
+    if (!debitRes.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: debitRes.error || "Ошибка списания CXP",
+          currentBalance: balance,
+          required: dropCost,
+        },
+        { status: 400 }
+      );
+    }
+
+    let result;
+    try {
+      result = await openDropCase({
+        userId: user.id,
+        caseId: targetCase.id,
+      });
+    } catch (openErr: any) {
+      // Refund CXP on unexpected opening failure
+      await awardCxp({
+        userId: user.id,
+        amount: dropCost,
+        reason: `Возврат CXP (ошибка открытия ${targetCase.name})`,
+        sourceEventType: "drop_case_refund",
+        sourceEventId: `refund_${eventId}`,
+      }).catch(() => {});
+      throw openErr;
+    }
+
+    const updatedWallet = await getCxpWallet(user.id);
 
     return NextResponse.json({
       ok: true,
@@ -60,7 +87,7 @@ export async function POST(req: NextRequest) {
       claimCode: result.claimCode,
       historyEntry: result.historyEntry,
       caseConfig: result.caseConfig,
-      balanceAfter: Math.max(0, balance - dropCost),
+      balanceAfter: updatedWallet.balance,
     });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
