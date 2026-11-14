@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import Container from "../../../components/Container";
 import AdminLinksClient from "../../../components/link/AdminLinksClient";
-import { getSupabaseServerClient } from "../../../lib/supabaseServer";
 import { getAdminUser } from "../../../lib/admin";
+import { getAllSmartLinksForAdmin } from "../../../lib/smartLinksDb";
 import AdminNav from "../../../components/admin/AdminNav";
 import Link from "next/link";
 import { ShieldCheck, ChevronLeft } from "lucide-react";
@@ -19,12 +19,10 @@ export default async function AdminLinksPage() {
     redirect("/admin");
   }
 
-  const supabase = await getSupabaseServerClient();
-  const { data: links = [] } = await supabase
-    .from("smart_links")
-    .select("id, user_id, title, artist, cover_url, slug, status, is_out_now, is_verified_artist, views_count, clicks_count, presaves_count, created_at")
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+  const links = (await getAllSmartLinksForAdmin()).map((l) => ({
+    ...l,
+    is_verified_artist: Boolean(l.is_verified_artist),
+  }));
 
   return (
     <div className="relative min-h-[100svh] bg-[#050407] text-white pt-16 sm:pt-[72px] pb-20 overflow-x-clip">

@@ -453,13 +453,23 @@ export default function CreateLinkWizard() {
             href={`/link/${createdLink.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto btn-energy px-8 py-3.5 rounded-full font-mono text-xs uppercase font-bold tracking-wider inline-flex items-center justify-center gap-2 shadow-lg"
+            className="w-full sm:w-auto btn-energy px-7 py-3.5 rounded-full font-mono text-xs uppercase font-bold tracking-wider inline-flex items-center justify-center gap-2 shadow-lg"
           >
             <ExternalLink className="w-4 h-4" />
             <span>Открыть страницу</span>
           </a>
 
           <button
+            type="button"
+            onClick={() => router.push(`/dashboard/links/${createdLink.id}/edit`)}
+            className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/10 font-mono text-xs uppercase font-bold tracking-wider text-[#00F0FF] hover:bg-[#00F0FF]/20 transition inline-flex items-center justify-center gap-2"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>Редактировать</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => router.push("/dashboard/links")}
             className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-white/20 font-mono text-xs uppercase tracking-wider text-white hover:bg-white/10 transition"
           >

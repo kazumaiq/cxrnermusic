@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import PageBuilderClient from "../../../../../components/link/PageBuilderClient";
 import { getSupabaseServerClient } from "../../../../../lib/supabaseServer";
 import { isAdminUser } from "../../../../../lib/admin";
+import { getSmartLinkById } from "../../../../../lib/smartLinksDb";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -25,20 +26,13 @@ export default async function SmartLinkDesignPage({ params }: PageProps) {
   }
 
   const isAdmin = isAdminUser(user);
-
-  let query = supabase.from("smart_links").select("*").eq("id", id).is("deleted_at", null);
-  if (!isAdmin) query = query.eq("user_id", user.id);
-  const { data: link } = await query.maybeSingle();
+  const { link, platforms } = await getSmartLinkById(id, isAdmin ? undefined : user.id, {
+    includeArchived: true,
+  });
 
   if (!link) {
     notFound();
   }
-
-  const { data: platforms = [] } = await supabase
-    .from("smart_link_platforms")
-    .select("*")
-    .eq("smart_link_id", id)
-    .order("display_order", { ascending: true });
 
   return (
     <div className="min-h-screen bg-[#050407] text-white pt-20">

@@ -238,9 +238,12 @@ export default function DashboardLinksClient({ initialLinks }: DashboardLinksCli
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-display font-bold text-base text-white truncate">
+                      <Link
+                        href={`/dashboard/links/${link.id}/edit`}
+                        className="font-display font-bold text-base text-white hover:text-[#B46BFF] transition truncate"
+                      >
                         {link.title}
-                      </h4>
+                      </Link>
                       {link.status === "archived" ? (
                         <span className="px-2 py-0.5 rounded bg-white/10 font-sans text-xs uppercase tracking-wider text-[#D9D9E2]/60 font-semibold">
                           В архиве

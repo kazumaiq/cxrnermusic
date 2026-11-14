@@ -1,14 +1,13 @@
 import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getSupabaseServerClient } from "../../../lib/supabaseServer";
-import { getSmartLinkBySlug } from "../../../lib/smartLinksDb";
+import { getSmartLinkBySlug, resolveSlugHistoryRedirect } from "../../../lib/smartLinksDb";
 import PublicSmartLink from "../../../components/link/PublicSmartLink";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export const revalidate = 30; // Revalidate public pages every 30 seconds
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -75,20 +74,12 @@ export default async function SmartLinkPage({ params }: PageProps) {
   // 1. Fetch smart link & platforms seamlessly from table or fallback store
   const { link, platforms: rawPlatforms } = await getSmartLinkBySlug(cleanSlug);
 
-  // 2. If not found, check slug_history for 301 redirect
+  // 2. If not found, check slug_history (SQL + vault fallback) for 301/redirect
   if (!link) {
-    try {
-      const supabase = await getSupabaseServerClient();
-      const { data: history } = await supabase
-        .from("slug_history")
-        .select("new_slug")
-        .eq("old_slug", cleanSlug)
-        .maybeSingle();
-
-      if (history?.new_slug) {
-        redirect(`/link/${history.new_slug}`);
-      }
-    } catch {}
+    const redirectedSlug = await resolveSlugHistoryRedirect(cleanSlug);
+    if (redirectedSlug) {
+      redirect(`/link/${redirectedSlug}`);
+    }
 
     notFound();
   }

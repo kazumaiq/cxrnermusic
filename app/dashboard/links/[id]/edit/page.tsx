@@ -3,6 +3,7 @@ import Container from "../../../../../components/Container";
 import EditLinkClient from "../../../../../components/link/EditLinkClient";
 import { getSupabaseServerClient } from "../../../../../lib/supabaseServer";
 import { isAdminUser } from "../../../../../lib/admin";
+import { getSmartLinkById } from "../../../../../lib/smartLinksDb";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -26,20 +27,13 @@ export default async function EditSmartLinkPage({ params }: PageProps) {
   }
 
   const isAdmin = isAdminUser(user);
-
-  let query = supabase.from("smart_links").select("*").eq("id", id).is("deleted_at", null);
-  if (!isAdmin) query = query.eq("user_id", user.id);
-  const { data: link } = await query.maybeSingle();
+  const { link, platforms } = await getSmartLinkById(id, isAdmin ? undefined : user.id, {
+    includeArchived: true,
+  });
 
   if (!link) {
     notFound();
   }
-
-  const { data: platforms = [] } = await supabase
-    .from("smart_link_platforms")
-    .select("*")
-    .eq("smart_link_id", id)
-    .order("display_order", { ascending: true });
 
   return (
     <div className="relative min-h-[100svh] bg-[#050407] text-white pt-24 pb-20 overflow-x-hidden">
