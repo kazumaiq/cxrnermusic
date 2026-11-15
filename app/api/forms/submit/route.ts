@@ -132,9 +132,19 @@ export async function POST(request: Request) {
     }
 
     // Notify Telegram bot or direct Telegram API
-    const botUrl = process.env.BOT_BACKEND_URL;
+    const botUrl = (
+      process.env.BOT_BACKEND_URL || "https://bot-1787153410-6782-kazumaiq.bothost.tech"
+    ).replace(/\/+$/, "");
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
+    const tgChat =
+      process.env.MODERATION_CHAT_ID ||
+      process.env.TELEGRAM_MODERATION_CHAT_ID ||
+      process.env.TELEGRAM_CHAT_ID ||
+      "-1002117586464";
+
     let deliveredViaBot = false;
     let savedMsgId: string | number | null = null;
+    let isPinned = false;
 
     if (botUrl) {
       try {
@@ -161,6 +171,7 @@ export async function POST(request: Request) {
           method: "POST",
           headers,
           body: JSON.stringify(botPayload),
+          signal: AbortSignal.timeout(8000),
         });
 
         if (botRes.ok) {
@@ -168,9 +179,24 @@ export async function POST(request: Request) {
           const botData = await botRes.json().catch(() => ({}));
           if (botData?.moderation_message_id) {
             savedMsgId = botData.moderation_message_id;
+            isPinned = Boolean(botData?.moderation_pinned);
+            if (!isPinned && tgToken && tgChat) {
+              const { pinTelegramChatMessage } = await import("@/lib/telegramSync");
+              const pinBackup = await pinTelegramChatMessage(tgToken, tgChat, Number(savedMsgId));
+              if (pinBackup.ok) {
+                isPinned = true;
+              }
+            }
             await supabase
               .from("cxrner_forms")
-              .update({ moderation_message_id: String(savedMsgId) })
+              .update({
+                moderation_message_id: String(savedMsgId),
+                form_payload: {
+                  ...formPayload,
+                  moderation_message_id: Number(savedMsgId) || savedMsgId,
+                  moderation_pinned: isPinned,
+                },
+              })
               .eq("id", data.id);
           }
         } else {
@@ -184,9 +210,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Direct Telegram Bot API Notification Fallback with full inline keyboard & message_id storage
-    const tgToken = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
-    const tgChat = process.env.MODERATION_CHAT_ID || process.env.TELEGRAM_CHAT_ID || "-1002117586464";
+    // Direct Telegram Bot API Notification Fallback with full inline keyboard, pin & message_id storage
     if (!deliveredViaBot && tgToken && tgChat) {
       try {
         const { sendTelegramNewMessage } = await import("@/lib/telegramSync");
@@ -204,9 +228,18 @@ export async function POST(request: Request) {
 
         if (tgRes.ok && tgRes.messageId) {
           deliveredViaBot = true;
+          savedMsgId = tgRes.messageId;
+          isPinned = Boolean(tgRes.pinned);
           await supabase
             .from("cxrner_forms")
-            .update({ moderation_message_id: String(tgRes.messageId) })
+            .update({
+              moderation_message_id: String(tgRes.messageId),
+              form_payload: {
+                ...formPayload,
+                moderation_message_id: Number(tgRes.messageId),
+                moderation_pinned: isPinned,
+              },
+            })
             .eq("id", data.id);
         }
       } catch (tgErr: any) {
@@ -214,7 +247,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, id: data.id, botNotified: deliveredViaBot });
+    return NextResponse.json({ ok: true, id: data.id, botNotified: deliveredViaBot, pinned: isPinned });
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error?.message || "Внутренняя ошибка сервера" },
