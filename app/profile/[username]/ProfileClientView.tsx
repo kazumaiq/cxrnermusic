@@ -3,7 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Sparkles, Award, Boxes } from "lucide-react";
-import type { CxrnerProfile, DropInventoryItem, CxrnerArtistProfile } from "@/lib/ecosystemTypes";
+import type {
+  CxrnerProfile,
+  DropInventoryItem,
+  CxrnerArtistProfile,
+  UserAchievement,
+} from "@/lib/ecosystemTypes";
 import { ACHIEVEMENTS_CATALOG, isCeoAccount } from "@/lib/ecosystemTypes";
 import SpecimenVisual from "@/components/drop/SpecimenVisual";
 import ItemInspectModal from "@/components/drop/ItemInspectModal";
@@ -15,6 +20,7 @@ interface ProfileClientViewProps {
   pinnedItems: DropInventoryItem[];
   totalInventoryCount: number;
   artistProject: CxrnerArtistProfile | null;
+  unlockedAchievements?: UserAchievement[];
   isOwner?: boolean;
 }
 
@@ -22,6 +28,7 @@ export default function ProfileClientView({
   profile,
   pinnedItems,
   totalInventoryCount,
+  unlockedAchievements = [],
   isOwner = false,
 }: ProfileClientViewProps) {
   const [selectedItem, setSelectedItem] = useState<DropInventoryItem | null>(null);
@@ -38,8 +45,13 @@ export default function ProfileClientView({
 
   const isCeo = isCeoAccount({
     username: profile.username,
-    badge: profile.equipped_badge,
-    title: profile.equipped_title,
+  });
+
+  const unlockedKeys = new Set(unlockedAchievements.map((a) => a.achievement_key));
+  const displayedAchievements = ACHIEVEMENTS_CATALOG.filter((ach) => {
+    if (ach.ceoOnly && !isCeo) return false;
+    if (isCeo) return true;
+    return unlockedKeys.has(ach.key);
   });
 
   return (
@@ -139,41 +151,55 @@ export default function ProfileClientView({
             ACHIEVEMENTS SECTION
            ========================================================================= */}
         <div className="mt-12 space-y-4">
-          <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-[#00F0FF] font-semibold">
-            <Award className="w-4 h-4 text-[#B46BFF]" />
-            <span>ACHIEVEMENTS // ДОСТИЖЕНИЯ</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-[#00F0FF] font-semibold">
+              <Award className="w-4 h-4 text-[#B46BFF]" />
+              <span>ACHIEVEMENTS // ДОСТИЖЕНИЯ</span>
+            </div>
+            <span className="font-mono text-[11px] text-[#D9D9E2]/60">
+              Открыто {displayedAchievements.length}
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {(isCeo ? ACHIEVEMENTS_CATALOG : ACHIEVEMENTS_CATALOG.slice(0, 3)).map((ach) => (
-              <div
-                key={ach.key}
-                className={`p-4 rounded-2xl flex items-start gap-3 ${
-                  isCeo && ach.key === "FOUNDER_SOVEREIGN"
-                    ? "bg-[#130E08] border border-amber-400/50 sm:col-span-3"
-                    : isCeo
-                    ? "bg-[#0C0A15] border border-amber-400/25"
-                    : "bg-[#0C0A15] border border-white/10"
-                }`}
-              >
+          {displayedAchievements.length === 0 ? (
+            <div className="p-8 text-center rounded-2xl bg-[#0C0A15] border border-white/10">
+              <Award className="w-8 h-8 text-[#B46BFF]/55 mx-auto mb-2" />
+              <p className="text-xs sm:text-sm text-[#D9D9E2]/70 max-w-md mx-auto">
+                У этого профиля пока нет открытых достижений. Отправляйте релизы, заполняйте профиль и открывайте кейсы в CXRNER DROP, чтобы получать награды.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {displayedAchievements.map((ach) => (
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  key={ach.key}
+                  className={`p-4 rounded-2xl flex items-start gap-3 ${
                     isCeo && ach.key === "FOUNDER_SOVEREIGN"
-                      ? "bg-amber-500/20 border border-amber-300/50 text-amber-300"
-                      : "bg-[#8737FF]/20 border border-[#8737FF]/40 text-[#B46BFF]"
+                      ? "bg-[#130E08] border border-amber-400/50 sm:col-span-3"
+                      : isCeo
+                      ? "bg-[#0C0A15] border border-amber-400/25"
+                      : "bg-[#0C0A15] border border-white/10"
                   }`}
                 >
-                  <Award className="w-5 h-5" />
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      isCeo && ach.key === "FOUNDER_SOVEREIGN"
+                        ? "bg-amber-500/20 border border-amber-300/50 text-amber-300"
+                        : "bg-[#8737FF]/20 border border-[#8737FF]/40 text-[#B46BFF]"
+                    }`}
+                  >
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-bold text-sm text-white">{ach.name}</h4>
+                    <p className="text-xs text-[#D9D9E2]/65 mt-0.5 font-sans line-clamp-2">
+                      {ach.description}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-display font-bold text-sm text-white">{ach.name}</h4>
-                  <p className="text-xs text-[#D9D9E2]/65 mt-0.5 font-sans line-clamp-2">
-                    {ach.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Footer Promo */}

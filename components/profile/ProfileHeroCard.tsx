@@ -13,7 +13,7 @@ import {
   Sliders,
 } from "lucide-react";
 import type { CxrnerProfile } from "@/lib/ecosystemTypes";
-import { isCeoAccount } from "@/lib/ecosystemTypes";
+import { isCeoAccount, isCeoOnlyTitle } from "@/lib/ecosystemTypes";
 import { PlatformLogo, getPlatformVisualMeta } from "@/components/link/PlatformLogo";
 
 interface ProfileHeroCardProps {
@@ -64,12 +64,15 @@ export default function ProfileHeroCard({
 
   const isCeo = isCeoAccount({
     username: profile.username,
-    badge: profile.equipped_badge,
-    title: profile.equipped_title,
   });
 
+  const safeTitle =
+    profile.equipped_title && (isCeo || !isCeoOnlyTitle(profile.equipped_title))
+      ? profile.equipped_title
+      : null;
+
   const frameClass =
-    isCeo || profile.equipped_frame === "frame-ceo-sovereign"
+    isCeo
       ? "ring-2 ring-amber-300 border border-amber-200/80 shadow-[0_8px_28px_rgba(251,191,36,0.35)]"
       : profile.equipped_frame === "frame-cyber-chrome"
       ? "ring-2 ring-white/80 border border-white/60 shadow-[0_8px_22px_rgba(255,255,255,0.22)]"
@@ -82,7 +85,7 @@ export default function ProfileHeroCard({
       : "border-2 border-white/20 shadow-[0_8px_24px_rgba(0,0,0,0.65)]";
 
   const auraClass =
-    isCeo || profile.equipped_effect === "effect-ceo-crown"
+    isCeo
       ? "ring-offset-2 ring-offset-[#0C0A15] shadow-[0_0_28px_rgba(251,191,36,0.45)]"
       : profile.equipped_effect === "effect-purple-aura"
       ? "ring-offset-2 ring-offset-[#0C0A15] shadow-[0_0_24px_rgba(180,107,255,0.5)]"
@@ -276,7 +279,7 @@ export default function ProfileHeroCard({
 
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-mono text-[#D9D9E2]/65">
               <span className="text-white/80 font-semibold">@{profile.username}</span>
-              {profile.equipped_title && (
+              {safeTitle && (
                 <>
                   <span className="text-white/25">•</span>
                   <span
@@ -286,7 +289,7 @@ export default function ProfileHeroCard({
                         : "bg-white/[0.06] border border-white/10 text-white/85"
                     }`}
                   >
-                    {profile.equipped_title}
+                    {safeTitle}
                   </span>
                 </>
               )}

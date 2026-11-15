@@ -5,6 +5,7 @@ import {
   getProfileByUsername,
   getUserInventory,
   getArtistProfileByUserId,
+  getUserAchievements,
   isCeoAccount,
   CEO_USERNAME,
 } from "@/lib/ecosystemDb";
@@ -68,10 +69,14 @@ export default async function PublicProfilePage(
     // ignore unauthenticated visit
   }
 
-  // Get showcase pinned items
-  const inventory = await getUserInventory(profile.id);
+  // Get showcase pinned items & genuine unlocked achievements
+  const isCeoProfile = isCeoAccount({ username: profile.username });
+  const [inventory, artistProject, unlockedAchievements] = await Promise.all([
+    getUserInventory(profile.id),
+    getArtistProfileByUserId(profile.id),
+    getUserAchievements(profile.id, isCeoProfile),
+  ]);
   const pinnedItems = inventory.filter((item) => item.is_pinned && !item.is_hidden);
-  const artistProject = await getArtistProfileByUserId(profile.id);
 
   return (
     <ProfileClientView
@@ -79,6 +84,7 @@ export default async function PublicProfilePage(
       pinnedItems={pinnedItems}
       totalInventoryCount={inventory.length}
       artistProject={artistProject}
+      unlockedAchievements={unlockedAchievements}
       isOwner={isOwner}
     />
   );

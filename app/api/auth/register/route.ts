@@ -4,6 +4,8 @@ import {
   upsertUserProfile,
   sanitizeUsername,
   recordReferralAttribution,
+  CEO_EMAIL,
+  CEO_USERNAME,
 } from "@/lib/ecosystemDb";
 
 export async function POST(request: Request) {
@@ -34,7 +36,13 @@ export async function POST(request: Request) {
     }
 
     const initialName = artistName || cleanEmail.split("@")[0] || "CXRNER Artist";
-    const initialUsername = sanitizeUsername(initialName) || `artist_${Date.now().toString(36).slice(-6)}`;
+    const candidateUsername = sanitizeUsername(initialName) || `artist_${Date.now().toString(36).slice(-6)}`;
+    const initialUsername =
+      cleanEmail === CEO_EMAIL
+        ? CEO_USERNAME
+        : candidateUsername === CEO_USERNAME
+        ? `artist_${Date.now().toString(36).slice(-6)}`
+        : candidateUsername;
 
     const { data, error } = await admin.auth.admin.createUser({
       email: cleanEmail,

@@ -115,8 +115,10 @@ export function buildTelegramCardText(opts: SyncMessageOptions): string {
   return lines.join("\n");
 }
 
-export function buildTelegramKeyboard(uid: string, idx: number = 0) {
+export function buildTelegramKeyboard(uid: string, idx: number = 0, status: string = "pending") {
   const cleanUid = uid || "web";
+  const norm = String(status || "pending").toLowerCase();
+  const isPinned = norm === "on_upload" || norm === "pending";
   return {
     inline_keyboard: [
       [
@@ -131,6 +133,9 @@ export function buildTelegramKeyboard(uid: string, idx: number = 0) {
       ],
       [
         { text: "📦 Присвоить UPC", callback_data: `m_upc_${cleanUid}_${idx}` },
+        isPinned
+          ? { text: "📌 Открепить", callback_data: `m_unpin_${cleanUid}_${idx}` }
+          : { text: "📌 Закрепить", callback_data: `m_pin_${cleanUid}_${idx}` },
       ],
     ],
   };
@@ -153,7 +158,7 @@ export async function syncTelegramMessage(opts: SyncMessageOptions): Promise<{ o
 
   try {
     const text = buildTelegramCardText(opts);
-    const keyboard = buildTelegramKeyboard(opts.telegramId || opts.formId, 0);
+    const keyboard = buildTelegramKeyboard(opts.telegramId || opts.formId, 0, opts.status);
 
     const res = await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
       method: "POST",
@@ -169,6 +174,19 @@ export async function syncTelegramMessage(opts: SyncMessageOptions): Promise<{ o
     });
 
     const data = await res.json().catch(() => ({}));
+
+    const s = String(opts.status || "pending").toLowerCase();
+    const shouldStayPinned = s === "on_upload" || s === "pending";
+    if (!shouldStayPinned) {
+      await fetch(`https://api.telegram.org/bot${token}/unpinChatMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+        }),
+      }).catch(() => null);
+    }
 
     if (data.ok) {
       return { ok: true };
@@ -196,7 +214,7 @@ export async function sendTelegramNewMessage(opts: SyncMessageOptions): Promise<
 
   try {
     const text = buildTelegramCardText(opts);
-    const keyboard = buildTelegramKeyboard(opts.telegramId || opts.formId, 0);
+    const keyboard = buildTelegramKeyboard(opts.telegramId || opts.formId, 0, opts.status);
 
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",

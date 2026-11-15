@@ -7,6 +7,8 @@ import {
   sanitizeUsername,
   recordReferralAttribution,
   evaluateReferralMilestones,
+  isCeoAccount,
+  CEO_USERNAME,
 } from "@/lib/ecosystemDb";
 
 export async function GET(request: Request) {
@@ -96,11 +98,18 @@ export async function GET(request: Request) {
           // Ensure ecosystem CXRNER ID profile exists too
           let ecoProfile = await getProfileByUserId(data.user.id);
           if (!ecoProfile) {
-            const initialUsername =
+            const isCeoLogin = isCeoAccount({ email: data.user.email });
+            const rawInitial =
               sanitizeUsername(userMeta.username || artistName || data.user.email?.split("@")[0] || "") ||
               `user_${data.user.id.slice(0, 6)}`;
+            const initialUsername = isCeoLogin
+              ? CEO_USERNAME
+              : rawInitial === CEO_USERNAME
+              ? `user_${data.user.id.slice(0, 6)}`
+              : rawInitial;
             const created = await upsertUserProfile({
               userId: data.user.id,
+              userEmail: data.user.email,
               username: initialUsername,
               displayName: artistName,
               avatarUrl: userMeta.avatar_url || userMeta.picture || null,

@@ -19,7 +19,13 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import type { CxrnerProfile, MusicRole, ProfileCompletionResult } from "@/lib/ecosystemTypes";
-import { COSMETIC_FRAMES, COSMETIC_EFFECTS, COSMETIC_TITLES } from "@/lib/ecosystemTypes";
+import {
+  COSMETIC_FRAMES,
+  COSMETIC_EFFECTS,
+  COSMETIC_TITLES,
+  isCeoAccount,
+  isCeoOnlyTitle,
+} from "@/lib/ecosystemTypes";
 import ImageUploadField from "@/components/profile/ImageUploadField";
 import ProfileHeroCard from "@/components/profile/ProfileHeroCard";
 
@@ -107,10 +113,27 @@ export default function ProfileEditorClient({
     profile.social_links?.find((l) => l.platform.toLowerCase() === "telegram")?.url || ""
   );
 
-  // Cosmetic Equips
-  const [equippedFrame, setEquippedFrame] = useState(profile.equipped_frame || "");
-  const [equippedEffect, setEquippedEffect] = useState(profile.equipped_effect || "");
-  const [equippedTitle, setEquippedTitle] = useState(profile.equipped_title || "");
+  const isCeoSovereign = isCeoAccount({
+    username: profile.username,
+    email: userEmail,
+  });
+
+  // Cosmetic Equips (strip any CEO-only item for non-CEO accounts)
+  const [equippedFrame, setEquippedFrame] = useState(
+    !isCeoSovereign && profile.equipped_frame === "frame-ceo-sovereign"
+      ? ""
+      : profile.equipped_frame || ""
+  );
+  const [equippedEffect, setEquippedEffect] = useState(
+    !isCeoSovereign && profile.equipped_effect === "effect-ceo-crown"
+      ? ""
+      : profile.equipped_effect || ""
+  );
+  const [equippedTitle, setEquippedTitle] = useState(
+    !isCeoSovereign && isCeoOnlyTitle(profile.equipped_title)
+      ? ""
+      : profile.equipped_title || ""
+  );
 
   // Privacy
   const [privacy, setPrivacy] = useState(
@@ -267,11 +290,6 @@ export default function ProfileEditorClient({
       setSaving(false);
     }
   };
-
-  const isCeoSovereign =
-    userEmail.trim().toLowerCase() === "kazumaiq.music@gmail.com" ||
-    username.trim().toLowerCase() === "kazumaiq" ||
-    profile.equipped_badge === "ceo_founder";
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -769,7 +787,7 @@ export default function ProfileEditorClient({
                 >
                   По умолчанию
                 </button>
-                {COSMETIC_FRAMES.map((f) => (
+                {COSMETIC_FRAMES.filter((f) => isCeoSovereign || !f.ceoOnly).map((f) => (
                   <button
                     key={f.id}
                     type="button"
@@ -804,7 +822,7 @@ export default function ProfileEditorClient({
                 >
                   Без эффекта
                 </button>
-                {COSMETIC_EFFECTS.map((e) => (
+                {COSMETIC_EFFECTS.filter((e) => isCeoSovereign || !e.ceoOnly).map((e) => (
                   <button
                     key={e.id}
                     type="button"
@@ -831,7 +849,7 @@ export default function ProfileEditorClient({
                 className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono outline-none"
               >
                 <option value="">Без титула</option>
-                {COSMETIC_TITLES.map((t) => (
+                {COSMETIC_TITLES.filter((t) => isCeoSovereign || !isCeoOnlyTitle(t)).map((t) => (
                   <option key={t} value={t} className="bg-[#0C0A15] text-white">
                     {t}
                   </option>

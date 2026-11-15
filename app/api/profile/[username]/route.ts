@@ -3,6 +3,8 @@ import {
   getProfileByUsername,
   getUserInventory,
   getArtistProfileByUserId,
+  getUserAchievements,
+  isCeoAccount,
 } from "@/lib/ecosystemDb";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
@@ -40,12 +42,14 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "PROFILE_IS_PRIVATE" }, { status: 403 });
     }
 
-    // Get inventory items for showcase (pinned items)
-    const inventory = await getUserInventory(profile.id);
+    // Get inventory items, artist profile & real unlocked achievements
+    const isCeoProfile = isCeoAccount({ username: profile.username });
+    const [inventory, artistProfile, unlockedAchievements] = await Promise.all([
+      getUserInventory(profile.id),
+      getArtistProfileByUserId(profile.id),
+      getUserAchievements(profile.id, isCeoProfile),
+    ]);
     const pinnedItems = inventory.filter((item) => item.is_pinned && !item.is_hidden);
-
-    // Get artist profile if any
-    const artistProfile = await getArtistProfileByUserId(profile.id);
 
     // Sanitize private fields before returning to public
     const publicProfile = {
@@ -70,6 +74,7 @@ export async function GET(
       equipped_showcase_item: profile.equipped_showcase_item,
       equipped_background: profile.equipped_background,
       pinned_achievements: profile.pinned_achievements,
+      unlocked_achievements: unlockedAchievements,
       pinned_items: profile.privacy_settings.show_inventory ? pinnedItems : [],
       total_items_count: profile.privacy_settings.show_inventory ? inventory.length : null,
       artist_project: artistProfile

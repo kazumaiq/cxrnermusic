@@ -253,6 +253,7 @@ export interface AchievementItem {
   icon: string;
   rarity: ItemRarity;
   cxp_reward?: number;
+  ceoOnly?: boolean;
 }
 
 export interface UserAchievement {
@@ -762,6 +763,7 @@ export const ACHIEVEMENTS_CATALOG: AchievementItem[] = [
     icon: "Crown",
     rarity: "special_reward",
     cxp_reward: 1000,
+    ceoOnly: true,
   },
   {
     key: "FIRST_DROP",
@@ -847,6 +849,10 @@ export const ACHIEVEMENTS_CATALOG: AchievementItem[] = [
 export const CEO_USERNAME = "kazumaiq";
 export const CEO_EMAIL = "kazumaiq.music@gmail.com";
 
+/**
+ * Strictly determines CEO identity ONLY by verified username or email.
+ * Mutable cosmetic fields (equipped_badge, equipped_title) must NEVER grant CEO status.
+ */
 export function isCeoAccount(input?: {
   username?: string | null;
   email?: string | null;
@@ -861,18 +867,13 @@ export function isCeoAccount(input?: {
   const e = String(input.email || "")
     .trim()
     .toLowerCase();
-  const b = String(input.badge || "")
-    .trim()
-    .toLowerCase();
-  const t = String(input.title || "")
-    .trim()
-    .toLowerCase();
-  return (
-    u === CEO_USERNAME ||
-    e === CEO_EMAIL ||
-    b === "ceo_founder" ||
-    t.includes("founder & ceo")
-  );
+  return u === CEO_USERNAME || e === CEO_EMAIL;
+}
+
+export function isCeoOnlyTitle(title?: string | null): boolean {
+  const t = String(title || "").trim().toLowerCase();
+  if (!t) return false;
+  return t.includes("founder") || t.includes("ceo");
 }
 
 export const COSMETIC_FRAMES = [

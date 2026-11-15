@@ -32,6 +32,7 @@ import {
   DROP_SPECIMENS,
   calculateProfileCompletion,
   isCeoAccount,
+  isCeoOnlyTitle,
 } from "./ecosystemTypes";
 
 // =========================================================================
@@ -392,12 +393,21 @@ function hydrateProfileWithCabinet(
     isCeoAccount({
       username: merged.username || cabinetProfile?.username,
       email: cabinetProfile?.email || cabinetProfile?.contact_email,
-      badge: merged.equipped_badge,
-      title: merged.equipped_title,
     })
   ) {
     return elevateCeoProfile(merged, cabinetProfile);
   }
+
+  // Ensure non-CEO accounts can never carry CEO-only cosmetics or badges
+  if (merged.equipped_frame === "frame-ceo-sovereign") merged.equipped_frame = null;
+  if (merged.equipped_effect === "effect-ceo-crown") merged.equipped_effect = null;
+  if (isCeoOnlyTitle(merged.equipped_title)) merged.equipped_title = null;
+  if (merged.equipped_badge === "ceo_founder") {
+    merged.equipped_badge = merged.is_artist_verified ? "verified" : null;
+  }
+  merged.pinned_achievements = (merged.pinned_achievements || []).filter(
+    (k) => k !== "FOUNDER_SOVEREIGN"
+  );
 
   return merged;
 }
@@ -899,6 +909,83 @@ export async function awardCxp(params: {
   return { ok: true, newBalance: currentWallet.balance };
 }
 
+export async function getUserAchievements(
+  userId: string,
+  explicitIsCeo?: boolean
+): Promise<UserAchievement[]> {
+  if (!userId) return [];
+
+  const unlockedMap = new Map<string, UserAchievement>();
+  const addEntry = (entry: Partial<UserAchievement>) => {
+    const key = String(entry.achievement_key || "").trim();
+    if (!key) return;
+    if (!ACHIEVEMENTS_CATALOG.some((a) => a.key === key)) return;
+    if (!unlockedMap.has(key)) {
+      unlockedMap.set(key, {
+        id: String(entry.id || `ach_${userId}_${key}`),
+        user_id: String(entry.user_id || userId),
+        achievement_key: key,
+        unlocked_at: String(entry.unlocked_at || new Date().toISOString()),
+        is_pinned: Boolean(entry.is_pinned),
+      });
+    }
+  };
+
+  let isCeo = Boolean(explicitIsCeo || userId === "ceo-kazumaiq");
+  const db = await getDbForUser(userId);
+
+  if (db) {
+    const [tableRes, vault] = await Promise.all([
+      runOptionalTableQuery<UserAchievement[]>("cxrner_achievements", () =>
+        db.from("cxrner_achievements").select("*").eq("user_id", userId)
+      ),
+      readCabinetVault(userId, db),
+    ]);
+
+    if (!isCeo && vault) {
+      isCeo = isCeoAccount({
+        username: vault.username || (vault.cxrner_id as any)?.username,
+        email: vault.email || vault.contact_email,
+      });
+    }
+
+    if (Array.isArray(tableRes.data)) {
+      for (const row of tableRes.data) addEntry(row);
+    }
+
+    const vaultList = vault?.ecosystem_achievements;
+    if (Array.isArray(vaultList)) {
+      for (const row of vaultList as UserAchievement[]) addEntry(row);
+    }
+  } else {
+    const store = loadLocalStore();
+    const prof = store.profiles[userId];
+    if (!isCeo && prof) {
+      isCeo = isCeoAccount({ username: prof.username });
+    }
+    for (const row of store.achievements[userId] || []) addEntry(row);
+  }
+
+  if (isCeo) {
+    const nowIso = "2026-01-01T00:00:00.000Z";
+    for (const def of ACHIEVEMENTS_CATALOG) {
+      if (!unlockedMap.has(def.key)) {
+        addEntry({
+          id: `ceo_ach_${def.key}`,
+          user_id: userId,
+          achievement_key: def.key,
+          unlocked_at: nowIso,
+          is_pinned: true,
+        });
+      }
+    }
+  } else {
+    unlockedMap.delete("FOUNDER_SOVEREIGN");
+  }
+
+  return Array.from(unlockedMap.values());
+}
+
 export async function unlockAchievement(params: {
   userId: string;
   achievementKey: string;
@@ -909,6 +996,18 @@ export async function unlockAchievement(params: {
 
   const nowIso = new Date().toISOString();
   const db = await getDbForUser(userId);
+
+  if (achDef.ceoOnly) {
+    let isCeo = userId === "ceo-kazumaiq";
+    if (!isCeo && db) {
+      const vault = await readCabinetVault(userId, db);
+      isCeo = isCeoAccount({
+        username: vault?.username || (vault?.cxrner_id as any)?.username,
+        email: vault?.email || vault?.contact_email,
+      });
+    }
+    if (!isCeo) return { ok: false, alreadyUnlocked: false };
+  }
 
   if (db) {
     let already = false;
@@ -1339,10 +1438,37 @@ export async function upsertUserProfile(params: {
     updated_at: nowIso,
   };
 
-  const resolvedUsername =
+  const rawUsername =
     params.username !== undefined && sanitizeUsername(params.username).length >= 3
       ? sanitizeUsername(params.username)
       : current.username;
+
+  const isCeoUser = isCeoAccount({
+    email: params.userEmail || existingVault?.email || existingVault?.contact_email,
+    username: existingProfile?.username || existingVault?.username || rawUsername === CEO_USERNAME && params.userEmail === CEO_EMAIL ? CEO_USERNAME : null,
+  });
+
+  // Never allow non-CEO users to claim CEO username or equip CEO-only items
+  const resolvedUsername =
+    !isCeoUser && rawUsername === CEO_USERNAME
+      ? `artist_${params.userId.slice(0, 6)}`
+      : isCeoUser
+      ? CEO_USERNAME
+      : rawUsername;
+
+  const requestedFrame = params.equippedFrame !== undefined ? params.equippedFrame : current.equipped_frame;
+  const requestedEffect = params.equippedEffect !== undefined ? params.equippedEffect : current.equipped_effect;
+  const requestedTitle = params.equippedTitle !== undefined ? params.equippedTitle : current.equipped_title;
+  const requestedBadge =
+    params.equippedBadge !== undefined
+      ? params.equippedBadge === "verified" && !current.is_artist_verified
+        ? current.equipped_badge
+        : params.equippedBadge
+      : current.equipped_badge;
+  const requestedPinnedAch =
+    params.pinnedAchievements !== undefined
+      ? params.pinnedAchievements
+      : current.pinned_achievements;
 
   const updated: CxrnerProfile = {
     ...current,
@@ -1378,15 +1504,10 @@ export async function upsertUserProfile(params: {
       ...current.privacy_settings,
       ...(params.privacySettings || {}),
     },
-    equipped_frame: params.equippedFrame !== undefined ? params.equippedFrame : current.equipped_frame,
-    equipped_effect: params.equippedEffect !== undefined ? params.equippedEffect : current.equipped_effect,
-    equipped_title: params.equippedTitle !== undefined ? params.equippedTitle : current.equipped_title,
-    equipped_badge:
-      params.equippedBadge !== undefined
-        ? params.equippedBadge === "verified" && !current.is_artist_verified
-          ? current.equipped_badge
-          : params.equippedBadge
-        : current.equipped_badge,
+    equipped_frame: !isCeoUser && requestedFrame === "frame-ceo-sovereign" ? null : requestedFrame,
+    equipped_effect: !isCeoUser && requestedEffect === "effect-ceo-crown" ? null : requestedEffect,
+    equipped_title: !isCeoUser && isCeoOnlyTitle(requestedTitle) ? null : requestedTitle,
+    equipped_badge: !isCeoUser && requestedBadge === "ceo_founder" ? null : requestedBadge,
     equipped_showcase_item:
       params.equippedShowcaseItem !== undefined
         ? params.equippedShowcaseItem
@@ -1395,23 +1516,15 @@ export async function upsertUserProfile(params: {
       params.equippedBackground !== undefined
         ? params.equippedBackground
         : current.equipped_background,
-    pinned_achievements:
-      params.pinnedAchievements !== undefined
-        ? params.pinnedAchievements
-        : current.pinned_achievements,
+    pinned_achievements: isCeoUser
+      ? requestedPinnedAch
+      : (requestedPinnedAch || []).filter((k) => k !== "FOUNDER_SOVEREIGN"),
     pinned_items: params.pinnedItems !== undefined ? params.pinnedItems : current.pinned_items,
     updated_at: nowIso,
   };
 
   const { total } = calculateProfileCompletion(updated);
   updated.completion_percentage = total;
-
-  const isCeoUser = isCeoAccount({
-    username: updated.username || existingVault?.username,
-    email: params.userEmail || existingVault?.email || existingVault?.contact_email,
-    badge: updated.equipped_badge,
-    title: updated.equipped_title,
-  });
 
   if (isCeoUser) {
     Object.assign(updated, elevateCeoProfile(updated, existingVault));

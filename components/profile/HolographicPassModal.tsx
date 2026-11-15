@@ -55,8 +55,6 @@ export default function HolographicPassModal({
 
   const isCeo = isCeoAccount({
     username: profile.username,
-    badge: profile.equipped_badge,
-    title: profile.equipped_title,
   });
 
   const serialNumber = isCeo

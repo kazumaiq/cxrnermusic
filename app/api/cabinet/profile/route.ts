@@ -151,6 +151,29 @@ export async function PATCH(request: Request) {
     const rawPinnedAch = body.pinnedAchievements !== undefined ? body.pinnedAchievements : body.pinned_achievements;
     const rawPinnedItems = body.pinnedItems !== undefined ? body.pinnedItems : body.pinned_items;
 
+    const rawFrame = body.equippedFrame !== undefined ? body.equippedFrame : undefined;
+    const rawEffect = body.equippedEffect !== undefined ? body.equippedEffect : undefined;
+    const rawTitle = body.equippedTitle !== undefined ? body.equippedTitle : undefined;
+    const rawBadge = body.equippedBadge !== undefined ? body.equippedBadge : undefined;
+
+    const safeFrame =
+      !isCeoUser && rawFrame === "frame-ceo-sovereign" ? null : rawFrame;
+    const safeEffect =
+      !isCeoUser && rawEffect === "effect-ceo-crown" ? null : rawEffect;
+    const safeTitle =
+      !isCeoUser &&
+      typeof rawTitle === "string" &&
+      (rawTitle.toLowerCase().includes("founder") || rawTitle.toLowerCase().includes("ceo"))
+        ? null
+        : rawTitle;
+    const safeBadge =
+      !isCeoUser && rawBadge === "ceo_founder" ? null : rawBadge;
+    const safePinnedAch = Array.isArray(rawPinnedAch)
+      ? isCeoUser
+        ? rawPinnedAch
+        : rawPinnedAch.filter((k: any) => String(k) !== "FOUNDER_SOVEREIGN")
+      : rawPinnedAch;
+
     const { profile, rewardsAwarded } = await upsertUserProfile({
       userId: user.id,
       userEmail: user.email,
@@ -166,13 +189,13 @@ export async function PATCH(request: Request) {
       socialLinks: rawSocialLinks,
       musicLinks: rawMusicLinks,
       privacySettings: rawPrivacy,
-      equippedFrame: body.equippedFrame !== undefined ? body.equippedFrame : undefined,
-      equippedEffect: body.equippedEffect !== undefined ? body.equippedEffect : undefined,
-      equippedTitle: body.equippedTitle !== undefined ? body.equippedTitle : undefined,
-      equippedBadge: body.equippedBadge !== undefined ? body.equippedBadge : undefined,
+      equippedFrame: safeFrame,
+      equippedEffect: safeEffect,
+      equippedTitle: safeTitle,
+      equippedBadge: safeBadge,
       equippedShowcaseItem: body.equippedShowcaseItem !== undefined ? body.equippedShowcaseItem : undefined,
       equippedBackground: body.equippedBackground !== undefined ? body.equippedBackground : undefined,
-      pinnedAchievements: rawPinnedAch,
+      pinnedAchievements: safePinnedAch,
       pinnedItems: rawPinnedItems,
     });
 
