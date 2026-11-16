@@ -321,7 +321,7 @@ export default function SubmitReleasePage() {
       if (!res.ok || !json.ok) {
         if (json.needsAuth) {
           setError("Вы не авторизованы. Войдите в личный кабинет, чтобы отправить релиз.");
-          setTimeout(() => router.push("/auth/login"), 2000);
+          setTimeout(() => router.push("/auth/login?redirect=/submit-release"), 2000);
           return;
         }
         throw new Error(json.error || "Не удалось отправить заявку. Попробуйте еще раз.");

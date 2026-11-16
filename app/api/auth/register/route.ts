@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdminClient, getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getSupabaseAdminClient } from "@/lib/supabaseServer";
+import {
+  buildCanonicalOrigin,
+  isValidEmail,
+  localizeAuthError,
+} from "@/lib/authUtils";
+import {
+  buildWelcomeEmail,
+  isResendConfigured,
+  sendTransactionalEmail,
+} from "@/lib/email";
 import {
   upsertUserProfile,
   sanitizeUsername,
@@ -10,14 +20,17 @@ import {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const cleanEmail = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
     const artistName = String(body.artistName || "").trim();
     const refCode = String(body.refCode || "").trim();
 
-    if (!cleanEmail || !cleanEmail.includes("@")) {
-      return NextResponse.json({ ok: false, error: "Введите корректный Email" }, { status: 400 });
+    if (!isValidEmail(cleanEmail)) {
+      return NextResponse.json(
+        { ok: false, error: "Укажите корректный Email-адрес (например, artist@gmail.com)" },
+        { status: 400 }
+      );
     }
     if (password.length < 6) {
       return NextResponse.json(
@@ -36,7 +49,8 @@ export async function POST(request: Request) {
     }
 
     const initialName = artistName || cleanEmail.split("@")[0] || "CXRNER Artist";
-    const candidateUsername = sanitizeUsername(initialName) || `artist_${Date.now().toString(36).slice(-6)}`;
+    const candidateUsername =
+      sanitizeUsername(initialName) || `artist_${Date.now().toString(36).slice(-6)}`;
     const initialUsername =
       cleanEmail === CEO_EMAIL
         ? CEO_USERNAME
@@ -57,27 +71,31 @@ export async function POST(request: Request) {
 
     if (error) {
       const msg = error.message || "";
+      const lower = msg.toLowerCase();
       if (
-        msg.toLowerCase().includes("already been registered") ||
-        msg.toLowerCase().includes("already exists") ||
-        msg.toLowerCase().includes("duplicate")
+        lower.includes("already been registered") ||
+        lower.includes("already exists") ||
+        lower.includes("duplicate")
       ) {
         return NextResponse.json(
           {
             ok: false,
             alreadyExists: true,
-            error: "Аккаунт с этим Email уже зарегистрирован. Нажмите «Войти в кабинет».",
+            error: "Аккаунт с этим Email уже зарегистрирован. Нажмите «Войти в кабинет» или восстановите пароль.",
           },
           { status: 409 }
         );
       }
-      return NextResponse.json({ ok: false, error: msg }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: localizeAuthError(error) },
+        { status: 400 }
+      );
     }
 
     const user = data?.user;
     if (!user) {
       return NextResponse.json(
-        { ok: false, error: "Не удалось создать пользователя" },
+        { ok: false, error: "Не удалось создать пользователя. Попробуйте ещё раз." },
         { status: 500 }
       );
     }
@@ -111,7 +129,19 @@ export async function POST(request: Request) {
         }).catch(() => {});
       }
     } catch {
-      // non-fatal provisioning errors; client login will re-sync
+      // non-fatal provisioning errors; login callback will re-sync
+    }
+
+    if (isResendConfigured()) {
+      const origin = buildCanonicalOrigin(request);
+      const welcome = buildWelcomeEmail({
+        artistName: initialName,
+        dashboardUrl: `${origin}/dashboard`,
+      });
+      await sendTransactionalEmail({
+        to: cleanEmail,
+        ...welcome,
+      }).catch(() => {});
     }
 
     return NextResponse.json({
@@ -121,7 +151,7 @@ export async function POST(request: Request) {
     });
   } catch (err: any) {
     return NextResponse.json(
-      { ok: false, error: err?.message || "Ошибка регистрации" },
+      { ok: false, error: localizeAuthError(err, "Ошибка регистрации") },
       { status: 500 }
     );
   }

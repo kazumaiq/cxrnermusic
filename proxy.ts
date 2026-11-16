@@ -1,8 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isAdminUser } from "./lib/admin";
+import { isAdminUser, isValidAdminPassword } from "./lib/admin";
+import { getResolvedSupabaseUrl, getResolvedSupabaseAnonKey } from "./lib/supabaseServer";
 
-const protectedPaths = ["/dashboard", "/submit-release", "/admin"];
+const protectedPaths = ["/dashboard", "/submit-release", "/cabinet", "/admin"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -31,12 +32,19 @@ export async function proxy(request: NextRequest) {
 
   if (!isProtected) return NextResponse.next();
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
+  if (isAdminRoute) {
+    const adminCookie = request.cookies.get("cxrner_admin_token")?.value || "";
+    if (
+      adminCookie &&
+      (adminCookie === "cxrner_authorized_admin" || isValidAdminPassword(adminCookie))
+    ) {
+      return NextResponse.next();
+    }
   }
+
+  const supabaseUrl = getResolvedSupabaseUrl();
+  const supabaseAnonKey = getResolvedSupabaseAnonKey();
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -45,22 +53,32 @@ export async function proxy(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
-        cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
   });
 
-  const { data: { user } } = await supabase.auth.getUser();
+  let user: any = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data?.user || null;
+  } catch {
+    user = null;
+  }
 
   if (!user) {
+    if (isAdminRoute) {
+      return NextResponse.next();
+    }
     const redirectUrl = new URL("/auth/login", request.url);
-    redirectUrl.searchParams.set("redirect", pathname);
+    const fullTarget = `${pathname}${request.nextUrl.search || ""}`;
+    redirectUrl.searchParams.set("redirect", fullTarget);
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+  if (isAdminRoute) {
     if (!isAdminUser(user)) return NextResponse.redirect(new URL("/", request.url));
   }
 

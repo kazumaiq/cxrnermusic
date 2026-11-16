@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabaseServer";
+import {
+  buildCanonicalOrigin,
+  localizeAuthError,
+  sanitizeRedirectPath,
+} from "@/lib/authUtils";
 import {
   getProfileByUserId,
   upsertUserProfile,
@@ -11,27 +17,29 @@ import {
   CEO_USERNAME,
 } from "@/lib/ecosystemDb";
 
+const ALLOWED_OTP_TYPES = new Set<EmailOtpType>([
+  "signup",
+  "invite",
+  "magiclink",
+  "recovery",
+  "email_change",
+  "email",
+]);
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? "/dashboard";
+  const tokenHash = requestUrl.searchParams.get("token_hash");
+  const rawType = requestUrl.searchParams.get("type") || "";
+  const rawNext = requestUrl.searchParams.get("next");
+  const defaultNext = rawType === "recovery" ? "/auth/reset-password" : "/dashboard";
+  const next = sanitizeRedirectPath(rawNext, defaultNext);
   const errorParam = requestUrl.searchParams.get("error");
   const errorDescription = requestUrl.searchParams.get("error_description");
+  const redirectBase = buildCanonicalOrigin(request);
 
-  // Determine the canonical base origin (respecting Vercel / reverse proxy headers)
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
-  const isLocalEnv = process.env.NODE_ENV === "development";
-
-  const redirectBase = isLocalEnv
-    ? requestUrl.origin
-    : forwardedHost
-    ? `${forwardedProto}://${forwardedHost}`
-    : requestUrl.origin;
-
-  // If OAuth provider returned an error directly to the callback
   if (errorParam) {
-    console.error("[OAuth Callback] Provider returned error:", errorParam, errorDescription);
+    console.error("[Auth Callback] Provider returned error:", errorParam, errorDescription);
     const targetUrl = new URL("/auth/login", redirectBase);
     targetUrl.searchParams.set("error", errorParam);
     if (errorDescription) {
@@ -40,26 +48,26 @@ export async function GET(request: Request) {
     return NextResponse.redirect(targetUrl);
   }
 
-  // If code is present, exchange for session
-  if (code) {
+  if (code || (tokenHash && ALLOWED_OTP_TYPES.has(rawType as EmailOtpType))) {
     try {
       const supabase = await getSupabaseServerClient();
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      const authResult = code
+        ? await supabase.auth.exchangeCodeForSession(code)
+        : await supabase.auth.verifyOtp({
+            token_hash: tokenHash!,
+            type: rawType as EmailOtpType,
+          });
+
+      const { data, error } = authResult;
 
       if (error) {
-        console.error("[OAuth Callback] exchangeCodeForSession failed:", error.message);
+        console.error("[Auth Callback] verification failed:", error.message);
         const targetUrl = new URL("/auth/login", redirectBase);
-        targetUrl.searchParams.set("error", "code_exchange_failed");
-        targetUrl.searchParams.set(
-          "description",
-          error.message.includes("API key")
-            ? "Укажите NEXT_PUBLIC_SUPABASE_ANON_KEY в Vercel для завершения авторизации Google."
-            : error.message
-        );
+        targetUrl.searchParams.set("error", code ? "code_exchange_failed" : "otp_verification_failed");
+        targetUrl.searchParams.set("description", localizeAuthError(error));
         return NextResponse.redirect(targetUrl);
       }
 
-      // If session exchanged successfully, ensure user profile exists WITHOUT wiping existing JSON fields
       let referralSettled = false;
       if (data?.user) {
         try {
@@ -82,7 +90,8 @@ export async function GET(request: Request) {
           const mergedCabinetProfile = {
             ...currentCabinetProfile,
             artist_name: currentCabinetProfile.artist_name || artistName,
-            avatar_url: currentCabinetProfile.avatar_url || userMeta.avatar_url || userMeta.picture || null,
+            avatar_url:
+              currentCabinetProfile.avatar_url || userMeta.avatar_url || userMeta.picture || null,
             email: currentCabinetProfile.email || data.user.email,
           };
 
@@ -95,7 +104,6 @@ export async function GET(request: Request) {
             { onConflict: "user_id" }
           );
 
-          // Ensure ecosystem CXRNER ID profile exists too
           let ecoProfile = await getProfileByUserId(data.user.id);
           if (!ecoProfile) {
             const isCeoLogin = isCeoAccount({ email: data.user.email });
@@ -117,7 +125,6 @@ export async function GET(request: Request) {
             ecoProfile = created.profile;
           }
 
-          // Reconcile pending referral attribution from cookie or user metadata
           const cookieStore = await cookies();
           const refCookie = cookieStore.get("cxrner_ref_code")?.value || "";
           const pendingRef = (refCookie || userMeta.referred_by_code || "").trim();
@@ -146,27 +153,28 @@ export async function GET(request: Request) {
             }).catch(() => {});
           }
         } catch (profileErr: any) {
-          console.warn("[OAuth Callback] Failed to auto-provision profile:", profileErr.message);
+          console.warn("[Auth Callback] Failed to auto-provision profile:", profileErr.message);
         }
       }
 
-      // Safe redirect to target page
-      const cleanNext = next.startsWith("/") ? next : `/${next}`;
-      const res = NextResponse.redirect(new URL(cleanNext, redirectBase));
+      const targetUrl = new URL(next, redirectBase);
+      if (rawType === "signup" || rawType === "email") {
+        targetUrl.searchParams.set("confirmed", "1");
+      }
+      const res = NextResponse.redirect(targetUrl);
       if (referralSettled) {
         res.cookies.delete("cxrner_ref_code");
       }
       return res;
     } catch (err: any) {
-      console.error("[OAuth Callback] Unexpected exception during code exchange:", err.message);
+      console.error("[Auth Callback] Unexpected exception during verification:", err.message);
       const targetUrl = new URL("/auth/login", redirectBase);
       targetUrl.searchParams.set("error", "server_error");
-      targetUrl.searchParams.set("description", err.message);
+      targetUrl.searchParams.set("description", localizeAuthError(err));
       return NextResponse.redirect(targetUrl);
     }
   }
 
-  // If neither code nor error was provided
   const targetUrl = new URL("/auth/login", redirectBase);
   targetUrl.searchParams.set("error", "missing_code");
   return NextResponse.redirect(targetUrl);

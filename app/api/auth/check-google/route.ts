@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
-import { getResolvedSupabaseUrl } from "@/lib/supabaseServer";
-
-const FALLBACK_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqaHF0cmZzdXVkaW9ncHd3emd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTE3OTYsImV4cCI6MjEwMTY4Nzc5Nn0.fNVIC3dZuz7LLUTE0aOnF4ILVKBYXcftdU1ZjXyMZmo";
+import { getResolvedSupabaseUrl, getResolvedSupabaseAnonKey } from "@/lib/supabaseServer";
 
 export async function GET() {
   const supabaseUrl = getResolvedSupabaseUrl();
-  const anonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    FALLBACK_ANON_KEY;
+  const anonKey = getResolvedSupabaseAnonKey();
 
   try {
     const settingsRes = await fetch(`${supabaseUrl}/auth/v1/settings`, {

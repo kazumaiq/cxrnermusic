@@ -46,8 +46,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Supabase Auth Email + Password Login
-    if (email) {
+    // 1. Master Key / Admin Password fast path (prevents redundant Supabase calls on non-admin logins)
+    if (isValidAdminPassword(password) || (process.env.ADMIN_SECRET && password === process.env.ADMIN_SECRET)) {
+      const cookieStore = await cookies();
+      cookieStore.set("cxrner_admin_token", "cxrner_authorized_admin", {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+
+      return NextResponse.json({
+        ok: true,
+        message: "Доступ администратора подтверждён",
+        email: email || "cxrner.label@gmail.com",
+        method: "master_key",
+      });
+    }
+
+    // 2. Supabase Auth Email + Password Login (can be skipped when client already attempted it)
+    if (email && !body.skipSupabase) {
       try {
         const supabase = await getSupabaseServerClient();
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -77,25 +96,6 @@ export async function POST(request: Request) {
       } catch (authErr: any) {
         console.warn("[Admin Auth] Supabase signInWithPassword check failed:", authErr.message);
       }
-    }
-
-    // 2. Master Key / Admin Password (including CXRNERMUSIC135)
-    if (isValidAdminPassword(password) || password === process.env.ADMIN_SECRET) {
-      const cookieStore = await cookies();
-      cookieStore.set("cxrner_admin_token", "cxrner_authorized_admin", {
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      });
-
-      return NextResponse.json({
-        ok: true,
-        message: "Доступ администратора подтверждён",
-        email: email || "cxrner.label@gmail.com",
-        method: "master_key",
-      });
     }
 
     return NextResponse.json(
