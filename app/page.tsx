@@ -56,21 +56,20 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
             {/* Left Architectural Column */}
             <div className="lg:col-span-7 space-y-6 sm:space-y-8">
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/15 backdrop-blur-xl">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF] animate-pulse" />
-                <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.24em] text-[#D9D9E2]">
-                  INDEPENDENT RECORD LABEL · 70/30 ROYALTY
+              <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.08] border border-white/20 backdrop-blur-xl">
+                <span className="w-2 h-2 rounded-full bg-[#22D3EE] shadow-[0_0_8px_#22D3EE] animate-pulse" />
+                <span className="font-sans text-xs font-bold text-white">
+                  Независимый музыкальный лейбл · Роялти 70/30
                 </span>
               </div>
 
               <div className="space-y-3">
-                <h1 className="font-display font-black text-[13vw] sm:text-7xl xl:text-[86px] uppercase tracking-[-0.03em] leading-[0.88] text-white">
-                  <span className="block text-chrome-gradient">CXRNER</span>
-                  <span className="block text-white">MUSIC</span>
+                <h1 className="font-display font-extrabold text-[13vw] sm:text-7xl xl:text-[84px] tracking-[-0.03em] leading-[0.94] text-white">
+                  <span className="block text-white">CXRNER</span>
+                  <span className="block text-violet-energy">MUSIC</span>
                 </h1>
-                <p className="text-sm sm:text-base lg:text-lg text-[#D9D9E2]/75 max-w-xl leading-relaxed font-sans pt-1">
-                  Дистрибуция на 150+ площадок мира, прямой питчинг плейлистов и
-                  собственная цифровая экосистема инструментов для артистов.
+                <p className="text-sm sm:text-base lg:text-lg text-[#E6E1FA] max-w-xl leading-relaxed font-sans pt-1">
+                  Выпускайте треки на 150+ площадок мира за 2 минуты, создавайте умные смарт-ссылки и отслеживайте каждый этап прямо в Telegram.
                 </p>
               </div>
 
@@ -78,18 +77,18 @@ export default async function HomePage() {
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href="/submit-release"
-                  className="btn-void-primary px-6 sm:px-8 py-3.5 sm:py-4 text-[11px] sm:text-xs"
+                  className="btn-void-primary px-6 sm:px-8 py-3.5 sm:py-4 text-xs sm:text-sm font-sans normal-case tracking-normal"
                 >
-                  <span>Отправить релиз</span>
+                  <span>Выпустить первый релиз</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
                 <Link
                   href="/dashboard"
-                  className="btn-void-ghost px-6 sm:px-7 py-3.5 sm:py-4 text-[11px] sm:text-xs"
+                  className="btn-void-ghost px-6 sm:px-7 py-3.5 sm:py-4 text-xs sm:text-sm font-sans normal-case tracking-normal text-white"
                 >
                   <span>Личный кабинет</span>
-                  <ArrowUpRight className="w-4 h-4 opacity-70" />
+                  <ArrowUpRight className="w-4 h-4" />
                 </Link>
               </div>
 
@@ -97,28 +96,28 @@ export default async function HomePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 max-w-2xl">
                 <Link
                   href="/link"
-                  className="group relative flex items-center justify-between gap-3.5 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#0B111A]/95 to-[#06040A]/95 border border-[#00F0FF]/30 hover:border-[#00F0FF]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_40px_rgba(0,0,0,0.65)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                  className="group relative flex items-center justify-between gap-3.5 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#13213A]/95 to-[#161031]/95 border border-[#22D3EE]/40 hover:border-[#22D3EE]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_40px_rgba(7,4,18,0.55)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
                 >
-                  <div className="pointer-events-none absolute -right-8 -top-8 w-28 h-28 rounded-full bg-[#00F0FF]/12 blur-2xl group-hover:bg-[#00F0FF]/25 transition-colors" />
+                  <div className="pointer-events-none absolute -right-8 -top-8 w-28 h-28 rounded-full bg-[#22D3EE]/16 blur-2xl group-hover:bg-[#22D3EE]/30 transition-colors" />
                   <div className="relative z-10 flex items-center gap-3.5 min-w-0">
-                    <div className="w-12 h-12 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/35 flex items-center justify-center text-[#00F0FF] shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-[#22D3EE]/15 border border-[#22D3EE]/45 flex items-center justify-center text-[#22D3EE] shrink-0">
                       <Radio className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-display font-black text-sm text-white uppercase tracking-wide">
+                        <span className="font-display font-extrabold text-sm text-white">
                           CXRNER LINK
                         </span>
-                        <span className="px-1.5 py-0.5 rounded bg-[#00F0FF] text-[8px] font-mono font-bold text-[#040307] uppercase">
-                          UPC
+                        <span className="px-2 py-0.5 rounded-full bg-[#22D3EE] text-[10px] font-sans font-extrabold text-[#0B0718]">
+                          FREE
                         </span>
                       </div>
-                      <p className="font-mono text-[10px] text-[#D9D9E2]/60 truncate">
-                        Смарт-ссылки · Pre-save · Статистика
+                      <p className="font-sans text-xs text-[#DED8F6] truncate">
+                        Смарт-ссылки · Pre-save · Клики
                       </p>
                     </div>
                   </div>
-                  <div className="relative z-10 w-8 h-8 rounded-full bg-white/[0.06] border border-white/15 flex items-center justify-center text-white group-hover:bg-[#00F0FF] group-hover:text-[#040307] transition-all shrink-0">
+                  <div className="relative z-10 w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white group-hover:bg-[#22D3EE] group-hover:text-[#0B0718] transition-all shrink-0">
                     <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </Link>
@@ -132,12 +131,12 @@ export default async function HomePage() {
             {/* Right Studio Stage: Balanced space around 3D Core + Studio Audio Unit */}
             <div className="lg:col-span-5 flex flex-col justify-end lg:pt-24">
               <div className="cxr-panel-chrome rounded-3xl p-4 sm:p-5">
-                <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
-                  <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#D9D9E2]/65">
-                    <Disc3 className="w-3.5 h-3.5 text-[#B46BFF]" />
-                    <span>FEATURED MASTER // 24-BIT</span>
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/15">
+                  <div className="flex items-center gap-2 font-sans text-xs font-semibold text-[#E6E1FA]">
+                    <Disc3 className="w-4 h-4 text-[#C084FC]" />
+                    <span>Выбор редакции · 24-bit</span>
                   </div>
-                  <span className="font-mono text-[10px] text-[#00F0FF]">LIVE PLAYBACK</span>
+                  <span className="font-sans text-xs font-bold text-[#22D3EE]">LIVE</span>
                 </div>
                 <InteractiveAudioPreview track={HERO_TRACK} />
               </div>
@@ -172,16 +171,16 @@ export default async function HomePage() {
         <Container className="space-y-14">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#B46BFF]">
-                // 01 ECOSYSTEM TELEMETRY
+              <span className="font-sans text-xs font-bold uppercase tracking-wider text-[#C084FC]">
+                Цифры лейбла
               </span>
-              <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
-                Масштаб <span className="text-chrome-gradient">Лейбла</span>
+              <h2 className="font-display font-extrabold text-3xl sm:text-5xl tracking-tight text-white">
+                Масштаб <span className="text-violet-energy">CXRNER</span>
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-[#D9D9E2]/65 max-w-md leading-relaxed">
+            <p className="text-sm sm:text-base text-[#E6E1FA] max-w-md leading-relaxed">
               Независимая инфраструктура нового поколения: дистрибуция без скрытых
-              комиссий, техническая автоматизация и единый кабинет артиста.
+              комиссий, быстрая модерация и единый кабинет артиста.
             </p>
           </div>
 
@@ -189,20 +188,20 @@ export default async function HomePage() {
             {LABEL_METRICS.map((m) => (
               <div
                 key={m.code}
-                className="cxr-panel rounded-2xl p-5 sm:p-7 space-y-3 hover:border-white/25 transition"
+                className="cxr-panel rounded-2xl p-5 sm:p-7 space-y-3 hover:border-[#C084FC]/50 transition"
               >
-                <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-[#D9D9E2]/45">
-                  <span>// {m.code}</span>
-                  <Globe className="w-3.5 h-3.5 text-[#00F0FF]/70" />
+                <div className="flex items-center justify-between font-mono text-xs text-[#BFB6E8]">
+                  <span>{m.code}</span>
+                  <Globe className="w-4 h-4 text-[#22D3EE]" />
                 </div>
-                <div className="font-display font-black text-3xl sm:text-5xl text-white tracking-tight">
+                <div className="font-display font-extrabold text-3xl sm:text-5xl text-white tracking-tight">
                   {m.value}
                 </div>
                 <div>
-                  <div className="font-mono text-xs font-bold uppercase tracking-wider text-[#B46BFF]">
+                  <div className="font-sans text-xs font-bold uppercase tracking-wider text-[#C084FC]">
                     {m.label}
                   </div>
-                  <div className="text-[11px] text-[#D9D9E2]/55 mt-0.5">{m.sub}</div>
+                  <div className="text-xs text-[#DED8F6] mt-0.5">{m.sub}</div>
                 </div>
               </div>
             ))}
@@ -245,12 +244,12 @@ export default async function HomePage() {
       <section id="releases" className="relative z-10 py-20 sm:py-28">
         <Container className="space-y-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="space-y-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#00F0FF]">
-                // 04 OFFICIAL CATALOG
+            <div className="space-y-2">
+              <span className="font-sans text-xs font-bold uppercase tracking-wider text-[#22D3EE]">
+                Официальный каталог
               </span>
-              <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
-                Последние <span className="text-chrome-gradient">Релизы</span>
+              <h2 className="font-display font-extrabold text-3xl sm:text-5xl tracking-tight text-white">
+                Последние <span className="text-violet-energy">релизы</span>
               </h2>
             </div>
             <Link
@@ -272,12 +271,12 @@ export default async function HomePage() {
           ================================================================= */}
       <section id="artists" className="relative z-10 py-20 sm:py-28">
         <Container className="space-y-10">
-          <div className="space-y-3">
-            <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#B46BFF]">
-              // 05 ARTISTS ROSTER
+          <div className="space-y-2">
+            <span className="font-sans text-xs font-bold uppercase tracking-wider text-[#C084FC]">
+              Резиденты лейбла
             </span>
-            <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
-              Резиденты <span className="text-violet-energy">CXRNER</span>
+            <h2 className="font-display font-extrabold text-3xl sm:text-5xl tracking-tight text-white">
+              Артисты <span className="text-violet-energy">CXRNER</span>
             </h2>
           </div>
           <ArtistsShowcase artists={artists} />
@@ -291,12 +290,12 @@ export default async function HomePage() {
           ================================================================= */}
       <section id="distribution" className="relative z-10 py-20 sm:py-28">
         <Container className="space-y-10">
-          <div className="space-y-3">
-            <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#00F0FF]">
-              // 06 GLOBAL PIPELINE
+          <div className="space-y-2">
+            <span className="font-sans text-xs font-bold uppercase tracking-wider text-[#22D3EE]">
+              Глобальная дистрибуция
             </span>
-            <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
-              Дистрибуция <span className="text-chrome-gradient">150+ DSP</span>
+            <h2 className="font-display font-extrabold text-3xl sm:text-5xl tracking-tight text-white">
+              Релиз на <span className="text-violet-energy">150+ площадках</span>
             </h2>
           </div>
           <DistributionSection />
@@ -311,12 +310,12 @@ export default async function HomePage() {
       <section id="why-cxrner" className="relative z-10 py-20 sm:py-28">
         <Container className="space-y-20">
           <div className="space-y-10">
-            <div className="space-y-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#B46BFF]">
-                // 07 ARCHITECTURE ADVANTAGE
+            <div className="space-y-2">
+              <span className="font-sans text-xs font-bold uppercase tracking-wider text-[#C084FC]">
+                Преимущества
               </span>
-              <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-white">
-                Условия <span className="text-chrome-gradient">Работы</span>
+              <h2 className="font-display font-extrabold text-3xl sm:text-5xl tracking-tight text-white">
+                Условия <span className="text-violet-energy">работы</span>
               </h2>
             </div>
             <WhyCxrnerSection />
@@ -324,11 +323,11 @@ export default async function HomePage() {
 
           <div id="faq" className="space-y-8 pt-6">
             <div className="text-center space-y-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#00F0FF]">
-                // KNOWLEDGE BASE
-              </span>
-              <h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tight text-white">
+              <span className="font-sans text-xs font-bold uppercase tracking-wider text-[#22D3EE]">
                 Частые вопросы
+              </span>
+              <h2 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight text-white">
+                Ответы для артистов
               </h2>
             </div>
             <FaqAccordion items={faqItems} />

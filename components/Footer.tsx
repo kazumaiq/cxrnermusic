@@ -7,16 +7,16 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-24 border-t border-white/15 bg-[#050407]/90 backdrop-blur-2xl overflow-hidden">
-      {/* Subtle Cosmic Horizon Glow */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[780px] h-56 bg-[#8737FF]/12 rounded-full blur-[130px] pointer-events-none" />
+    <footer className="relative mt-24 border-t border-white/15 bg-[#0D081D]/92 backdrop-blur-2xl overflow-hidden">
+      {/* Vivid Cosmic Horizon Glow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[780px] h-56 bg-[#8B5CF6]/18 rounded-full blur-[130px] pointer-events-none" />
 
       <Container className="pt-16 pb-10 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-14 border-b border-white/10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-14 border-b border-white/12">
           {/* Brand Identity */}
           <div className="lg:col-span-5 space-y-5">
             <Link href="/" className="inline-flex items-center gap-3 group">
-              <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-[#090611] border border-[#D9D9E2]/20 group-hover:border-[#B46BFF] overflow-hidden shadow-[0_0_20px_rgba(135,55,255,0.28)] transition">
+              <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-[#1A1238] border border-white/25 group-hover:border-[#C084FC] overflow-hidden shadow-[0_0_20px_rgba(139,92,246,0.3)] transition">
                 <Image
                   src="/logo.png"
                   alt="CXRNER MUSIC"
@@ -26,18 +26,17 @@ export default function Footer() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-display font-black text-lg tracking-wider text-white uppercase">
+                <span className="font-display font-extrabold text-lg text-white">
                   CXRNER MUSIC
                 </span>
-                <span className="font-sans text-[9px] tracking-[0.2em] font-semibold uppercase text-[#B46BFF]">
-                  GLOBAL INDEPENDENT RECORD LABEL
+                <span className="font-sans text-xs font-semibold text-[#C084FC]">
+                  Независимый музыкальный лейбл
                 </span>
               </div>
             </Link>
 
-            <p className="max-w-sm text-xs sm:text-sm leading-relaxed text-[#D9D9E2]/75 font-sans">
-              Международный независимый музыкальный лейбл и цифровая дистрибуция.
-              150+ стриминговых платформ, глобальный охват и честная модель роялти 70/30.
+            <p className="max-w-sm text-sm leading-relaxed text-[#E6E1FA] font-sans">
+              Международная цифровая дистрибуция на 150+ площадок, умные смарт-ссылки и честные роялти 70/30.
             </p>
 
             <div className="flex flex-wrap gap-2">
@@ -45,51 +44,34 @@ export default function Footer() {
                 href="https://music.yandex.ru/label/5978511"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#B46BFF]/35 bg-[#8737FF]/12 font-sans text-xs uppercase font-semibold tracking-wider text-white hover:bg-[#8737FF]/25 transition"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#C084FC]/45 bg-[#8B5CF6]/20 font-sans text-xs font-bold text-white hover:bg-[#8B5CF6]/35 transition"
               >
-                <Music className="w-3.5 h-3.5 text-[#B46BFF]" />
+                <Music className="w-3.5 h-3.5 text-[#E9D5FF]" />
                 <span>Яндекс Музыка</span>
-                <ArrowUpRight className="w-3 h-3 opacity-60" />
+                <ArrowUpRight className="w-3 h-3 opacity-80" />
               </a>
 
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 font-sans text-xs uppercase font-medium tracking-wider text-[#D9D9E2]/85">
-                <Globe className="w-3.5 h-3.5 text-[#D9D9E2]" />
-                <span>150+ DSP · Global</span>
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-white/15 bg-white/[0.06] font-sans text-xs font-semibold text-white">
+                <Globe className="w-3.5 h-3.5 text-[#22D3EE]" />
+                <span>150+ площадок</span>
               </span>
             </div>
           </div>
 
           {/* Navigation */}
           <div className="lg:col-span-2">
-            <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-[#B46BFF] mb-4">
-              РАЗДЕЛЫ
+            <h4 className="font-sans text-xs font-extrabold uppercase tracking-wider text-[#C084FC] mb-4">
+              Экосистема
             </h4>
-            <ul className="space-y-2.5 text-xs font-mono text-[#D9D9E2]/65">
+            <ul className="space-y-2.5 text-sm font-sans text-[#DED8F6]">
               <li>
-                <Link
-                  href="/link"
-                  className="text-white hover:text-[#B46BFF] transition inline-flex items-center gap-1.5 font-semibold"
-                >
-                  <span className="text-[#00F0FF]">CXRNER LINK</span>
-                  <span className="px-1.5 py-0.2 rounded bg-[#8737FF] text-white text-[8px] font-bold">
-                    NEW
-                  </span>
+                <Link href="/link" className="text-white font-semibold hover:text-[#22D3EE] transition">
+                  CXRNER LINK
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/drop"
-                  className="text-white hover:text-[#B46BFF] transition inline-flex items-center gap-1.5 font-semibold"
-                >
-                  <span className="text-[#B46BFF]">CXRNER DROP</span>
-                  <span className="px-1.5 py-0.2 rounded bg-white/10 text-white text-[8px] font-bold">
-                    GAME
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link href="/#about" className="hover:text-white transition">
-                  О лейбле
+                <Link href="/drop" className="text-white font-semibold hover:text-[#C084FC] transition">
+                  CXRNER DROP
                 </Link>
               </li>
               <li>
@@ -103,42 +85,26 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/#distribution" className="hover:text-white transition">
-                  Дистрибуция
-                </Link>
-              </li>
-              <li>
                 <Link href="/#faq" className="hover:text-white transition">
-                  FAQ
+                  Частые вопросы
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Artist Ecosystem */}
+          {/* Artist Links */}
           <div className="lg:col-span-2">
-            <h4 className="font-mono text-[10px] font-bold uppercase tracking-[0.26em] text-[#B46BFF] mb-4">
-              // АРТИСТАМ
+            <h4 className="font-sans text-xs font-extrabold uppercase tracking-wider text-[#C084FC] mb-4">
+              Артистам
             </h4>
-            <ul className="space-y-2.5 text-xs font-mono text-[#D9D9E2]/65">
-              <li>
-                <Link
-                  href="/link"
-                  className="text-white hover:text-[#B46BFF] transition inline-flex items-center gap-1.5 font-semibold"
-                >
-                  <span className="text-[#00F0FF]">CXRNER LINK</span>
-                  <span className="px-1.5 py-0.2 rounded bg-[#8737FF] text-white text-[8px] font-bold">
-                    NEW
-                  </span>
-                </Link>
-              </li>
+            <ul className="space-y-2.5 text-sm font-sans text-[#DED8F6]">
               <li>
                 <Link
                   href="/submit-release"
-                  className="text-white hover:text-[#B46BFF] transition inline-flex items-center gap-1 font-semibold"
+                  className="text-white hover:text-[#C084FC] transition inline-flex items-center gap-1 font-semibold"
                 >
-                  <span>Отправить релиз</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-[#B46BFF]" />
+                  <span>Выпустить релиз</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-[#C084FC]" />
                 </Link>
               </li>
               <li>
@@ -166,10 +132,10 @@ export default function Footer() {
 
           {/* Official Channels */}
           <div className="lg:col-span-3">
-            <h4 className="font-mono text-[10px] font-bold uppercase tracking-[0.26em] text-[#B46BFF] mb-4">
-              // ОФИЦИАЛЬНЫЕ КАНАЛЫ
+            <h4 className="font-sans text-xs font-extrabold uppercase tracking-wider text-[#C084FC] mb-4">
+              Связь и бот
             </h4>
-            <ul className="space-y-3 text-xs font-mono text-[#D9D9E2]/70">
+            <ul className="space-y-3 text-sm font-sans text-[#DED8F6]">
               <li>
                 <a
                   href="https://t.me/moder_cxrner_bot"
@@ -177,8 +143,8 @@ export default function Footer() {
                   rel="noopener noreferrer"
                   className="hover:text-white transition inline-flex items-center gap-2"
                 >
-                  <Send className="w-3.5 h-3.5 text-[#B46BFF]" />
-                  <span>Telegram-бот: @moder_cxrner_bot</span>
+                  <Send className="w-3.5 h-3.5 text-[#C084FC]" />
+                  <span>Бот: @moder_cxrner_bot</span>
                 </a>
               </li>
               <li>
@@ -188,8 +154,8 @@ export default function Footer() {
                   rel="noopener noreferrer"
                   className="hover:text-white transition inline-flex items-center gap-2"
                 >
-                  <Send className="w-3.5 h-3.5 text-[#D9D9E2]" />
-                  <span>Основатель / A&R: @kazumaiq</span>
+                  <Send className="w-3.5 h-3.5 text-[#22D3EE]" />
+                  <span>Основатель: @kazumaiq</span>
                 </a>
               </li>
               <li>
@@ -197,7 +163,7 @@ export default function Footer() {
                   href="mailto:cxrner.label@gmail.com"
                   className="hover:text-white transition inline-flex items-center gap-2"
                 >
-                  <Mail className="w-3.5 h-3.5 text-[#D9D9E2]" />
+                  <Mail className="w-3.5 h-3.5 text-white" />
                   <span>cxrner.label@gmail.com</span>
                 </a>
               </li>
@@ -205,15 +171,8 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Monumental Typographic Watermark */}
-        <div className="py-8 overflow-hidden select-none pointer-events-none">
-          <p className="font-heavy text-[14vw] sm:text-[10vw] leading-[0.82] tracking-tight uppercase text-center text-outline-chrome opacity-40">
-            CXRNER MUSIC
-          </p>
-        </div>
-
-        {/* Bottom Copyright Bar */}
-        <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-[#D9D9E2]/55">
+        {/* Clean Copyright Bar */}
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 font-sans text-xs text-[#C9C1EA]">
           <p>© {currentYear} CXRNER MUSIC. Официальный лейбл и дистрибуция.</p>
           <div className="flex items-center gap-6">
             <Link href="/offer" className="hover:text-white transition">

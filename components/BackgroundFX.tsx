@@ -23,37 +23,34 @@ export default function BackgroundFX() {
 
   return (
     <div
-      className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#040307]"
+      className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#0B0718]"
       aria-hidden="true"
     >
-      {/* 1. Monumental Chrome & Obsidian 3D Spatial Universe */}
+      {/* 1. Vivid Cosmic Universe Layer */}
       <CxrnerUniverseCanvas />
 
-      {/* 2. Ultra-subtle Architectural Studio Grid */}
+      {/* 2. Subtle Velvet Violet Ambient Mesh */}
       <div
-        className="absolute inset-0 opacity-[0.14]"
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 85% 50% at 50% -6%, rgba(139, 92, 246, 0.24) 0%, transparent 62%), radial-gradient(circle at 85% 22%, rgba(34, 211, 238, 0.1) 0%, transparent 45%), radial-gradient(circle at 15% 82%, rgba(168, 85, 247, 0.14) 0%, transparent 48%), linear-gradient(180deg, rgba(11,7,24,0.28) 0%, rgba(11,7,24,0.12) 45%, rgba(11,7,24,0.72) 100%)",
+        }}
+      />
+
+      {/* 3. Crisp Low-Noise Surface Grid */}
+      <div
+        className="absolute inset-0 opacity-[0.1]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(217, 217, 226, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(217, 217, 226, 0.04) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
+            "linear-gradient(rgba(230, 225, 250, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(230, 225, 250, 0.05) 1px, transparent 1px)",
+          backgroundSize: "76px 76px",
           maskImage:
             "radial-gradient(ellipse 80% 70% at 50% 35%, black 35%, transparent 100%)",
           WebkitMaskImage:
             "radial-gradient(ellipse 80% 70% at 50% 35%, black 35%, transparent 100%)",
         }}
       />
-
-      {/* 3. Studio Top Vignette for Typography Legibility */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(circle at 70% 25%, rgba(135, 55, 255, 0.09) 0%, transparent 48%), radial-gradient(circle at 20% 80%, rgba(0, 240, 255, 0.05) 0%, transparent 45%), linear-gradient(180deg, rgba(4,3,7,0.45) 0%, rgba(4,3,7,0.08) 40%, rgba(4,3,7,0.82) 100%)",
-        }}
-      />
-
-      {/* 4. Subtle Film Grain */}
-      <div className="film-grain opacity-[0.22]" />
     </div>
   );
 }

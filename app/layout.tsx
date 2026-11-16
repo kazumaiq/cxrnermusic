@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
-import { Inter, Oswald, Bebas_Neue, Space_Mono, Unbounded } from "next/font/google";
+import { Inter, Manrope, Onest, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -17,34 +17,27 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const oswald = Oswald({
+const manrope = Manrope({
   subsets: ["latin", "cyrillic"],
   display: "swap",
-  variable: "--font-oswald",
+  variable: "--font-manrope",
 });
 
-const bebasNeue = Bebas_Neue({
-  weight: "400",
-  subsets: ["latin"],
+const onest = Onest({
+  subsets: ["latin", "cyrillic"],
   display: "swap",
-  variable: "--font-bebas",
+  variable: "--font-onest",
 });
 
-const spaceMono = Space_Mono({
-  weight: ["400", "700"],
-  subsets: ["latin"],
+const jetbrainsMono = JetBrains_Mono({
+  weight: ["500", "700"],
+  subsets: ["latin", "cyrillic"],
   display: "swap",
   variable: "--font-mono",
 });
 
-const unbounded = Unbounded({
-  subsets: ["latin", "cyrillic"],
-  display: "swap",
-  variable: "--font-unbounded",
-});
-
 export const viewport: Viewport = {
-  themeColor: "#050407",
+  themeColor: "#0B0718",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -117,7 +110,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="ru"
-      className={`dark scroll-smooth bg-[#050407] ${inter.variable} ${oswald.variable} ${bebasNeue.variable} ${spaceMono.variable} ${unbounded.variable}`}
+      className={`dark scroll-smooth bg-[#0B0718] ${inter.variable} ${manrope.variable} ${onest.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen bg-transparent text-white antialiased selection:bg-[#8737FF] selection:text-white">
         {/* Fullscreen 3D Starfield at Document Root */}

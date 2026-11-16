@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Radio, Box, User, ArrowUpRight, Sparkles } from "lucide-react";
+import { Radio, Box, User, ArrowUpRight } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import SfxToggle from "./visual/SfxToggle";
 import MobileMenu from "./MobileMenu";
@@ -13,8 +13,6 @@ import { playClickSound } from "@/lib/soundFX";
 const NAV_ITEMS = [
   { label: "Главная", href: "/" },
   { label: "Релизы", href: "/#releases" },
-  { label: "Артисты", href: "/#artists" },
-  { label: "Дистрибуция", href: "/#distribution" },
   { label: "CXRNER LINK", href: "/link" },
   { label: "CXRNER DROP", href: "/drop" },
 ];
@@ -63,18 +61,18 @@ export default function Header() {
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-[#040307]/85 backdrop-blur-2xl border-b border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.65)]"
-          : "bg-gradient-to-b from-[#040307]/85 via-[#040307]/45 to-transparent backdrop-blur-md border-b border-white/[0.04]"
+          ? "bg-[#0E0922]/90 backdrop-blur-2xl border-b border-white/15 shadow-[0_14px_40px_rgba(7,4,18,0.65)]"
+          : "bg-gradient-to-b from-[#0E0922]/85 via-[#0E0922]/50 to-transparent backdrop-blur-md border-b border-white/[0.06]"
       }`}
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-3">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-4">
         {/* Brand Identity */}
         <Link
           href="/"
           onClick={() => playClickSound()}
           className="inline-flex items-center gap-3 group shrink-0"
         >
-          <div className="relative w-9 h-9 rounded-xl bg-[#0C0914] border border-white/18 group-hover:border-[#B46BFF]/70 overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-300">
+          <div className="relative w-9 h-9 rounded-xl bg-[#1A1238] border border-white/25 group-hover:border-[#C084FC] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] transition-all duration-300">
             <Image
               src="/logo.png"
               alt="CXRNER MUSIC"
@@ -85,19 +83,19 @@ export default function Header() {
             />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="font-display font-black text-sm sm:text-base tracking-[0.06em] text-white uppercase">
+            <span className="font-display font-extrabold text-sm sm:text-base tracking-tight text-white">
               CXRNER
             </span>
-            <span className="font-mono text-[8px] sm:text-[9px] tracking-[0.26em] text-[#D9D9E2]/55 uppercase mt-0.5">
-              MUSIC ECOSYSTEM
+            <span className="font-sans text-[10px] font-semibold text-[#C9C1EA] mt-0.5">
+              Music Label
             </span>
           </div>
         </Link>
 
-        {/* Desktop Navigation Rail */}
+        {/* Clean 4-Tab Desktop Navigation */}
         <nav
           aria-label="Основная навигация"
-          className="hidden lg:flex items-center gap-1 px-1.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.09] backdrop-blur-xl"
+          className="hidden md:flex items-center gap-1 px-1.5 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.12] backdrop-blur-xl"
         >
           {NAV_ITEMS.map((item) => {
             const active = isActive(item.href);
@@ -108,68 +106,49 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 onClick={() => playClickSound()}
-                className={`relative inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-mono text-[11px] font-bold uppercase tracking-wider transition-all duration-200 whitespace-nowrap ${
+                className={`relative inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-sans text-[13px] font-bold transition-all duration-200 whitespace-nowrap ${
                   active
-                    ? "bg-white text-[#050407] shadow-[0_4px_16px_rgba(255,255,255,0.2)]"
+                    ? "bg-white text-[#0C071A] shadow-[0_4px_16px_rgba(255,255,255,0.25)]"
                     : isDrop
-                    ? "text-[#D9B8FF] hover:text-white hover:bg-[#8737FF]/20"
+                    ? "text-[#E9D5FF] hover:text-white hover:bg-[#8B5CF6]/25"
                     : isLink
-                    ? "text-[#79F7FF] hover:text-white hover:bg-[#00F0FF]/12"
-                    : "text-[#D9D9E2]/70 hover:text-white hover:bg-white/[0.06]"
+                    ? "text-[#A5F3FC] hover:text-white hover:bg-[#22D3EE]/18"
+                    : "text-[#E6E1FA] hover:text-white hover:bg-white/[0.1]"
                 }`}
               >
-                {isLink && <Radio className="w-3 h-3" />}
-                {isDrop && <Box className="w-3 h-3" />}
+                {isLink && <Radio className="w-3.5 h-3.5" />}
+                {isDrop && <Box className="w-3.5 h-3.5" />}
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Right Controls */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="hidden sm:block">
+        {/* Clean Right Actions */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="hidden lg:block">
             <SfxToggle />
           </div>
 
           <Link
-            href="/drop"
+            href="/submit-release"
             onClick={() => playClickSound()}
-            className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#8737FF]/20 border border-[#B46BFF]/45 font-mono text-[10px] font-bold uppercase tracking-wider text-white hover:bg-[#8737FF]/35 transition"
+            className="hidden lg:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#8B5CF6]/25 hover:bg-[#8B5CF6]/40 border border-[#C084FC]/45 font-sans text-[13px] font-bold text-white transition"
           >
-            <Box className="w-3 h-3 text-[#B46BFF]" />
-            <span>DROP</span>
-          </Link>
-
-          <Link
-            href="/link"
-            onClick={() => playClickSound()}
-            className="hidden sm:inline-flex lg:hidden items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00F0FF]/12 border border-[#00F0FF]/40 font-mono text-[10px] font-bold uppercase tracking-wider text-[#79F7FF]"
-          >
-            <Radio className="w-3 h-3" />
-            <span>LINK</span>
+            <span>Выпустить трек</span>
+            <ArrowUpRight className="w-3.5 h-3.5 text-[#E9D5FF]" />
           </Link>
 
           <Link
             href={isLoggedIn ? "/dashboard" : "/auth/login"}
             onClick={() => playClickSound()}
-            className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-[#050407] font-mono text-[11px] font-extrabold uppercase tracking-wider shadow-[0_6px_22px_rgba(255,255,255,0.16)] hover:shadow-[0_8px_28px_rgba(180,107,255,0.35)] hover:-translate-y-0.5 transition-all"
+            className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-[#0C071A] font-sans text-[13px] font-extrabold shadow-[0_6px_22px_rgba(255,255,255,0.2)] hover:shadow-[0_8px_28px_rgba(192,132,252,0.45)] hover:-translate-y-0.5 transition-all"
           >
             <User className="w-3.5 h-3.5" />
             <span>{isLoggedIn ? "Кабинет" : "Войти"}</span>
           </Link>
 
-          <Link
-            href="/submit-release"
-            onClick={() => playClickSound()}
-            className="hidden xl:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 font-mono text-[11px] font-bold uppercase tracking-wider text-white transition"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-[#B46BFF]" />
-            <span>Релиз</span>
-            <ArrowUpRight className="w-3.5 h-3.5 opacity-60" />
-          </Link>
-
-          <div className="lg:hidden">
+          <div className="md:hidden">
             <MobileMenu isLoggedIn={isLoggedIn} navItems={NAV_ITEMS} />
           </div>
         </div>

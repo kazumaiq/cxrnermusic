@@ -210,42 +210,64 @@ export default async function DashboardPage() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="w-2 h-2 rounded-full bg-[#B46BFF] animate-pulse" />
-                <p className="font-sans text-xs uppercase tracking-wider text-[#B46BFF] font-semibold">
+                <span className="w-2 h-2 rounded-full bg-[#C084FC] animate-pulse" />
+                <p className="font-sans text-xs font-bold text-[#C084FC]">
                   {isCeoSovereign
-                    ? "SOVEREIGN FOUNDER & CEO CABINET // ROOT #000001"
-                    : "ЛИЧНЫЙ КАБИНЕТ АРТИСТА"}
+                    ? "Кабинет основателя и CEO · #000001"
+                    : "Личный кабинет артиста"}
                 </p>
                 {isCeoSovereign && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#F59E0B]/25 via-[#8737FF]/25 to-[#00F0FF]/25 border border-[#F59E0B]/50 text-[10px] font-mono font-bold text-[#FDE68A] uppercase tracking-widest">
-                    👑 FOUNDER & CEO · kazumaiq.music@gmail.com
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#F59E0B]/25 via-[#8B5CF6]/25 to-[#22D3EE]/25 border border-[#F59E0B]/50 text-xs font-sans font-bold text-[#FDE68A]">
+                    👑 CEO · kazumaiq.music@gmail.com
                   </span>
                 )}
               </div>
-              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight">
+              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight">
                 {artistName}
               </h1>
-              <p className="mt-1 text-xs sm:text-sm text-[#D9D9E2]/75 font-sans">
-                Управление релизами, отслеживание статуса модерации и создание смарт-ссылок CXRNER LINK.
+              <p className="mt-1.5 text-sm text-[#DED8F6] font-sans">
+                Ваши релизы, статус модерации и смарт-ссылки в одном окне.
               </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/cabinet/verification"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 font-sans text-xs font-semibold text-white transition"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#22D3EE]" />
+                  <span>Верификация</span>
+                </Link>
+                <Link
+                  href="/cabinet/referrals"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 font-sans text-xs font-semibold text-white transition"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#C084FC]" />
+                  <span>Друзья и CXP</span>
+                </Link>
+                <Link
+                  href="/cabinet/drop/inventory"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 font-sans text-xs font-semibold text-white transition"
+                >
+                  <span>Инвентарь DROP</span>
+                </Link>
+              </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/submit-release"
-              className="btn-energy inline-flex items-center gap-2 px-6 py-3 rounded-full font-sans text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(135,55,255,0.35)] active:scale-95 transition"
+              className="btn-energy inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-sans text-sm font-bold shadow-[0_0_24px_rgba(139,92,246,0.4)] active:scale-95 transition"
             >
-              <span>Отправить новый релиз</span>
+              <span>Выпустить релиз</span>
               <ArrowUpRight className="w-4 h-4" />
             </Link>
             <a
               href="https://t.me/moder_cxrner_bot"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-void-ghost inline-flex items-center gap-1.5 px-4 py-3 rounded-full border border-white/15 font-sans text-xs uppercase tracking-wider text-neutral-300 hover:text-white transition"
+              className="btn-void-ghost inline-flex items-center gap-1.5 px-4 py-3.5 rounded-full border border-white/20 font-sans text-sm font-semibold text-white transition"
             >
-              <Send className="w-3.5 h-3.5 text-neutral-400" />
+              <Send className="w-3.5 h-3.5 text-[#C084FC]" />
               <span>Бот модерации</span>
             </a>
           </div>
@@ -253,53 +275,109 @@ export default async function DashboardPage() {
 
         {/* Notice if Supabase offline */}
         {errorNotice && (
-          <div className="mb-8 p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 text-xs sm:text-sm flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+          <div className="mb-8 p-4 rounded-2xl bg-yellow-500/15 border border-yellow-400/40 text-yellow-100 text-xs sm:text-sm flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-300 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">Внимание по конфигурации базы данных:</p>
-              <p className="text-white/70 mt-1">{errorNotice}</p>
+              <p className="font-bold text-white">Внимание по конфигурации базы данных:</p>
+              <p className="text-yellow-100 mt-1">{errorNotice}</p>
             </div>
           </div>
         )}
 
-        {/* Stat Overview Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10">
-            <div className="flex items-center justify-between text-white/40 mb-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Всего релизов</span>
-              <Disc className="w-4 h-4 text-neon" />
+        {/* Adaptive Overview: Friendly 3-Step Onboarding for newcomers OR Crisp Stat Grid */}
+        {totalReleases === 0 ? (
+          <div className="mb-10 cxr-panel-chrome rounded-3xl p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#8B5CF6]/25 border border-[#C084FC]/45 font-sans text-xs font-bold text-white">
+                  <Sparkles className="w-3.5 h-3.5 text-[#22D3EE]" />
+                  <span>Быстрый старт за 2 минуты</span>
+                </span>
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mt-3">
+                  Как выпустить свой первый релиз
+                </h2>
+                <p className="text-sm text-[#DED8F6] mt-1">
+                  Всё максимально просто — следуйте 3 шагам ниже.
+                </p>
+              </div>
+              <Link
+                href="/submit-release"
+                className="btn-void-primary px-6 py-3.5 font-sans text-sm normal-case tracking-normal shrink-0"
+              >
+                <span>Заполнить анкету релиза</span>
+                <ArrowUpRight className="w-4 h-4" />
+              </Link>
             </div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-white">{totalReleases}</p>
-            <p className="text-[11px] text-white/40 mt-1">Отправлено через веб и бот</p>
-          </div>
 
-          <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10">
-            <div className="flex items-center justify-between text-white/40 mb-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider">На модерации</span>
-              <Clock className="w-4 h-4 text-yellow-400" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-2xl p-4 sm:p-5 bg-white/[0.06] border border-white/12 space-y-2">
+                <div className="w-8 h-8 rounded-full bg-[#8B5CF6] text-white font-display font-extrabold text-sm flex items-center justify-center">
+                  1
+                </div>
+                <h3 className="font-display text-base font-bold text-white">Отправь трек</h3>
+                <p className="text-xs sm:text-sm text-[#DED8F6] leading-relaxed">
+                  Загрузи ссылку на аудио и обложку в разделе «Выпустить релиз» — роялти 70/30 без предоплаты.
+                </p>
+              </div>
+              <div className="rounded-2xl p-4 sm:p-5 bg-white/[0.06] border border-white/12 space-y-2">
+                <div className="w-8 h-8 rounded-full bg-[#22D3EE] text-[#0B0718] font-display font-extrabold text-sm flex items-center justify-center">
+                  2
+                </div>
+                <h3 className="font-display text-base font-bold text-white">Привяжи Telegram</h3>
+                <p className="text-xs sm:text-sm text-[#DED8F6] leading-relaxed">
+                  Если уже подавал треки через бота — нажми «Привязать Telegram» ниже, и они сразу появятся здесь.
+                </p>
+              </div>
+              <div className="rounded-2xl p-4 sm:p-5 bg-white/[0.06] border border-white/12 space-y-2">
+                <div className="w-8 h-8 rounded-full bg-white text-[#0B0718] font-display font-extrabold text-sm flex items-center justify-center">
+                  3
+                </div>
+                <h3 className="font-display text-base font-bold text-white">Забирай Smart Link</h3>
+                <p className="text-xs sm:text-sm text-[#DED8F6] leading-relaxed">
+                  После одобрения ты получишь UPC и сможешь бесплатно сделать красивую мультиссылку на все площадки.
+                </p>
+              </div>
             </div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-yellow-400">{inModeration}</p>
-            <p className="text-[11px] text-white/40 mt-1">Проверка A&R команды</p>
           </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/15">
+              <div className="flex items-center justify-between text-[#DED8F6] mb-3">
+                <span className="text-xs font-bold">Всего релизов</span>
+                <Disc className="w-4 h-4 text-[#C084FC]" />
+              </div>
+              <p className="font-display text-2xl sm:text-3xl font-extrabold text-white">{totalReleases}</p>
+              <p className="text-xs text-[#C2BAE8] mt-1">Сайт и Telegram</p>
+            </div>
 
-          <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10">
-            <div className="flex items-center justify-between text-white/40 mb-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider">В релизе / Одобрено</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/15">
+              <div className="flex items-center justify-between text-[#DED8F6] mb-3">
+                <span className="text-xs font-bold">На модерации</span>
+                <Clock className="w-4 h-4 text-amber-300" />
+              </div>
+              <p className="font-display text-2xl sm:text-3xl font-extrabold text-amber-300">{inModeration}</p>
+              <p className="text-xs text-[#C2BAE8] mt-1">Проверка командой</p>
             </div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-emerald-400">{liveReleases}</p>
-            <p className="text-[11px] text-white/40 mt-1">На мировых стримингах</p>
-          </div>
 
-          <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10">
-            <div className="flex items-center justify-between text-white/40 mb-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Роялти</span>
-              <TrendingUp className="w-4 h-4 text-aqua" />
+            <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/15">
+              <div className="flex items-center justify-between text-[#DED8F6] mb-3">
+                <span className="text-xs font-bold">Одобрено</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+              </div>
+              <p className="font-display text-2xl sm:text-3xl font-extrabold text-emerald-300">{liveReleases}</p>
+              <p className="text-xs text-[#C2BAE8] mt-1">На площадках</p>
             </div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-aqua">70%</p>
-            <p className="text-[11px] text-white/40 mt-1">Выплаты раз в квартал</p>
+
+            <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/15">
+              <div className="flex items-center justify-between text-[#DED8F6] mb-3">
+                <span className="text-xs font-bold">Роялти артиста</span>
+                <TrendingUp className="w-4 h-4 text-[#22D3EE]" />
+              </div>
+              <p className="font-display text-2xl sm:text-3xl font-extrabold text-[#22D3EE]">70%</p>
+              <p className="text-xs text-[#C2BAE8] mt-1">Выплаты раз в квартал</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* CXRNER LINK Hub Hero Card (Narvent & Martin Garrix STMPD aesthetic) */}
         <div className="mb-10">

@@ -16,6 +16,7 @@ import {
   Crown,
   Eye,
   Check,
+  ShieldCheck,
   Image as ImageIcon,
 } from "lucide-react";
 import type { CxrnerProfile, MusicRole, ProfileCompletionResult } from "@/lib/ecosystemTypes";
@@ -327,16 +328,38 @@ export default function ProfileEditorClient({
       {/* Header Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/10">
         <div>
-          <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-[#B46BFF] font-semibold">
-            <User className="w-4 h-4 text-[#00F0FF]" />
-            <span>CXRNER ID // СТУДИЯ КАСТОМИЗАЦИИ</span>
+          <div className="inline-flex items-center gap-2 font-sans text-xs font-bold text-[#C084FC]">
+            <User className="w-4 h-4 text-[#22D3EE]" />
+            <span>CXRNER ID · Профиль артиста</span>
           </div>
-          <h1 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight mt-1">
+          <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight mt-1">
             Настройка профиля артиста
           </h1>
-          <p className="text-xs sm:text-sm text-[#D9D9E2]/65 mt-0.5">
-            Загрузите аватарку и баннер, выберите рамку и ссылки — изменения видны в реальном времени.
+          <p className="text-sm text-[#DED8F6] mt-0.5">
+            Загрузите аватарку, баннер и ссылки на площадки — профиль обновится сразу.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href="/cabinet/verification"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 font-sans text-xs font-semibold text-white transition"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#22D3EE]" />
+              <span>Верификация</span>
+            </Link>
+            <Link
+              href="/cabinet/referrals"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 font-sans text-xs font-semibold text-white transition"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#C084FC]" />
+              <span>Друзья и рефералы</span>
+            </Link>
+            <Link
+              href="/cabinet/drop/inventory"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 font-sans text-xs font-semibold text-white transition"
+            >
+              <span>Инвентарь DROP</span>
+            </Link>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
