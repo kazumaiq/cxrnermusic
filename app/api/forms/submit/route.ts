@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
+import { createClient } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "../../../../lib/supabaseServer";
 
 type Body = {
@@ -131,6 +132,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const dbUpdater =
+      supabaseUrl && serviceRoleKey
+        ? createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
+        : supabase;
+
     // Notify Telegram bot or direct Telegram API
     const botUrl = (
       process.env.BOT_BACKEND_URL || "https://bot-1787153410-6782-kazumaiq.bothost.tech"
@@ -187,7 +195,7 @@ export async function POST(request: Request) {
                 isPinned = true;
               }
             }
-            await supabase
+            await dbUpdater
               .from("cxrner_forms")
               .update({
                 moderation_message_id: String(savedMsgId),
@@ -230,7 +238,7 @@ export async function POST(request: Request) {
           deliveredViaBot = true;
           savedMsgId = tgRes.messageId;
           isPinned = Boolean(tgRes.pinned);
-          await supabase
+          await dbUpdater
             .from("cxrner_forms")
             .update({
               moderation_message_id: String(tgRes.messageId),

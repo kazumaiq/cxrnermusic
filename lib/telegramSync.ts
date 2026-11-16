@@ -155,7 +155,7 @@ export async function pinTelegramChatMessage(
     const data = await tgPostJson(token, "pinChatMessage", {
       chat_id: chatId,
       message_id: messageId,
-      disable_notification: true,
+      disable_notification: false,
     });
     if (data.ok) return { ok: true };
     const desc = String(data.description || "pinChatMessage failed");

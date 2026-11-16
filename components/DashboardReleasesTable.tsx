@@ -199,11 +199,12 @@ export default function DashboardReleasesTable({
         (item.artist_name?.toLowerCase() || "").includes(search.toLowerCase()) ||
         (item.upc || "").includes(search);
 
+      const st = String(item.status || "").toLowerCase();
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "pending" && (item.status === "pending" || item.status === "moderation")) ||
-        (statusFilter === "released" && (item.status === "released" || item.status === "uploaded")) ||
-        item.status === statusFilter;
+        (statusFilter === "pending" && ["pending", "on_upload", "moderation", "on_moderation"].includes(st)) ||
+        (statusFilter === "released" && ["approved", "published", "released", "uploaded"].includes(st)) ||
+        st === statusFilter;
 
       return matchesSearch && matchesStatus;
     });

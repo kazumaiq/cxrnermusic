@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { createClient } from "@supabase/supabase-js";
 import Container from "../../components/Container";
 import GlowButton from "../../components/GlowButton";
 import DashboardReleasesTable from "../../components/DashboardReleasesTable";
@@ -61,7 +62,14 @@ export default async function DashboardPage() {
     }
     user = authUser;
 
-    const { data: pRow } = await supabase
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const dbClient =
+      supabaseUrl && serviceRoleKey
+        ? createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
+        : supabase;
+
+    const { data: pRow } = await dbClient
       .from("cxrner_cabinet_users")
       .select("user_id, profile")
       .eq("user_id", user.id)
@@ -72,9 +80,9 @@ export default async function DashboardPage() {
       ? String(profileRow.profile.telegram_id)
       : null;
 
-    let query = supabase
+    let query = dbClient
       .from("cxrner_forms")
-      .select("id, artist_name, track_name, genre, status, upc, created_at, source, reject_reason, moderator_comment, form_payload")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (linkedTgId) {
@@ -83,9 +91,16 @@ export default async function DashboardPage() {
       query = query.eq("telegram_id", user.id);
     }
 
-    const { data: fRows } = await query.returns<FormRow[]>();
+    const { data: fRows, error: formsError } = await query.returns<FormRow[]>();
+    if (formsError) {
+      console.error("[Dashboard] cxrner_forms query error:", formsError.message);
+    }
 
-    forms = fRows ?? [];
+    forms = (fRows ?? []).filter((f: any) => {
+      if (!f) return false;
+      if (f.user_deleted === true || f.form_payload?.user_deleted === true) return false;
+      return String(f.status || "").toLowerCase() !== "deleted";
+    });
 
     // Fallback: Check cxrner_public_releases if linked to Telegram and cxrner_forms is empty
     if (forms.length === 0 && linkedTgId) {
@@ -133,9 +148,15 @@ export default async function DashboardPage() {
 
   // Calculate stats
   const totalReleases = forms.length;
-  const inModeration = forms.filter((f) => f.status === "pending" || f.status === "moderation").length;
-  const liveReleases = forms.filter((f) => f.status === "approved" || f.status === "uploaded" || f.status === "released").length;
-  const fixRequired = forms.filter((f) => f.status === "fix_required").length;
+  const inModeration = forms.filter((f) =>
+    ["pending", "on_upload", "moderation", "on_moderation"].includes(String(f.status || "").toLowerCase())
+  ).length;
+  const liveReleases = forms.filter((f) =>
+    ["approved", "published", "uploaded", "released"].includes(String(f.status || "").toLowerCase())
+  ).length;
+  const fixRequired = forms.filter((f) =>
+    ["needfix", "fix_required"].includes(String(f.status || "").toLowerCase())
+  ).length;
 
   const userSmartLinks = await getUserSmartLinks(user.id);
 
