@@ -1,7 +1,14 @@
 // Music Metadata & UPC/EAN Release Lookup Adapters for CXRNER LINK (Band.link-grade Auto-Enrichment)
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "./supabaseServer";
-import { validateUpcChecksum, normalizeReleaseDate, buildPlatformSearchUrl } from "./slug";
+import {
+  validateUpcChecksum,
+  normalizeReleaseDate,
+  buildPlatformSearchUrl,
+  cleanReleaseTitleForSearch,
+  cleanArtistForSearch,
+  isPlatformSearchFallbackUrl,
+} from "./slug";
 
 export { validateUpcChecksum };
 
@@ -54,6 +61,45 @@ function sanitizeReleaseYandexLink(rawUrl: any): string | null {
     return null;
   }
   return rawUrl.trim();
+}
+
+function extractDirectPlatformsFromPayload(payload: Record<string, any>, isPast: boolean): PlatformLinkCandidate[] {
+  if (!payload || typeof payload !== "object") return [];
+  const btn = isPast ? "Слушать" : "Pre-save";
+  const dsp = (payload.dsp_links && typeof payload.dsp_links === "object" ? payload.dsp_links : {}) as Record<string, any>;
+  const direct: PlatformLinkCandidate[] = [];
+
+  const pickUrl = (...vals: any[]): string => {
+    for (const v of vals) {
+      if (typeof v === "string" && v.trim().startsWith("http")) return v.trim();
+    }
+    return "";
+  };
+
+  const validYandex = sanitizeReleaseYandexLink(
+    pickUrl(payload.yandex_album, payload.album_url, payload.yandex_track, dsp.yandex, payload.yandex)
+  );
+  if (validYandex && !isPlatformSearchFallbackUrl("yandex", validYandex)) {
+    direct.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: validYandex, button_text: btn, is_direct: true });
+  }
+
+  const mappings: Array<{ key: string; name: string; candidates: any[] }> = [
+    { key: "vk", name: "VK Музыка", candidates: [dsp.vk, payload.vk_url, payload.vk] },
+    { key: "spotify", name: "Spotify", candidates: [dsp.spotify, payload.spotify_url, payload.spotify] },
+    { key: "apple", name: "Apple Music", candidates: [dsp.apple, payload.apple_url, payload.apple] },
+    { key: "youtube", name: "YouTube Music", candidates: [dsp.youtube, payload.youtube_url, payload.youtube] },
+    { key: "deezer", name: "Deezer", candidates: [dsp.deezer, payload.deezer_url, payload.deezer] },
+    { key: "zvuk", name: "Звук", candidates: [dsp.zvuk, payload.zvuk_url, payload.zvuk] },
+  ];
+
+  for (const m of mappings) {
+    const url = pickUrl(...m.candidates);
+    if (url && !isPlatformSearchFallbackUrl(m.key, url)) {
+      direct.push({ platform_key: m.key, platform_name: m.name, url, button_text: btn, is_direct: true });
+    }
+  }
+
+  return direct;
 }
 
 /** Merge direct URLs and auto-fill remaining platforms with smart search URLs */
@@ -120,28 +166,8 @@ async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | n
           normalizeReleaseDate(payload.release_date || payload.date || form.created_at) || undefined;
         const isPast = relDate ? new Date(relDate) <= new Date() : false;
         const artist = form.artist_name || payload.nick || payload.artist || "";
-        const title = form.track_name || payload.name || payload.title || "";
-
-        const direct: PlatformLinkCandidate[] = [];
-        const rawYandex =
-          payload.yandex_album ||
-          payload.album_url ||
-          payload.yandex_track ||
-          payload.dsp_links?.yandex ||
-          payload.yandex;
-        const validYandex = sanitizeReleaseYandexLink(rawYandex);
-        if (validYandex) {
-          direct.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: validYandex, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
-        }
-        if (payload.spotify && String(payload.spotify).startsWith("http")) {
-          direct.push({ platform_key: "spotify", platform_name: "Spotify", url: payload.spotify, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
-        }
-        if (payload.apple && String(payload.apple).startsWith("http")) {
-          direct.push({ platform_key: "apple", platform_name: "Apple Music", url: payload.apple, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
-        }
-        if (payload.vk && String(payload.vk).startsWith("http")) {
-          direct.push({ platform_key: "vk", platform_name: "VK Музыка", url: payload.vk, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
-        }
+        const title = cleanReleaseTitleForSearch(form.track_name || payload.name || payload.title || "");
+        const direct = extractDirectPlatformsFromPayload(payload, isPast);
 
         return {
           source: "cxrner",
@@ -176,20 +202,8 @@ async function lookupCxrnerDbByUpc(upc: string): Promise<ReleaseLookupResult | n
           normalizeReleaseDate(rel.release_date || rel.date || payload.release_date || payload.date) || undefined;
         const isPast = relDate ? new Date(relDate) <= new Date() : false;
         const artist = rel.nick || rel.artist_name || payload.nick || "";
-        const title = rel.name || rel.track_name || payload.name || "";
-
-        const direct: PlatformLinkCandidate[] = [];
-        const rawYandex =
-          rel.yandex_album ||
-          payload.yandex_album ||
-          payload.album_url ||
-          payload.dsp_links?.yandex ||
-          rel.yandex ||
-          payload.yandex;
-        const validYandex = sanitizeReleaseYandexLink(rawYandex);
-        if (validYandex) {
-          direct.push({ platform_key: "yandex", platform_name: "Яндекс Музыка", url: validYandex, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true });
-        }
+        const title = cleanReleaseTitleForSearch(rel.name || rel.track_name || payload.name || "");
+        const direct = extractDirectPlatformsFromPayload({ ...payload, ...rel }, isPast);
 
         return {
           source: "cxrner",
@@ -246,7 +260,7 @@ async function lookupItunesByUpc(upc: string): Promise<ReleaseLookupResult | nul
 
     return {
       source: "itunes",
-      title: item.collectionName || "",
+      title: cleanReleaseTitleForSearch(item.collectionName || ""),
       artist: item.artistName || "",
       cover_url: cover,
       upc,
@@ -372,45 +386,196 @@ async function lookupMusicBrainzByUpc(upc: string): Promise<ReleaseLookupResult 
   }
 }
 
-/** 5. Cross-Enrich by Artist + Title via iTunes & Deezer to get direct links & missing cover/date */
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 3500): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function normalizeMatchTokens(str: string): string[] {
+  return String(str || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яё]+/gi, " ")
+    .trim()
+    .split(/\s+/)
+    .filter((t) => t.length >= 2);
+}
+
+/** 5a. Direct YouTube Music video lookup (verified against title tokens) */
+async function lookupYoutubeMusicDirect(artist: string, title: string): Promise<string | null> {
+  const cleanArtist = cleanArtistForSearch(artist);
+  const cleanTitle = cleanReleaseTitleForSearch(title);
+  if (!cleanTitle) return null;
+
+  try {
+    const q = `${cleanArtist} ${cleanTitle} Topic`.trim();
+    const res = await fetchWithTimeout(
+      `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        },
+      },
+      3500
+    );
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const titleTokens = normalizeMatchTokens(cleanTitle);
+    const pairRe = /"videoId":"([A-Za-z0-9_-]{11})"[\s\S]{0,450}?"title":\{"runs":\[\{"text":"([^"]{1,160})"/g;
+    let m: RegExpExecArray | null;
+    let firstCandidate = "";
+    while ((m = pairRe.exec(html)) !== null) {
+      const vid = m[1];
+      const vTitle = m[2].toLowerCase();
+      if (!firstCandidate) firstCandidate = vid;
+      if (titleTokens.length === 0 || titleTokens.every((tok) => vTitle.includes(tok))) {
+        return `https://music.youtube.com/watch?v=${vid}`;
+      }
+    }
+
+    if (firstCandidate) {
+      return `https://music.youtube.com/watch?v=${firstCandidate}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** 5b. Optional Odesli / Songlink cross-platform resolver (requires ODESLI_API_KEY env var) */
+async function lookupOdesliDirect(seedUrl: string): Promise<PlatformLinkCandidate[]> {
+  const apiKey = (process.env.ODESLI_API_KEY || "").trim();
+  if (!apiKey || !seedUrl || !seedUrl.startsWith("http")) return [];
+  try {
+    const apiUrl = `https://api.song.link/v1-alpha.1/links?url=${encodeURIComponent(seedUrl)}&userCountry=RU&key=${encodeURIComponent(apiKey)}`;
+    const res = await fetchWithTimeout(apiUrl, { headers: { "User-Agent": "CXRNER-LINK/1.0" } }, 4000);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const links = data?.linksByPlatform || {};
+    const out: PlatformLinkCandidate[] = [];
+    const map: Array<{ src: string; key: string; name: string }> = [
+      { src: "yandex", key: "yandex", name: "Яндекс Музыка" },
+      { src: "spotify", key: "spotify", name: "Spotify" },
+      { src: "appleMusic", key: "apple", name: "Apple Music" },
+      { src: "youtubeMusic", key: "youtube", name: "YouTube Music" },
+      { src: "deezer", key: "deezer", name: "Deezer" },
+    ];
+    for (const item of map) {
+      const url = links?.[item.src]?.url;
+      if (typeof url === "string" && url.startsWith("http")) {
+        out.push({ platform_key: item.key, platform_name: item.name, url, button_text: "Слушать", is_direct: true });
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+let cachedSpotifyToken: { token: string; expiresAt: number } | null = null;
+
+/** 5c. Optional Spotify Web API direct resolver (uses SPOTIFY_CLIENT_ID & SPOTIFY_CLIENT_SECRET if set) */
+async function lookupSpotifyDirect(artist: string, title: string, upc?: string): Promise<string | null> {
+  const clientId = (process.env.SPOTIFY_CLIENT_ID || "").trim();
+  const clientSecret = (process.env.SPOTIFY_CLIENT_SECRET || "").trim();
+  if (!clientId || !clientSecret) return null;
+
+  try {
+    if (!cachedSpotifyToken || Date.now() >= cachedSpotifyToken.expiresAt) {
+      const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+      const tokenRes = await fetchWithTimeout(
+        "https://accounts.spotify.com/api/token",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: "grant_type=client_credentials",
+        },
+        3500
+      );
+      if (!tokenRes.ok) return null;
+      const tokenJson = await tokenRes.json();
+      if (!tokenJson?.access_token) return null;
+      cachedSpotifyToken = {
+        token: tokenJson.access_token,
+        expiresAt: Date.now() + Math.max(60, Number(tokenJson.expires_in || 3600) - 60) * 1000,
+      };
+    }
+
+    const q = upc
+      ? `upc:${upc.replace(/\D/g, "")}`
+      : `track:${cleanReleaseTitleForSearch(title)} artist:${cleanArtistForSearch(artist).split(" ")[0] || ""}`.trim();
+    const searchRes = await fetchWithTimeout(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=${upc ? "album" : "track"}&limit=1`,
+      { headers: { Authorization: `Bearer ${cachedSpotifyToken.token}` } },
+      3500
+    );
+    if (!searchRes.ok) return null;
+    const data = await searchRes.json();
+    const item = upc ? data?.albums?.items?.[0] : data?.tracks?.items?.[0];
+    return item?.external_urls?.spotify || null;
+  } catch {
+    return null;
+  }
+}
+
+/** 5. Cross-Enrich by Artist + Title via iTunes, Deezer, YouTube Music & optional Odesli/Spotify */
 async function enrichByArtistTitle(
   artist: string,
-  title: string
+  title: string,
+  options?: { upc?: string; seedUrl?: string }
 ): Promise<{ cover?: string; release_date?: string; platforms: PlatformLinkCandidate[] }> {
-  const q = `${artist} ${title}`.trim();
+  const cleanArtist = cleanArtistForSearch(artist);
+  const cleanTitle = cleanReleaseTitleForSearch(title);
+  const q = `${cleanArtist} ${cleanTitle}`.trim();
   if (!q) return { platforms: [] };
+
+  const primaryArtist = cleanArtist.split(" ")[0] || cleanArtist;
+  const dzQuery = primaryArtist && cleanTitle ? `${primaryArtist} ${cleanTitle}` : q;
 
   const platforms: PlatformLinkCandidate[] = [];
   let cover = "";
   let release_date = "";
 
-  const [itAlbumRes, itSongRes, dzAlbumRes, dzTrackRes] = await Promise.all([
-    fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=album&limit=1`, {
+  const [itAlbumRes, itSongRes, dzAlbumRes, dzTrackRes, ytDirectUrl, spotifyDirectUrl] = await Promise.all([
+    fetchWithTimeout(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=album&limit=1`, {
       headers: { "User-Agent": "CXRNER-LINK/1.0" },
     })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
-    fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=1`, {
+    fetchWithTimeout(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=1`, {
       headers: { "User-Agent": "CXRNER-LINK/1.0" },
     })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
-    fetch(`https://api.deezer.com/search/album?q=${encodeURIComponent(q)}&limit=1`, {
+    fetchWithTimeout(`https://api.deezer.com/search/album?q=${encodeURIComponent(dzQuery)}&limit=1`, {
       headers: { "User-Agent": "CXRNER-LINK/1.0" },
     })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
-    fetch(`https://api.deezer.com/search/track?q=${encodeURIComponent(q)}&limit=1`, {
+    fetchWithTimeout(`https://api.deezer.com/search/track?q=${encodeURIComponent(dzQuery)}&limit=1`, {
       headers: { "User-Agent": "CXRNER-LINK/1.0" },
     })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
+    lookupYoutubeMusicDirect(artist, title),
+    lookupSpotifyDirect(artist, title, options?.upc),
   ]);
 
   const itItem = itAlbumRes?.results?.[0] || itSongRes?.results?.[0];
+  let seedUrl = options?.seedUrl || "";
   if (itItem) {
     const viewUrl = itItem.collectionViewUrl || itItem.trackViewUrl;
     if (viewUrl) {
+      if (!seedUrl) seedUrl = viewUrl;
       platforms.push({
         platform_key: "apple",
         platform_name: "Apple Music",
@@ -425,31 +590,69 @@ async function enrichByArtistTitle(
 
   const dzItem = dzAlbumRes?.data?.[0];
   const dzTrack = dzTrackRes?.data?.[0];
-  if (dzItem) {
-    if (dzItem.link) {
-      platforms.push({
-        platform_key: "deezer",
-        platform_name: "Deezer",
-        url: dzItem.link,
-        button_text: "Слушать",
-        is_direct: true,
-      });
-    }
+  if (dzItem?.link) {
+    if (!seedUrl) seedUrl = dzItem.link;
+    platforms.push({
+      platform_key: "deezer",
+      platform_name: "Deezer",
+      url: dzItem.link,
+      button_text: "Слушать",
+      is_direct: true,
+    });
     if (!cover) cover = dzItem.cover_xl || dzItem.cover_big || "";
-  } else if (dzTrack) {
-    if (dzTrack.link) {
-      platforms.push({
-        platform_key: "deezer",
-        platform_name: "Deezer",
-        url: dzTrack.link,
-        button_text: "Слушать",
-        is_direct: true,
-      });
-    }
+  } else if (dzTrack?.link) {
+    if (!seedUrl) seedUrl = dzTrack.link;
+    platforms.push({
+      platform_key: "deezer",
+      platform_name: "Deezer",
+      url: dzTrack.link,
+      button_text: "Слушать",
+      is_direct: true,
+    });
     if (!cover) cover = dzTrack.album?.cover_xl || dzTrack.album?.cover_big || "";
   }
 
+  if (ytDirectUrl) {
+    platforms.push({
+      platform_key: "youtube",
+      platform_name: "YouTube Music",
+      url: ytDirectUrl,
+      button_text: "Слушать",
+      is_direct: true,
+    });
+  }
+
+  if (spotifyDirectUrl) {
+    platforms.push({
+      platform_key: "spotify",
+      platform_name: "Spotify",
+      url: spotifyDirectUrl,
+      button_text: "Слушать",
+      is_direct: true,
+    });
+  }
+
+  if (seedUrl && process.env.ODESLI_API_KEY) {
+    const odesliLinks = await lookupOdesliDirect(seedUrl);
+    platforms.push(...odesliLinks);
+  }
+
   return { cover, release_date, platforms };
+}
+
+/** Resolves direct platform URLs for an existing Smart Link (used on public load when /search fallbacks remain) */
+export async function resolveDirectPlatformLinks(params: {
+  artist: string;
+  title: string;
+  upc?: string;
+  seedUrl?: string;
+  isOutNow?: boolean;
+}): Promise<PlatformLinkCandidate[]> {
+  const enriched = await enrichByArtistTitle(params.artist, params.title, {
+    upc: params.upc,
+    seedUrl: params.seedUrl,
+  });
+  return buildFullPlatformList(params.artist, params.title, enriched.platforms, params.isOutNow !== false);
 }
 
 /** Primary Orchestrator: UPC / EAN Lookup with Full Platform Auto-Population */
@@ -482,9 +685,13 @@ export async function lookupReleaseByUpc(upc: string): Promise<ReleaseLookupResu
     let coverUrl = itunesResult?.cover_url || deezerResult?.cover_url || (base.source !== "cxrner" ? base.cover_url : "") || "";
     let relDate = cxrnerDbResult?.release_date || itunesResult?.release_date || deezerResult?.release_date || base.release_date || "";
 
-    // If we found the track in CXRNER DB or MusicBrainz, enrich missing direct Apple/Deezer/cover/date
-    if (base.artist && base.title && (!coverUrl || !mergedDirect.some((p) => p.platform_key === "apple"))) {
-      const enriched = await enrichByArtistTitle(base.artist, base.title);
+    // Enrich missing direct Apple / Deezer / YouTube Music / Spotify / Odesli / cover / date
+    const hasApple = mergedDirect.some((p) => p.platform_key === "apple");
+    const hasDeezer = mergedDirect.some((p) => p.platform_key === "deezer");
+    const hasYoutube = mergedDirect.some((p) => p.platform_key === "youtube");
+    const seedUrl = mergedDirect.find((p) => p.platform_key === "apple" || p.platform_key === "deezer" || p.platform_key === "spotify")?.url || "";
+    if (base.artist && base.title && (!coverUrl || !hasApple || !hasDeezer || !hasYoutube)) {
+      const enriched = await enrichByArtistTitle(base.artist, base.title, { upc: cleanUpc, seedUrl });
       mergedDirect.push(...enriched.platforms);
       if (!coverUrl && enriched.cover) coverUrl = enriched.cover;
       if (!relDate && enriched.release_date) relDate = enriched.release_date;
@@ -535,20 +742,34 @@ export async function searchReleasesByQuery(query: string): Promise<ReleaseLooku
 
   try {
     const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=album&limit=6`;
-    const res = await fetch(itunesUrl, { headers: { "User-Agent": "CXRNER-LINK/1.0" } });
+    const res = await fetchWithTimeout(itunesUrl, { headers: { "User-Agent": "CXRNER-LINK/1.0" } }, 4000);
     if (res.ok) {
       const data = await res.json();
       if (data.results && Array.isArray(data.results)) {
-        data.results.forEach((item: any) => {
+        const items = data.results.slice(0, 6);
+        const enrichedTop = await Promise.all(
+          items.slice(0, 3).map((item: any) => {
+            const artist = item.artistName || "";
+            const title = cleanReleaseTitleForSearch(item.collectionName || "");
+            return artist && title
+              ? enrichByArtistTitle(artist, title, { seedUrl: item.collectionViewUrl || "" }).catch(() => ({ platforms: [] }))
+              : Promise.resolve({ platforms: [] });
+          })
+        );
+
+        items.forEach((item: any, idx: number) => {
           const cover = (item.artworkUrl100 || "").replace("100x100bb", "1000x1000bb");
           const artist = item.artistName || "";
-          const title = item.collectionName || "";
+          const title = cleanReleaseTitleForSearch(item.collectionName || "");
           const relDate = normalizeReleaseDate(item.releaseDate) || undefined;
           const isPast = relDate ? new Date(relDate) <= new Date() : true;
 
           const direct: PlatformLinkCandidate[] = item.collectionViewUrl
             ? [{ platform_key: "apple", platform_name: "Apple Music", url: item.collectionViewUrl, button_text: isPast ? "Слушать" : "Pre-save", is_direct: true }]
             : [];
+          if (enrichedTop[idx]?.platforms?.length) {
+            direct.push(...enrichedTop[idx].platforms);
+          }
 
           results.push({
             source: "itunes",

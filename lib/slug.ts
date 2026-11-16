@@ -115,9 +115,44 @@ export function normalizeReleaseDate(raw?: string | null): string {
   return "";
 }
 
+/** Removes store edition suffixes like " - Single", " - EP", "(Single)" for clean DSP search queries */
+export function cleanReleaseTitleForSearch(rawTitle?: string | null): string {
+  const s = String(rawTitle || "").trim();
+  if (!s) return "";
+  return s
+    .replace(/\s*[-–—]\s*(single|ep|album|deluxe(\s+edition)?|remastered(\s+\d{4})?|explicit|clean)\s*$/i, "")
+    .replace(/\s*\((single|ep|explicit|clean)\)\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Normalizes collab separators (&, ×, feat., ft., comma) into spaces for DSP search */
+export function cleanArtistForSearch(rawArtist?: string | null): string {
+  const s = String(rawArtist || "").trim();
+  if (!s) return "";
+  return s
+    .replace(/\s+(?:feat\.?|ft\.?|featuring)\s+/gi, " ")
+    .replace(/[&×,]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Checks whether a platform URL is a generic search fallback rather than a direct release/track URL */
+export function isPlatformSearchFallbackUrl(platformKey: string, rawUrl?: string | null): boolean {
+  const u = String(rawUrl || "").trim().toLowerCase();
+  if (!u) return true;
+  if (u.includes("/search?") || u.includes("/search/")) return true;
+  if (platformKey === "vk" && u.includes("vk.com/audio?q=")) return true;
+  if (platformKey === "apple" && u.includes("music.apple.com/search")) return true;
+  if (platformKey === "yandex" && u.includes("music.yandex.") && u.includes("/artist/")) return true;
+  return false;
+}
+
 /** Generates a smart release search URL for any streaming platform when direct link is absent */
 export function buildPlatformSearchUrl(platformKey: string, artist: string, title: string): string {
-  const q = `${artist.trim()} ${title.trim()}`.trim();
+  const cleanArtist = cleanArtistForSearch(artist);
+  const cleanTitle = cleanReleaseTitleForSearch(title);
+  const q = `${cleanArtist} ${cleanTitle}`.trim();
   if (!q) return "";
   const encoded = encodeURIComponent(q);
 
@@ -125,7 +160,7 @@ export function buildPlatformSearchUrl(platformKey: string, artist: string, titl
     case "yandex":
       return `https://music.yandex.ru/search?text=${encoded}`;
     case "vk":
-      return `https://vk.com/audio?q=${encodeURIComponent(`${artist.trim()} - ${title.trim()}`)}`;
+      return `https://vk.com/audio?q=${encoded}`;
     case "spotify":
       return `https://open.spotify.com/search/${encoded}`;
     case "apple":

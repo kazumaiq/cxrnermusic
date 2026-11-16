@@ -1283,7 +1283,7 @@ export default function CreateLinkWizard() {
                               : "border-[#B46BFF]/40 bg-[#8737FF]/15 text-[#D9D9E2]"
                           }`}
                         >
-                          {p.is_direct ? "Прямая" : "Авто"}
+                          {p.is_direct ? "Прямая" : "Поиск ⚠️"}
                         </span>
                       )}
                     </div>
@@ -1292,7 +1292,7 @@ export default function CreateLinkWizard() {
                       <div className="relative flex-1 min-w-0">
                         <input
                           type="url"
-                          placeholder={`Ссылка на ${p.platform_name}`}
+                          placeholder={`Прямая ссылка на трек в ${p.platform_name}`}
                           value={p.url}
                           onChange={(e) =>
                             updatePlatform(p.platform_key, { url: e.target.value, is_direct: true })
@@ -1310,14 +1310,14 @@ export default function CreateLinkWizard() {
                                 ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
                                 : p.is_direct
                                 ? "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"
-                                : "border-[#B46BFF]/40 bg-[#8737FF]/15 text-[#D9D9E2]"
+                                : "border-amber-500/40 bg-amber-500/10 text-amber-300"
                             }`}
                           >
                             {p.platform_key === "yandex" && p.url.includes("/artist/")
                               ? "Профиль ⚠️"
                               : p.is_direct
                               ? "Прямая"
-                              : "Авто"}
+                              : "Поиск ⚠️"}
                           </span>
                         )}
                       </div>

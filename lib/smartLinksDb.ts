@@ -5,8 +5,71 @@ import {
   getSupabaseAdminClient,
   getSupabaseServerClient,
 } from "@/lib/supabaseServer";
-import { generateSlug, validateCustomSlug } from "@/lib/slug";
+import {
+  generateSlug,
+  validateCustomSlug,
+  isPlatformSearchFallbackUrl,
+  buildPlatformSearchUrl,
+} from "@/lib/slug";
+import { resolveDirectPlatformLinks } from "@/lib/linkLookup";
 import { awardCxp, createNotification } from "@/lib/ecosystemDb";
+
+const PUBLIC_PLATFORM_ENRICH_CACHE = new Map<string, { expiresAt: number; directByKey: Map<string, string> }>();
+
+async function enrichPublicSmartLinkPlatforms(link: SmartLinkRecord, rawPlatforms: any[]): Promise<any[]> {
+  const list = Array.isArray(rawPlatforms) ? rawPlatforms : [];
+  const artistName = String(link?.artist || (link as any)?.artist_name || "").trim();
+  if (!list.length || !artistName || !link?.title) return list;
+
+  const hasFallback = list.some((p) => p?.is_enabled !== false && isPlatformSearchFallbackUrl(p?.platform_key, p?.url));
+  if (!hasFallback) return list;
+
+  const cacheKey = `${link.id || link.slug}:${artistName}:${link.title}`.toLowerCase();
+  const cached = PUBLIC_PLATFORM_ENRICH_CACHE.get(cacheKey);
+  let directByKey: Map<string, string> | null = null;
+
+  if (cached && Date.now() < cached.expiresAt) {
+    directByKey = cached.directByKey;
+  } else {
+    try {
+      const seedUrl =
+        list.find((p) => !isPlatformSearchFallbackUrl(p?.platform_key, p?.url) && ["apple", "deezer", "spotify"].includes(p?.platform_key))?.url || "";
+      const resolved = await Promise.race([
+        resolveDirectPlatformLinks({
+          artist: artistName,
+          title: link.title,
+          upc: link.upc || undefined,
+          seedUrl,
+          isOutNow: Boolean(link.is_out_now),
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2600)),
+      ]);
+      if (resolved && resolved.length) {
+        directByKey = new Map();
+        for (const item of resolved) {
+          if (item.is_direct && item.url && !isPlatformSearchFallbackUrl(item.platform_key, item.url)) {
+            directByKey.set(item.platform_key, item.url);
+          }
+        }
+        PUBLIC_PLATFORM_ENRICH_CACHE.set(cacheKey, {
+          expiresAt: Date.now() + 15 * 60 * 1000,
+          directByKey,
+        });
+      }
+    } catch {}
+  }
+
+  return list.map((plat) => {
+    const key = String(plat?.platform_key || "");
+    if (!key || !isPlatformSearchFallbackUrl(key, plat?.url)) return plat;
+    const directUrl = directByKey?.get(key);
+    if (directUrl) {
+      return { ...plat, url: directUrl };
+    }
+    const cleanSearch = buildPlatformSearchUrl(key, artistName, link.title);
+    return cleanSearch ? { ...plat, url: cleanSearch } : plat;
+  });
+}
 
 export interface SmartLinkPlatformRecord {
   id?: string;
@@ -567,7 +630,8 @@ export async function getSmartLinkBySlug(
             .eq("smart_link_id", link.id)
             .order("display_order", { ascending: true });
 
-          return { link: link as SmartLinkRecord, platforms: platforms || [] };
+          const enrichedPlatforms = await enrichPublicSmartLinkPlatforms(link as SmartLinkRecord, platforms || []);
+          return { link: link as SmartLinkRecord, platforms: enrichedPlatforms };
         }
       } catch {}
     }
@@ -583,9 +647,10 @@ export async function getSmartLinkBySlug(
       );
       if (found) {
         const normalized = normalizeVaultLink(found, u.profile);
+        const enrichedPlatforms = await enrichPublicSmartLinkPlatforms(normalized, normalized.platforms || []);
         return {
           link: normalized,
-          platforms: normalized.platforms || [],
+          platforms: enrichedPlatforms,
         };
       }
     }
