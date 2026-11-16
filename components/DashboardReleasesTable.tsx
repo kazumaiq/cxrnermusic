@@ -58,6 +58,11 @@ const statusConfig: Record<string, { label: string; classes: string; icon: any }
     classes: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-glow",
     icon: CheckCircle2,
   },
+  published: {
+    label: "Одобрено",
+    classes: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-glow",
+    icon: CheckCircle2,
+  },
   uploaded: {
     label: "Отгружено на DSP",
     classes: "bg-[#8737FF]/15 text-[#B46BFF] border-[#8737FF]/40 shadow-glow",

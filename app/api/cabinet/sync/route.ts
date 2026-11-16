@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "../../../../lib/supabaseServer";
+import { getSupabaseAdminClient, getSupabaseServerClient } from "../../../../lib/supabaseServer";
 import crypto from "crypto";
 
 // GET current Telegram sync status
@@ -14,7 +14,9 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: row } = await supabase
+    const dbClient = getSupabaseAdminClient() || supabase;
+
+    const { data: row } = await dbClient
       .from("cxrner_cabinet_users")
       .select("profile")
       .eq("user_id", user.id)
@@ -26,21 +28,14 @@ export async function GET() {
     const telegramFirstName = profile.telegram_first_name ? String(profile.telegram_first_name) : null;
     const linkedAt = profile.telegram_linked_at ? String(profile.telegram_linked_at) : null;
 
-    // Count synced releases
-    let syncedCount = 0;
-    if (telegramId) {
-      const { count } = await supabase
-        .from("cxrner_forms")
-        .select("id", { count: "exact", head: true })
-        .or(`telegram_id.eq.${user.id},telegram_id.eq.${telegramId}`);
-      syncedCount = count || 0;
-    } else {
-      const { count } = await supabase
-        .from("cxrner_forms")
-        .select("id", { count: "exact", head: true })
-        .eq("telegram_id", user.id);
-      syncedCount = count || 0;
-    }
+    const lookupIds = Array.from(
+      new Set([String(user.id || "").trim(), String(telegramId || "").trim()].filter(Boolean))
+    );
+    const { count } = await dbClient
+      .from("cxrner_forms")
+      .select("id", { count: "exact", head: true })
+      .in("telegram_id", lookupIds);
+    const syncedCount = count || 0;
 
     return NextResponse.json({
       ok: true,
@@ -68,13 +63,15 @@ export async function POST() {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const dbClient = getSupabaseAdminClient() || supabase;
+
     // Generate short readable 6-digit code like "CX-748921" and a secure URL token
     const randomDigits = Math.floor(100000 + Math.random() * 900000);
     const code = `CX-${randomDigits}`;
     const token = crypto.randomBytes(16).toString("hex");
     const now = new Date().toISOString();
 
-    const { data: existing } = await supabase
+    const { data: existing } = await dbClient
       .from("cxrner_cabinet_users")
       .select("profile")
       .eq("user_id", user.id)
@@ -88,7 +85,7 @@ export async function POST() {
       link_created_at: now,
     };
 
-    await supabase.from("cxrner_cabinet_users").upsert(
+    await dbClient.from("cxrner_cabinet_users").upsert(
       {
         user_id: user.id,
         profile: updatedProfile,

@@ -16,16 +16,31 @@ import {
 
 const statusConfig: Record<string, { label: string; classes: string; icon: any }> = {
   pending: {
-    label: "На рассмотрении",
+    label: "На отгрузке",
+    classes: "bg-yellow-500/15 text-yellow-300 border-yellow-500/40 shadow-glow",
+    icon: Clock,
+  },
+  on_upload: {
+    label: "На отгрузке",
     classes: "bg-yellow-500/15 text-yellow-300 border-yellow-500/40 shadow-glow",
     icon: Clock,
   },
   moderation: {
     label: "A&R Модерация",
-    classes: "bg-yellow-500/15 text-yellow-300 border-yellow-500/40",
+    classes: "bg-purple-500/15 text-purple-300 border-purple-500/40",
+    icon: Clock,
+  },
+  on_moderation: {
+    label: "A&R Модерация",
+    classes: "bg-purple-500/15 text-purple-300 border-purple-500/40",
     icon: Clock,
   },
   approved: {
+    label: "Одобрено модератором",
+    classes: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-glow",
+    icon: CheckCircle2,
+  },
+  published: {
     label: "Одобрено модератором",
     classes: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-glow",
     icon: CheckCircle2,
@@ -39,6 +54,11 @@ const statusConfig: Record<string, { label: string; classes: string; icon: any }
     label: "В релизе (Live)",
     classes: "bg-aqua/15 text-aqua border-aqua/40 shadow-glowAqua",
     icon: CheckCircle2,
+  },
+  needfix: {
+    label: "Требует исправлений",
+    classes: "bg-orange-500/15 text-orange-300 border-orange-500/40",
+    icon: AlertCircle,
   },
   fix_required: {
     label: "Требует исправлений",
@@ -104,7 +124,8 @@ export default function ReleaseRealtimeSection({
     }
   }, [formId]);
 
-  const cfg = (status && statusConfig[status]) || {
+  const stLower = String(status || "").toLowerCase();
+  const cfg = (stLower && statusConfig[stLower]) || {
     label: status || "Неизвестно",
     classes: "bg-white/5 text-white/70 border-white/10",
     icon: Clock,
@@ -112,25 +133,26 @@ export default function ReleaseRealtimeSection({
   const StatusIcon = cfg.icon;
 
   // Lifecycle steps calculation
+  const isApprovedPlus = ["approved", "published", "uploaded", "released"].includes(stLower);
   const steps = [
     { id: "submitted", label: "Заявка принята", done: true },
     {
       id: "moderation",
       label: "Модерация A&R",
-      done: status === "approved" || status === "uploaded" || status === "released",
-      active: status === "pending" || status === "moderation",
+      done: isApprovedPlus,
+      active: ["pending", "on_upload", "moderation", "on_moderation"].includes(stLower),
     },
     {
       id: "upc",
       label: "Код UPC",
-      done: Boolean(upc) || status === "uploaded" || status === "released",
-      active: status === "approved" && !upc,
+      done: Boolean(upc) || stLower === "uploaded" || stLower === "released",
+      active: (stLower === "approved" || stLower === "published") && !upc,
     },
     {
       id: "distribution",
       label: "Отгрузка на DSP",
-      done: status === "released",
-      active: status === "uploaded",
+      done: stLower === "released",
+      active: stLower === "uploaded",
     },
   ];
 

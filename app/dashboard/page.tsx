@@ -1,12 +1,11 @@
 import Image from "next/image";
-import { createClient } from "@supabase/supabase-js";
 import Container from "../../components/Container";
 import GlowButton from "../../components/GlowButton";
 import DashboardReleasesTable from "../../components/DashboardReleasesTable";
 import TelegramSyncCard from "../../components/TelegramSyncCard";
 import CxrnerLinkHeroCard from "../../components/link/CxrnerLinkHeroCard";
 import CabinetNav from "../../components/CabinetNav";
-import { getSupabaseServerClient } from "../../lib/supabaseServer";
+import { getSupabaseAdminClient, getSupabaseServerClient } from "../../lib/supabaseServer";
 import { getUserSmartLinks } from "../../lib/smartLinksDb";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -62,12 +61,7 @@ export default async function DashboardPage() {
     }
     user = authUser;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const dbClient =
-      supabaseUrl && serviceRoleKey
-        ? createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
-        : supabase;
+    const dbClient = getSupabaseAdminClient() || supabase;
 
     const { data: pRow } = await dbClient
       .from("cxrner_cabinet_users")
@@ -76,24 +70,60 @@ export default async function DashboardPage() {
       .maybeSingle<CabinetProfileRow>();
     profileRow = pRow;
 
-    const linkedTgId = profileRow?.profile?.telegram_id
-      ? String(profileRow.profile.telegram_id)
-      : null;
+    const { data: profRow } = await dbClient
+      .from("cxrner_profiles")
+      .select("telegram_id")
+      .eq("user_id", user.id)
+      .maybeSingle<{ telegram_id?: string | null }>();
 
-    let query = dbClient
-      .from("cxrner_forms")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const linkedTgId =
+      profileRow?.profile?.telegram_id
+        ? String(profileRow.profile.telegram_id)
+        : profRow?.telegram_id
+        ? String(profRow.telegram_id)
+        : user.user_metadata?.telegram_id
+        ? String(user.user_metadata.telegram_id)
+        : null;
 
-    if (linkedTgId) {
-      query = query.or(`telegram_id.eq.${user.id},telegram_id.eq.${linkedTgId}`);
+    const lookupIds = Array.from(
+      new Set([String(user.id || "").trim(), String(linkedTgId || "").trim()].filter(Boolean))
+    );
+
+    let fRows: FormRow[] | null = null;
+    let formsError: any = null;
+    if (lookupIds.length > 1) {
+      const res = await dbClient
+        .from("cxrner_forms")
+        .select("*")
+        .in("telegram_id", lookupIds)
+        .order("created_at", { ascending: false })
+        .returns<FormRow[]>();
+      fRows = res.data;
+      formsError = res.error;
     } else {
-      query = query.eq("telegram_id", user.id);
+      const res = await dbClient
+        .from("cxrner_forms")
+        .select("*")
+        .eq("telegram_id", user.id)
+        .order("created_at", { ascending: false })
+        .returns<FormRow[]>();
+      fRows = res.data;
+      formsError = res.error;
     }
 
-    const { data: fRows, error: formsError } = await query.returns<FormRow[]>();
     if (formsError) {
       console.error("[Dashboard] cxrner_forms query error:", formsError.message);
+      const fallbackRes = await dbClient
+        .from("cxrner_forms")
+        .select("*")
+        .eq("telegram_id", user.id)
+        .order("created_at", { ascending: false })
+        .returns<FormRow[]>();
+      if (!fallbackRes.error && fallbackRes.data) {
+        fRows = fallbackRes.data;
+      } else {
+        errorNotice = formsError.message || "Ошибка чтения списка релизов";
+      }
     }
 
     forms = (fRows ?? []).filter((f: any) => {
@@ -105,7 +135,7 @@ export default async function DashboardPage() {
     // Fallback: Check cxrner_public_releases if linked to Telegram and cxrner_forms is empty
     if (forms.length === 0 && linkedTgId) {
       try {
-        const { data: pubRows } = await supabase
+        const { data: pubRows } = await dbClient
           .from("cxrner_public_releases")
           .select("*")
           .eq("telegram_id", linkedTgId);

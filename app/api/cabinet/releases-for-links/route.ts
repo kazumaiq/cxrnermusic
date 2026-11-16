@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getSupabaseAdminClient, getSupabaseServerClient } from "@/lib/supabaseServer";
 
 export async function GET() {
   try {
@@ -12,7 +12,9 @@ export async function GET() {
       return NextResponse.json({ success: false, releases: [] }, { status: 401 });
     }
 
-    const { data: profileRow } = await supabase
+    const dbClient = getSupabaseAdminClient() || supabase;
+
+    const { data: profileRow } = await dbClient
       .from("cxrner_cabinet_users")
       .select("profile")
       .eq("user_id", user.id)
@@ -22,19 +24,16 @@ export async function GET() {
       ? String(profileRow.profile.telegram_id)
       : null;
 
-    let query = supabase
+    const lookupIds = Array.from(
+      new Set([String(user.id || "").trim(), String(linkedTgId || "").trim()].filter(Boolean))
+    );
+
+    const { data: rows = [] } = await dbClient
       .from("cxrner_forms")
-      .select("id, artist_name, track_name, genre, status, upc, created_at, source, form_payload")
+      .select("*")
+      .in("telegram_id", lookupIds)
       .order("created_at", { ascending: false })
       .limit(50);
-
-    if (linkedTgId) {
-      query = query.or(`telegram_id.eq.${user.id},telegram_id.eq.${linkedTgId}`);
-    } else {
-      query = query.eq("telegram_id", user.id);
-    }
-
-    const { data: rows = [] } = await query;
 
     const releases = (rows || []).map((row: any) => {
       const payload = row.form_payload || {};

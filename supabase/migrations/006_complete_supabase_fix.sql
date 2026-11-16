@@ -305,6 +305,11 @@ CREATE TABLE IF NOT EXISTS public.cxrner_forms (
   updated_at timestamptz DEFAULT now()
 );
 
+ALTER TABLE public.cxrner_forms ADD COLUMN IF NOT EXISTS moderator_comment text DEFAULT '';
+ALTER TABLE public.cxrner_forms ADD COLUMN IF NOT EXISTS admin_comment text DEFAULT '';
+ALTER TABLE public.cxrner_forms ADD COLUMN IF NOT EXISTS action_history jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.cxrner_forms ADD COLUMN IF NOT EXISTS user_deleted boolean DEFAULT false;
+
 CREATE TABLE IF NOT EXISTS public.cxrner_telegram_profiles (
   telegram_id text PRIMARY KEY,
   username text DEFAULT '',
