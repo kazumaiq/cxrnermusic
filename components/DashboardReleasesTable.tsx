@@ -308,7 +308,7 @@ export default function DashboardReleasesTable({
                         <span>Требуются исправления:</span>
                       </div>
                       <p className="mt-1 text-white/90">
-                        {item.moderator_comment || item.reject_reason || "Обновите материалы релиза согласно замечаниям модератора."}
+                        {item.moderator_comment || item.form_payload?.moderator_comment || item.reject_reason || "Обновите материалы релиза согласно замечаниям модератора."}
                       </p>
                     </div>
                   )}
